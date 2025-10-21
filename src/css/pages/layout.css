@@ -1,0 +1,337 @@
+body.no-scroll {
+  overflow: hidden; /* 스크롤바를 숨김 */
+}
+
+#header {
+  max-width: 1880px;
+  margin: 0 auto;
+  padding: 18px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 48px;
+  font-family: var(--font-En);
+  position: absolute;
+  z-index: 10;
+  width: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#header h1.logo {
+  width: 30%;
+}
+
+#header > ul.gnb {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  width: 70%;
+}
+
+#header > ul.gnb > li {
+  max-width: 426px;
+  flex: 1;
+}
+
+#header > ul.gnb > li > p {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: var(--medium);
+  margin-bottom: 4px;
+  color: #fff;
+}
+
+#header > ul.gnb > li > ul.sub-list {
+  display: flex;
+  gap: 24px;
+}
+
+#header > ul.gnb > li > ul.sub-list > li {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: var(--light);
+  color: var(--secondary-txt);
+  transition: filter 0.5s ease-in-out;
+}
+
+#header > ul.gnb > li > ul.sub-list:hover > li {
+  filter: blur(1.5px);
+}
+
+#header > ul.gnb > li > ul.sub-list:hover > li:hover {
+  filter: blur(0);
+  color: #fff;
+}
+
+#header .mo-menu {
+  display: none;
+}
+
+#header .mo-nav-open {
+  display: none;
+}
+
+/* ------------------1024px--------------------------- */
+
+@media (max-width: 1024px) {
+  #header {
+    padding: 14px 20px;
+  }
+
+  #header h1.logo {
+    position: relative;
+    z-index: 60;
+  }
+
+  #header > ul.gnb {
+    display: none;
+  }
+
+  #header .mo-menu {
+    /* 기존 스타일 유지 */
+    display: block; /* 모바일에서 보이도록 */
+    width: 30px;
+    height: 20px;
+    position: relative; /* 자식 요소(줄)의 기준점 */
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 100; /* 다른 요소 위에 표시되도록 */
+  }
+
+  /* 햄버거 메뉴의 세 줄 공통 스타일 */
+  #header .mo-menu::before,
+  #header .mo-menu::after,
+  #header .mo-menu span {
+    content: ""; /* before, after를 위해 필요 */
+    display: block;
+    width: 100%;
+    height: 2px;
+    background-color: #fff; /* 흰색으로 지정 */
+    position: absolute;
+    left: 0;
+    transition: all 0.3s ease; /* 전환 효과 추가 */
+  }
+
+  /* 가운데 줄을 위한 span 태그 대신 가상 요소를 사용하지 않은 경우 */
+  #header .mo-menu span {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* 위쪽 줄 */
+  #header .mo-menu::before {
+    top: 0;
+  }
+
+  /* 아래쪽 줄 */
+  #header .mo-menu::after {
+    bottom: 0;
+  }
+
+  /* 'active' 클래스가 있을 때 X자 모양으로 변경 */
+  #header .mo-menu.active::before {
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg); /* 45도 회전 */
+  }
+
+  #header .mo-menu.active::after {
+    bottom: 50%;
+    transform: translateY(50%) rotate(-45deg); /* -45도 회전 */
+  }
+
+  /* 가운데 줄 숨김 */
+  #header .mo-menu.active span {
+    opacity: 0;
+  }
+
+  #header .mo-nav-open {
+    position: fixed;
+    width: 100%;
+    height: 100vh;
+    background: #000;
+    top: 0;
+    left: 0;
+    z-index: 50;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out;
+    display: block;
+  }
+
+  #header .mo-nav-open.is-open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  #header .mo-nav-open ul {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
+  }
+}
+
+@media (max-width: 640px) {
+  #header {
+    padding: 12px 10px;
+  }
+}
+
+/* ----------------------------footer----------------------- */
+
+footer {
+  max-width: 1880px;
+  padding: 0 40px;
+  margin: 0 auto;
+  margin-bottom: 180px;
+}
+
+footer div {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+footer div img {
+  max-width: 100%;
+  height: auto;
+}
+
+footer div span {
+  position: absolute;
+  font-family: var(--font-En);
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: var(--medium);
+  padding: 16px 22px;
+  background: #ddd;
+  border-radius: 50px;
+  animation: float 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes float {
+  0% {
+    /* 시작 및 끝 지점: y축으로 움직임 없음 */
+    transform: translateY(0);
+  }
+  50% {
+    /* 중간 지점: 위로 10px 이동 (움직임의 정도) */
+    transform: translateY(-10px);
+  }
+  100% {
+    /* 다시 시작 지점으로 돌아감 */
+    transform: translateY(0);
+  }
+}
+
+footer div span.purple {
+  background: #6f47db;
+  top: -14%;
+  left: 20.2%;
+  animation-duration: 2.7s;
+}
+
+footer div span.purple.two {
+  top: 32%;
+  left: 80%;
+}
+
+footer div span.green {
+  background: #0ecb7b;
+  top: -5%;
+  right: 20%;
+  animation-delay: 0.5s;
+  animation-duration: 2.3s;
+}
+
+footer div span.orange {
+  background: #f56214;
+  bottom: 26%;
+  left: 3.1%;
+  animation-duration: 1.6s;
+  animation-delay: 0.2s;
+}
+
+footer div span.orange.two {
+  bottom: -1.8%;
+  left: 64.4%;
+}
+
+@media (max-width: 1024px) {
+  footer {
+    padding: 0 20px;
+    margin-bottom: 140px;
+  }
+
+  footer div span {
+    font-size: 16px;
+    line-height: 24px;
+    padding: 10px 14px;
+  }
+
+  footer div span.purple.two {
+    top: 98%;
+    left: 18%;
+  }
+
+  footer div span.orange {
+    left: -2%;
+  }
+
+  footer div span.green {
+    top: -8%;
+  }
+
+  footer div span.orange.two {
+    bottom: -18%;
+    left: 64%;
+  }
+
+  footer div span.orange.two {
+    bottom: -10%;
+  }
+}
+
+@media (max-width: 640px) {
+  footer {
+    padding: 0 10px;
+    margin-bottom: 100px;
+  }
+
+  footer div span {
+    font-size: 12px;
+    line-height: 20px;
+    padding: 6px 10px;
+  }
+
+  footer div img {
+    min-width: 320px;
+  }
+
+  footer div span.purple.two {
+    display: none;
+  }
+
+  footer div span.orange.two {
+    display: none;
+  }
+
+  footer div span.orange {
+    bottom: -10%;
+    left: 0;
+  }
+
+  footer div span.green {
+    top: 28%;
+    right: -2%;
+  }
+
+  footer div span.purple {
+    top: -22%;
+    left: 17.2%;
+  }
+}

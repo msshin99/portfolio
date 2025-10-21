@@ -1,0 +1,40 @@
+/* 폰트 임포트 */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap");
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
+/* 🔹 Global Design Tokens */
+:root {
+  /* ---------- Font ---------- */
+  --font-Ko: "Pretendard", sans-serif;
+  --font-En: "Inter", sans-serif;
+
+  /* Font weights */
+  --light: 300;
+  --medium: 500;
+  --bold: 700;
+
+  /* ---------- Color Palette ---------- */
+  --primary: #3182f6;
+  --secondary: #18cb63;
+  --tertiary: #ff5c00;
+
+  /* Text Colors */
+  --primary-txt: #f56214;
+  --secondary-txt: #c7c7c7;
+  --tertiary-txt: #7c7c7c;
+
+  /* Text Colors */
+  --sub-primary-txt: #222;
+  --sub-secondary-txt: #505050;
+  --sub-tertiary-txt: #767676;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+}

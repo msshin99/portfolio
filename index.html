@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko-KR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="src/css/base/reset.css" />
+    <link rel="stylesheet" href="src/css/base/variables.css" />
+    <link rel="stylesheet" href="src/css/pages/layout.css" />
+    <link rel="stylesheet" href="src/css/pages/main.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/swiper@12/swiper-bundle.min.css"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/swiper@12/swiper-bundle.min.js"
+      defer
+    ></script>
+    <script src="src/js/layout.js"></script>
+    <script src="src/js/slide.js" defer></script>
+  </head>
+  <body>
+    <div class="wrap">
+      <header id="header">
+        <h1 class="logo">
+          <svg
+            width="223"
+            height="30"
+            viewBox="0 0 223 30"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M18.8203 24.4297V29H4.50391V24.4297H18.8203ZM6.39844 0.5625V29H0.539062V0.5625H6.39844ZM44.25 14.1172V15.4648C44.25 17.6263 43.957 19.5664 43.3711 21.2852C42.7852 23.0039 41.9583 24.4688 40.8906 25.6797C39.8229 26.8776 38.5469 27.7956 37.0625 28.4336C35.5911 29.0716 33.957 29.3906 32.1602 29.3906C30.3763 29.3906 28.7422 29.0716 27.2578 28.4336C25.7865 27.7956 24.5104 26.8776 23.4297 25.6797C22.349 24.4688 21.5091 23.0039 20.9102 21.2852C20.3242 19.5664 20.0312 17.6263 20.0312 15.4648V14.1172C20.0312 11.9427 20.3242 10.0026 20.9102 8.29688C21.4961 6.57812 22.3229 5.11328 23.3906 3.90234C24.4714 2.69141 25.7474 1.76693 27.2188 1.12891C28.7031 0.490885 30.3372 0.171875 32.1211 0.171875C33.918 0.171875 35.5521 0.490885 37.0234 1.12891C38.5078 1.76693 39.7839 2.69141 40.8516 3.90234C41.9323 5.11328 42.7656 6.57812 43.3516 8.29688C43.9505 10.0026 44.25 11.9427 44.25 14.1172ZM38.332 15.4648V14.0781C38.332 12.5677 38.1953 11.2396 37.9219 10.0938C37.6484 8.94792 37.2448 7.98438 36.7109 7.20312C36.1771 6.42188 35.526 5.83594 34.7578 5.44531C33.9896 5.04167 33.1107 4.83984 32.1211 4.83984C31.1315 4.83984 30.2526 5.04167 29.4844 5.44531C28.7292 5.83594 28.0846 6.42188 27.5508 7.20312C27.0299 7.98438 26.6328 8.94792 26.3594 10.0938C26.0859 11.2396 25.9492 12.5677 25.9492 14.0781V15.4648C25.9492 16.9622 26.0859 18.2904 26.3594 19.4492C26.6328 20.5951 27.0365 21.5651 27.5703 22.3594C28.1042 23.1406 28.7552 23.7331 29.5234 24.1367C30.2917 24.5404 31.1706 24.7422 32.1602 24.7422C33.1497 24.7422 34.0286 24.5404 34.7969 24.1367C35.5651 23.7331 36.2096 23.1406 36.7305 22.3594C37.2513 21.5651 37.6484 20.5951 37.9219 19.4492C38.1953 18.2904 38.332 16.9622 38.332 15.4648ZM71.0078 14.1367V25.4062C70.5651 25.9401 69.8815 26.5195 68.957 27.1445C68.0326 27.7565 66.8411 28.2839 65.3828 28.7266C63.9245 29.1693 62.1602 29.3906 60.0898 29.3906C58.2539 29.3906 56.5807 29.0911 55.0703 28.4922C53.5599 27.8802 52.2578 26.9883 51.1641 25.8164C50.0833 24.6445 49.25 23.2122 48.6641 21.5195C48.0781 19.8138 47.7852 17.8672 47.7852 15.6797V13.9023C47.7852 11.7148 48.0651 9.76823 48.625 8.0625C49.1979 6.35677 50.0117 4.91797 51.0664 3.74609C52.1211 2.57422 53.3776 1.68229 54.8359 1.07031C56.2943 0.458333 57.9154 0.152344 59.6992 0.152344C62.1732 0.152344 64.2044 0.55599 65.793 1.36328C67.3815 2.15755 68.5924 3.26432 69.4258 4.68359C70.2721 6.08984 70.793 7.70443 70.9883 9.52734H65.3047C65.1615 8.5638 64.888 7.72396 64.4844 7.00781C64.0807 6.29167 63.5013 5.73177 62.7461 5.32812C62.0039 4.92448 61.0404 4.72266 59.8555 4.72266C58.8789 4.72266 58.0065 4.92448 57.2383 5.32812C56.4831 5.71875 55.8451 6.29818 55.3242 7.06641C54.8034 7.83464 54.4062 8.78516 54.1328 9.91797C53.8594 11.0508 53.7227 12.3659 53.7227 13.8633V15.6797C53.7227 17.1641 53.8659 18.4792 54.1523 19.625C54.4388 20.7578 54.862 21.7148 55.4219 22.4961C55.9948 23.2643 56.6979 23.8438 57.5312 24.2344C58.3646 24.625 59.3346 24.8203 60.4414 24.8203C61.3659 24.8203 62.1341 24.7422 62.7461 24.5859C63.3711 24.4297 63.8724 24.2409 64.25 24.0195C64.6406 23.7852 64.9401 23.5638 65.1484 23.3555V18.3164H59.7969V14.1367H71.0078ZM99.0938 14.1172V15.4648C99.0938 17.6263 98.8008 19.5664 98.2148 21.2852C97.6289 23.0039 96.8021 24.4688 95.7344 25.6797C94.6667 26.8776 93.3906 27.7956 91.9062 28.4336C90.4349 29.0716 88.8008 29.3906 87.0039 29.3906C85.2201 29.3906 83.5859 29.0716 82.1016 28.4336C80.6302 27.7956 79.3542 26.8776 78.2734 25.6797C77.1927 24.4688 76.3529 23.0039 75.7539 21.2852C75.168 19.5664 74.875 17.6263 74.875 15.4648V14.1172C74.875 11.9427 75.168 10.0026 75.7539 8.29688C76.3398 6.57812 77.1667 5.11328 78.2344 3.90234C79.3151 2.69141 80.5911 1.76693 82.0625 1.12891C83.5469 0.490885 85.181 0.171875 86.9648 0.171875C88.7617 0.171875 90.3958 0.490885 91.8672 1.12891C93.3516 1.76693 94.6276 2.69141 95.6953 3.90234C96.776 5.11328 97.6094 6.57812 98.1953 8.29688C98.7943 10.0026 99.0938 11.9427 99.0938 14.1172ZM93.1758 15.4648V14.0781C93.1758 12.5677 93.0391 11.2396 92.7656 10.0938C92.4922 8.94792 92.0885 7.98438 91.5547 7.20312C91.0208 6.42188 90.3698 5.83594 89.6016 5.44531C88.8333 5.04167 87.9544 4.83984 86.9648 4.83984C85.9753 4.83984 85.0964 5.04167 84.3281 5.44531C83.5729 5.83594 82.9284 6.42188 82.3945 7.20312C81.8737 7.98438 81.4766 8.94792 81.2031 10.0938C80.9297 11.2396 80.793 12.5677 80.793 14.0781V15.4648C80.793 16.9622 80.9297 18.2904 81.2031 19.4492C81.4766 20.5951 81.8802 21.5651 82.4141 22.3594C82.9479 23.1406 83.599 23.7331 84.3672 24.1367C85.1354 24.5404 86.0143 24.7422 87.0039 24.7422C87.9935 24.7422 88.8724 24.5404 89.6406 24.1367C90.4089 23.7331 91.0534 23.1406 91.5742 22.3594C92.0951 21.5651 92.4922 20.5951 92.7656 19.4492C93.0391 18.2904 93.1758 16.9622 93.1758 15.4648ZM136.418 0.5625V29H130.559L119.133 9.9375V29H113.273V0.5625H119.133L130.578 19.6445V0.5625H136.418ZM153.43 5.42578L145.695 29H139.465L150.031 0.5625H153.996L153.43 5.42578ZM159.855 29L152.102 5.42578L151.477 0.5625H155.48L166.105 29H159.855ZM159.504 18.4141V23.0039H144.484V18.4141H159.504ZM171.418 0.5625H176.379L183.684 21.4414L190.988 0.5625H195.949L185.676 29H181.691L171.418 0.5625ZM168.742 0.5625H173.684L174.582 20.9141V29H168.742V0.5625ZM193.684 0.5625H198.645V29H192.785V20.9141L193.684 0.5625ZM222.863 24.4297V29H207.727V24.4297H222.863ZM209.641 0.5625V29H203.781V0.5625H209.641ZM220.891 12.1445V16.5977H207.727V12.1445H220.891ZM222.844 0.5625V5.15234H207.727V0.5625H222.844Z"
+              fill="white"
+            />
+          </svg>
+        </h1>
+        <ul class="gnb">
+          <li>
+            <p>MENU</p>
+            <ul class="sub-list">
+              <li><a href="#" target="_blank">Home</a></li>
+              <li><a href="#" target="_blank">Portfolio</a></li>
+              <li><a href="#" target="_blank">About</a></li>
+            </ul>
+          </li>
+          <li>
+            <p>CONNECTION</p>
+            <ul class="sub-list">
+              <li>
+                <a
+                  href="https://github.com/msshin99?tab=repositories"
+                  target="_blank"
+                  >Github</a
+                >
+              </li>
+              <li>
+                <a href="https://www.behance.net/c177644f" target="_blank"
+                  >Behence</a
+                >
+              </li>
+            </ul>
+          </li>
+          <li>
+            <p>E-MAIL</p>
+            <ul class="sub-list">
+              <li>tlsalstjr422@naver.com</li>
+            </ul>
+          </li>
+        </ul>
+        <button class="mo-menu"><span></span></button>
+        <div class="mo-nav-open">
+          <ul>
+            <li>섹스</li>
+            <li>섹스</li>
+            <li>섹스</li>
+            <li>섹스</li>
+            <li>섹스</li>
+            <li>섹스</li>
+          </ul>
+        </div>
+      </header>
+      <main>
+        <div class="visual">
+          <figure><img src="assets/visual-img.jpg" alt="" /></figure>
+        </div>
+
+        <section class="intro">
+          <div class="top">
+            <span class="sub-txt">(About)</span>
+            <div class="right">
+              <h3>
+                Design moves people. And people move the world. Design is not
+                just what we see it’s how we feel, remember, and connect.
+              </h3>
+              <p>
+                사소한 요소 하나에도 의미를 담고, 그 안에서 공감과 연결의 순간을
+                만들어내는 디자인을 추구합니다. 나의 디자인은 ‘어떻게
+                보일까’보다 ‘어떻게 느껴질까’를 더 깊이 고민합니다. 저는
+                디자인을 통해 사람들의 하루에 잔잔한 변화를 만들고, 기억에 남는
+                경험과 진심이 닿는 브랜드를 만들어가고자 합니다.
+              </p>
+            </div>
+          </div>
+          <div class="bottom">
+            <ul class="keyword">
+              <li>
+                <span class="num">01.</span>
+                <h5 class="tit">선동 동력</h5>
+                <p class="sub">Ability to Lead</p>
+                <figure><img src="assets/keyword/img-01.png" alt="" /></figure>
+              </li>
+              <li>
+                <span class="num">02.</span>
+                <h5 class="tit">경험 유영</h5>
+                <p class="sub">Experience Swimming</p>
+                <figure><img src="assets/keyword/img-02.png" alt="" /></figure>
+              </li>
+              <li>
+                <span class="num">03.</span>
+                <h5 class="tit">구조적 심도</h5>
+                <p class="sub">Structural Depth</p>
+                <figure><img src="assets/keyword/img-03.png" alt="" /></figure>
+              </li>
+              <li>
+                <span class="num">04.</span>
+                <h5 class="tit">가치 확산</h5>
+                <p class="sub">Spread of Value</p>
+                <figure><img src="assets/keyword/img-04.png" alt="" /></figure>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="work">
+          <div class="section-title">
+            <span class="sub-txt">(Interaction Direction)</span>
+            <div class="main-txt">
+              <h2>My Works</h2>
+              <p>
+                제가 경험한 과정, 고민의 흔적, 그리고 디자인을 통해 사람들과
+                나눈 감정의 이야기들입니다. 각 프로젝트는 서로 다른 목적과
+                문제를 가지고 있었지만, 그 안에서 저는 항상 사람과의 연결, 공감,
+                그리고 의미 있는 변화를 찾고자 했습니다
+              </p>
+            </div>
+          </div>
+
+          <ul class="work-list mb">
+            <li>
+              <figure><img src="assets/work/910x620.jpg" alt="" /></figure>
+              <div class="txt-top">
+                <p class="tit">Nordune</p>
+                <span>2025.10</span>
+              </div>
+              <span class="sub">Furniture Webdesign</span>
+            </li>
+            <li>
+              <figure><img src="assets/work/600x400.jpg" alt="" /></figure>
+              <div class="txt-top">
+                <p class="tit">Nordune</p>
+                <span>2025.10</span>
+              </div>
+              <span class="sub">Furniture Webdesign</span>
+            </li>
+          </ul>
+
+          <ul class="work-list">
+            <li>
+              <figure><img src="assets/work/600x400.jpg" alt="" /></figure>
+              <div class="txt-top">
+                <p class="tit">Nordune</p>
+                <span>2025.10</span>
+              </div>
+              <span class="sub">Furniture Webdesign</span>
+            </li>
+            <li>
+              <figure><img src="assets/work/600x400.jpg" alt="" /></figure>
+              <div class="txt-top">
+                <p class="tit">Nordune</p>
+                <span>2025.10</span>
+              </div>
+              <span class="sub">Furniture Webdesign</span>
+            </li>
+            <li>
+              <figure><img src="assets/work/600x400.jpg" alt="" /></figure>
+              <div class="txt-top">
+                <p class="tit">Nordune</p>
+                <span>2025.10</span>
+              </div>
+              <span class="sub">Furniture Webdesign</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="service">
+          <div class="section-title">
+            <span class="sub-txt">(Interaction Direction)</span>
+            <div class="main-txt">
+              <h2>my Service</h2>
+              <p>
+                저는 디자인을 ‘보여주는 일’이 아니라 ‘이해하고 연결하는
+                과정’이라 생각합니다. 기획부터 디자인, 퍼블리싱까지의 전 과정을
+                통해, 브랜드의 이야기가 사용자에게 자연스럽게 닿는 경험을
+                만들어갑니다.
+              </p>
+            </div>
+          </div>
+
+          <ul class="service-list">
+            <li>
+              <h4>
+                Concept<br />
+                Strategy
+              </h4>
+              <div class="right">
+                <figure><img src="assets/service/img-01.jpg" alt="" /></figure>
+                <p>
+                  디자인 이전에, ‘무엇을 왜 만드는가’를 가장 먼저 고민합니다.
+                  브랜드의 본질과 목표를 이해하고, 사용자의 행동과 감정 흐름을
+                  고려한 기획과 스토리 구조를 설계합니다. 모든 프로젝트는 이
+                  과정을 통해 의미 있는 방향성을 갖게 됩니다.
+                </p>
+              </div>
+            </li>
+
+            <li>
+              <h4>
+                Website<br />
+                Design
+              </h4>
+              <div class="right">
+                <figure><img src="assets/service/img-02.jpg" alt="" /></figure>
+                <p>
+                  사용자의 경험과 감정을 중심에 두고, 브랜드의 메시지가 명확히
+                  전달되는 직관적이고 감성적인 웹디자인을 만듭니다. 단순히
+                  ‘보여주는’ 디자인이 아니라, 사용자가 머물고 싶어지는 경험을
+                  설계합니다.
+                </p>
+              </div>
+            </li>
+            <li>
+              <h4>
+                Website<br />
+                Publishing
+              </h4>
+              <div class="right">
+                <figure><img src="assets/service/img-03.jpg" alt="" /></figure>
+                <p>
+                  세밀한 구조와 완성도를 중요하게 생각하며, 디자인이 실제 화면
+                  위에서 자연스럽게 구현되는 코드와 인터랙션을 제작합니다. 모든
+                  디바이스에서 일관된 경험을 제공하기 위해 HTML, CSS,
+                  JavaScript를 활용한 정교한 구현력에 집중합니다.
+                </p>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <section class="skills">
+          <div class="section-title">
+            <span class="sub-txt">(Interaction Direction)</span>
+            <div class="main-txt">
+              <h2>Skills</h2>
+            </div>
+          </div>
+
+          <ul class="skill-list">
+            <li>
+              <div class="swiper skill">
+                <div class="swiper-wrapper">
+                  <div class="swiper-slide figma">
+                    <img src="assets/skills/figma.png" alt="" />
+                    <img class="hover" src="assets/skills/figma-h.png" alt="" />
+                  </div>
+                  <div class="swiper-slide photoshop">
+                    <img src="assets/skills/photoshop.png" alt="" />
+                    <img
+                      class="hover"
+                      src="assets/skills/photoshop-h.png"
+                      alt=""
+                    />
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div class="swiper skill">
+                <div class="swiper-wrapper">
+                  <div class="swiper-slide html">
+                    <img src="assets/skills/html.png" alt="" />
+                    <img class="hover" src="assets/skills/html-h.png" alt="" />
+                  </div>
+                  <div class="swiper-slide ils">
+                    <img src="assets/skills/ils.png" alt="" />
+                    <img class="hover" src="assets/skills/ils-h.png" alt="" />
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div class="swiper skill">
+                <div class="swiper-wrapper">
+                  <div class="swiper-slide css">
+                    <img src="assets/skills/css.png" alt="" />
+                    <img class="hover" src="assets/skills/css-h.png" alt="" />
+                  </div>
+                  <div class="swiper-slide code">
+                    <img src="assets/skills/code.png" alt="" />
+                    <img class="hover" src="assets/skills/code-h.png" alt="" />
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div class="swiper skill">
+                <div class="swiper-wrapper">
+                  <div class="swiper-slide js">
+                    <img src="assets/skills/js.png" alt="" />
+                    <img class="hover" src="assets/skills/js-h.png" alt="" />
+                  </div>
+                  <div class="swiper-slide github">
+                    <img src="assets/skills/github.png" alt="" />
+                    <img
+                      class="hover"
+                      src="assets/skills/github-h.png"
+                      alt=""
+                    />
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </section>
+      </main>
+      <footer>
+        <div>
+          <figure>
+            <img src="assets/comn/footer-txt.png" alt="" />
+          </figure>
+          <span class="purple">Grapic design</span>
+          <span class="purple two">Grapic design</span>
+          <span class="green">Web design</span>
+          <span class="orange">Publishing</span>
+          <span class="orange two">Publishing</span>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>
