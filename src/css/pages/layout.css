@@ -80,7 +80,7 @@ body.no-scroll {
 
 @media (max-width: 1024px) {
   #header {
-    padding: 14px 20px;
+    padding: 20px;
   }
 
   #header h1.logo {
@@ -180,15 +180,62 @@ body.no-scroll {
     top: 50%;
     translate: -50% -50%;
   }
+
+  #header .mo-nav-open ul li {
+    font-family: var(--font-En);
+    font-size: 48px;
+    line-height: 56px;
+    font-weight: var(--bold);
+    text-align: center;
+    display: block;
+    margin-bottom: 28px;
+    transition: filter 0.5s ease-in-out;
+  }
+
+  #header .mo-nav-open ul li:last-child {
+    margin-bottom: 0;
+  }
+
+  .mo-nav-open ul:hover li {
+    filter: blur(5px);
+  }
+
+  .mo-nav-open ul:hover li:hover {
+    filter: blur(0);
+  }
+
+  #header .mo-nav-open .email {
+    position: absolute;
+    bottom: 14px;
+    left: 14px;
+  }
+
+  #header .mo-nav-open .email span {
+    font-family: var(--font-En);
+    font-size: 14px;
+    line-height: 22px;
+    font-weight: var(--light);
+    color: var(--secondary-txt);
+    margin-bottom: 0;
+    display: block;
+  }
+
+  #header .mo-nav-open .email p {
+    font-family: var(--font-En);
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: var(--medium);
+    text-decoration: underline;
+  }
 }
 
 @media (max-width: 640px) {
   #header {
-    padding: 12px 10px;
+    padding: 18px 10px;
   }
 
   #header h1.logo img {
-    width: 142px;
+    width: 150px;
   }
 }
 
