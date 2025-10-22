@@ -94,7 +94,7 @@ section .section-title .main-txt p {
 @media (max-width: 640px) {
   section {
     padding: 0 10px;
-    margin-bottom: 100px;
+    margin-bottom: 80px;
   }
 
   section .sub-txt {
@@ -103,7 +103,7 @@ section .section-title .main-txt p {
   }
 
   section .section-title {
-    margin-bottom: 32px;
+    margin-bottom: 26px;
   }
 
   section .section-title .sub-txt {
@@ -115,8 +115,8 @@ section .section-title .main-txt p {
   }
 
   section .section-title .main-txt h2 {
-    font-size: 42px;
-    line-height: 52px;
+    font-size: 40px;
+    line-height: 48px;
   }
 
   section .section-title .main-txt p {
@@ -315,7 +315,7 @@ section.intro .bottom ul.keyword li figure img {
 
   section.intro .top .right h3 {
     font-size: 40px;
-    line-height: 52px;
+    line-height: 48px;
     margin-bottom: 20px;
   }
 
@@ -341,6 +341,10 @@ section.intro .bottom ul.keyword li figure img {
   section.intro .bottom ul.keyword li .sub {
     font-size: 13px;
     margin-bottom: 24px;
+  }
+
+  section.intro .bottom ul.keyword li figure img {
+    width: 180px;
   }
 }
 
@@ -537,14 +541,14 @@ section.service ul.service-list li:hover .right p {
   section.service ul.service-list li {
     flex-direction: column;
     padding: 14px;
-    gap: 14px;
+    gap: 6px;
     border-radius: var(--radius-sm);
-    margin-bottom: 18px;
+    margin-bottom: 16px;
   }
 
   section.service ul.service-list li h4 {
-    font-size: 20px;
-    line-height: 28px;
+    font-size: 18px;
+    line-height: 26px;
     width: 100%;
   }
 
@@ -572,7 +576,8 @@ section.service ul.service-list li:hover .right p {
     right: -40px;
     top: 50%;
     translate: -50% -50%;
-    width: 160px;
+    width: 136px;
+    min-width: 120px;
   }
 
   section.service ul.service-list li .right p {
