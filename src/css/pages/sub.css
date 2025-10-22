@@ -221,12 +221,12 @@ body {
   z-index: 10;
   top: 50%;
   transform: translateY(-50%);
+  font-size: 2px;
 }
 
-.device .swiper-button-prev::after,
-.device .swiper-button-next::after {
-  content: "";
-  display: none;
+.device .swiper-button-prev svg,
+.device .swiper-button-next svg {
+  width: 14px;
 }
 
 .device .swiper-button-prev:hover,
@@ -445,7 +445,6 @@ body {
 
 .img-wrap {
   overflow: hidden;
-  background: #f7f8f9;
   margin: 0 auto;
   padding: 0 40px;
 }
@@ -457,7 +456,7 @@ body {
   margin-bottom: 100px;
 }
 
-.img-wrap .img-03.box {
+.img-wrap .txt {
   margin-bottom: 60px;
 }
 

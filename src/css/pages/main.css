@@ -149,6 +149,30 @@ section .section-title .main-txt p {
   display: block;
 }
 
+.visual .txt {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
+
+.visual .txt h2 {
+  font-family: var(--font-En);
+  text-align: center;
+  font-size: 100px;
+  line-height: 132px;
+  font-weight: var(--bold);
+  margin-bottom: 24px;
+}
+
+.visual .txt p {
+  font-family: var(--font-En);
+  font-size: 24px;
+  line-height: 36px;
+  font-weight: var(--medium);
+  text-align: center;
+}
+
 /* --------------------- intro ------------------------- */
 
 section.intro .top {
@@ -360,7 +384,48 @@ section.work ul.work-list.mb {
   margin-bottom: 80px;
 }
 
+section.work ul.work-list li figure::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -webkit-backdrop-filter: blur(30px);
+  backdrop-filter: blur(30px);
+  background-color: rgba(0, 0, 0, 0.5);
+  top: 0;
+  left: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-in-out;
+  border-radius: var(--radius-md);
+}
+
+section.work ul.work-list li figure:hover::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+section.work ul.work-list li figure::after {
+  content: "VIEW MORE";
+  font-family: var(--font-En);
+  font-size: 16px;
+  font-weight: var(--medium);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-in-out;
+}
+
+section.work ul.work-list li figure:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
 section.work ul.work-list li figure {
+  position: relative;
   overflow: hidden;
   margin-bottom: 16px;
 }

@@ -60,7 +60,7 @@ body.no-scroll {
 }
 
 #header > ul.gnb > li > ul.sub-list:hover > li {
-  filter: blur(1.5px);
+  filter: blur(2px);
 }
 
 #header > ul.gnb > li > ul.sub-list:hover > li:hover {
@@ -190,6 +190,7 @@ body.no-scroll {
     display: block;
     margin-bottom: 28px;
     transition: filter 0.5s ease-in-out;
+    color: #fff;
   }
 
   #header .mo-nav-open ul li:last-child {
@@ -226,6 +227,7 @@ body.no-scroll {
     line-height: 24px;
     font-weight: var(--medium);
     text-decoration: underline;
+    color: #fff;
   }
 }
 
@@ -270,6 +272,7 @@ footer div span {
   background: #ddd;
   border-radius: 50px;
   animation: float 2.5s ease-in-out infinite alternate;
+  color: #fff;
 }
 
 @keyframes float {
