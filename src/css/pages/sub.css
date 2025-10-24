@@ -41,8 +41,28 @@ body.sub {
   }
 }
 
-.portfolio-info {
+.visual.sub figure img .portfolio-info {
   margin-bottom: 80px;
+}
+
+@media (max-width: 1024px) {
+  .visual.sub {
+    margin-bottom: 80px;
+  }
+
+  .visual.sub {
+    height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .visual.sub {
+    margin-bottom: 60px;
+  }
+
+  .visual.sub {
+    height: 50vh;
+  }
 }
 
 .portfolio-info .top-title {
@@ -63,12 +83,16 @@ body.sub {
 
 .portfolio-info .middle-txt {
   display: flex;
-  gap: 240px;
+  gap: 60px;
   margin-bottom: 24px;
+  max-width: 1700px;
+  justify-content: space-between;
 }
 
 .portfolio-info .middle-txt .left {
-  max-width: 960px;
+  max-width: 900px;
+  min-width: 500px;
+  width: 100%;
 }
 
 .portfolio-info .middle-txt .left p {
@@ -85,6 +109,7 @@ body.sub {
 }
 
 .portfolio-info .middle-txt ul.right {
+  max-width: 480px;
   width: 100%;
 }
 
@@ -146,6 +171,75 @@ body.sub {
 .portfolio-info a.more:hover svg path {
   stroke: #222;
 }
+
+@media (max-width: 1024px) {
+  .portfolio-info .top-title {
+    margin-bottom: 24px;
+  }
+
+  .portfolio-info .top-title p {
+    font-size: 16px;
+  }
+
+  .portfolio-info .middle-txt {
+    flex-direction: column;
+    gap: 30px;
+    margin-bottom: 40px;
+  }
+
+  .portfolio-info .middle-txt .left {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .portfolio-info .middle-txt .left p {
+    font-size: 15px;
+  }
+
+  .portfolio-info .middle-txt ul.right {
+    max-width: 100%;
+  }
+
+  .portfolio-info .middle-txt ul.right li {
+    margin-bottom: 18px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .portfolio-info .top-title {
+    margin-bottom: 18px;
+  }
+
+  .portfolio-info .top-title p {
+    font-size: 15px;
+  }
+
+  .portfolio-info .middle-txt {
+    gap: 26px;
+    margin-bottom: 32px;
+  }
+
+  .portfolio-info .middle-txt .left p {
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .portfolio-info .middle-txt ul.right li {
+    margin-bottom: 14px;
+  }
+
+  .portfolio-info a.more {
+    font-size: 14px;
+    line-height: 22px;
+    padding: 10px 20px;
+  }
+
+  .portfolio-info a.more svg {
+    width: 18px;
+  }
+}
+
+/* ------------------ box-container ----------------- */
 
 .box-container {
   margin-bottom: 140px;
@@ -473,6 +567,10 @@ body.sub {
 }
 
 /* ----------------------work -------------------- */
+
+.subpage ul.work-list.sub-page li a span {
+  color: #767676;
+}
 
 .portfolio-list {
   padding: 100px 0 80px;

@@ -480,8 +480,8 @@ ul.work-list li .txt-top {
 
 ul.work-list li .txt-top .tit {
   font-family: var(--font-En);
-  font-size: 22px;
-  line-height: 30px;
+  font-size: 20px;
+  line-height: 28px;
   font-weight: var(--medium);
 }
 
