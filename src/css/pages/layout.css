@@ -18,6 +18,10 @@ body.no-scroll {
   transform: translateX(-50%);
 }
 
+#header.sub {
+  position: relative;
+}
+
 #header h1.logo {
   width: 30%;
 }
@@ -80,7 +84,7 @@ body.no-scroll {
 
 @media (max-width: 1024px) {
   #header {
-    padding: 20px;
+    padding: 40px;
   }
 
   #header h1.logo {
@@ -233,7 +237,7 @@ body.no-scroll {
 
 @media (max-width: 640px) {
   #header {
-    padding: 18px 10px;
+    padding: 18px 20px;
   }
 
   #header h1.logo img {

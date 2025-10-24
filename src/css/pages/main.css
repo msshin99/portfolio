@@ -42,7 +42,7 @@ section .section-title .main-txt {
   gap: 40px;
 }
 
-section .section-title .main-txt h2 {
+h2 {
   font-family: var(--font-En);
   font-size: 68px;
   line-height: 76px;
@@ -60,7 +60,7 @@ section .section-title .main-txt p {
 
 @media (max-width: 1024px) {
   section {
-    padding: 0 20px;
+    padding: 0 40px;
     margin-bottom: 140px;
   }
 
@@ -81,7 +81,7 @@ section .section-title .main-txt p {
     gap: 18px;
   }
 
-  section .section-title .main-txt h2 {
+  h2 {
     font-size: 56px;
     line-height: 66px;
   }
@@ -93,7 +93,7 @@ section .section-title .main-txt p {
 
 @media (max-width: 640px) {
   section {
-    padding: 0 10px;
+    padding: 0 20px;
     margin-bottom: 80px;
   }
 
@@ -114,7 +114,7 @@ section .section-title .main-txt p {
     gap: 10px;
   }
 
-  section .section-title .main-txt h2 {
+  h2 {
     font-size: 40px;
     line-height: 48px;
   }
@@ -154,6 +154,7 @@ section .section-title .main-txt p {
   left: 50%;
   top: 50%;
   translate: -50% -50%;
+  width: 100%;
 }
 
 .visual .txt h2 {
@@ -165,12 +166,75 @@ section .section-title .main-txt p {
   margin-bottom: 24px;
 }
 
+.visual .txt h2 {
+  /* 기존 그라데이션 설정은 유지 (배경과 텍스트 클립) */
+  background: linear-gradient(90deg, #1f2937, #6b7280, #f9fafb, #1f2937);
+  background-size: 400% 400%;
+
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+
+  /* ⏱️ 애니메이션 시간을 늘려서 속도를 늦춥니다. */
+  animation: visualtxt 16s ease infinite,
+    /* 8초 -> 16초 (배경 이동이 더 느려짐) */ hue-spin 18s linear infinite; /* 12초 -> 24초 (색상 변화가 더 느려짐) */
+
+  will-change: background-position, filter;
+}
+
+@keyframes visualtxt {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes hue-spin {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
 .visual .txt p {
   font-family: var(--font-En);
   font-size: 24px;
   line-height: 36px;
   font-weight: var(--medium);
   text-align: center;
+}
+
+@media (max-width: 1024px) {
+  .visual .txt h2 {
+    font-size: 76px;
+    line-height: 88px;
+    margin-bottom: 18px;
+  }
+
+  .visual .txt p {
+    font-size: 20px;
+    line-height: 28px;
+  }
+}
+
+@media (max-width: 640px) {
+  .visual .txt h2 {
+    font-size: 60px;
+    line-height: 72px;
+    margin-bottom: 10px;
+  }
+
+  .visual .txt p {
+    font-size: 18px;
+    line-height: 26px;
+  }
 }
 
 /* --------------------- intro ------------------------- */
@@ -193,36 +257,6 @@ section.intro .top .right h3 {
   line-height: 72px;
   font-weight: var(--bold);
   margin-bottom: 40px;
-
-  /* --- 무채색 그라데이션 애니메이션 적용 --- */
-  background: linear-gradient(
-    90deg,
-    #1f2937,
-    /* Dark Gray */ #6b7280,
-    /* Mid Gray */ #f9fafb,
-    /* Off White */ #1f2937 /* Dark Gray (for smooth loop) */
-  );
-
-  background-size: 400% 400%;
-
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-
-  animation: gradientShift 8s ease infinite;
-  will-change: background-position;
-}
-
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
 }
 
 section.intro .top .right p {
@@ -374,17 +408,18 @@ section.intro .bottom ul.keyword li figure img {
 
 /* -------------------WORK --------------------- */
 
-section.work ul.work-list {
+ul.work-list {
   display: flex;
+  grid-template-columns: repeat(3, 1fr);
   justify-content: space-between;
   gap: 20px;
 }
 
-section.work ul.work-list.mb {
+ul.work-list.mb {
   margin-bottom: 80px;
 }
 
-section.work ul.work-list li figure::before {
+ul.work-list li figure::before {
   content: "";
   position: absolute;
   width: 100%;
@@ -400,12 +435,12 @@ section.work ul.work-list li figure::before {
   border-radius: var(--radius-md);
 }
 
-section.work ul.work-list li figure:hover::before {
+ul.work-list li figure:hover::before {
   opacity: 1;
   visibility: visible;
 }
 
-section.work ul.work-list li figure::after {
+ul.work-list li figure::after {
   content: "VIEW MORE";
   font-family: var(--font-En);
   font-size: 16px;
@@ -417,47 +452,47 @@ section.work ul.work-list li figure::after {
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s ease-in-out;
+  color: #fff;
 }
 
-section.work ul.work-list li figure:hover::after {
+ul.work-list li figure:hover::after {
   opacity: 1;
   visibility: visible;
 }
 
-section.work ul.work-list li figure {
+ul.work-list li figure {
   position: relative;
   overflow: hidden;
   margin-bottom: 16px;
 }
 
-section.work ul.work-list li figure img {
+ul.work-list li figure img {
   border-radius: var(--radius-md);
   max-width: 100%;
   height: auto;
 }
 
-section.work ul.work-list li .txt-top {
+ul.work-list li .txt-top {
   display: flex;
   justify-content: space-between;
   margin-bottom: 4px;
 }
 
-section.work ul.work-list li .txt-top .tit {
+ul.work-list li .txt-top .tit {
   font-family: var(--font-En);
   font-size: 22px;
   line-height: 30px;
   font-weight: var(--medium);
 }
 
-section.work ul.work-list li .txt-top span {
+ul.work-list li .txt-top span {
   font-family: var(--font-Ko);
   font-size: 16px;
   line-height: 24px;
   font-weight: var(--light);
   color: var(--secondary-txt);
 }
-
-section.work ul.work-list li .sub {
+ul.work-list li .sub {
   font-family: var(--font-En);
   font-size: 14px;
   line-height: 22px;
@@ -466,59 +501,63 @@ section.work ul.work-list li .sub {
 }
 
 @media (max-width: 1024px) {
-  section.work ul.work-list {
+  ul.work-list {
     gap: 16px;
   }
 
-  section.work ul.work-list.mb {
+  ul.work-list.mb {
     margin-bottom: 60px;
   }
 
-  section.work ul.work-list li figure {
+  ul.work-list li figure {
     margin-bottom: 14px;
   }
 
-  section.work ul.work-list li figure img {
+  ul.work-list li figure img {
     border-radius: var(--radius-sm);
   }
 
-  section.work ul.work-list li .txt-top {
+  ul.work-list li .txt-top {
     margin-bottom: 2px;
   }
 
-  section.work ul.work-list li .txt-top .tit {
+  ul.work-list li .txt-top .tit {
     font-size: 20px;
     line-height: 28px;
   }
 
-  section.work ul.work-list li .txt-top span {
+  ul.work-list li .txt-top span {
     font-size: 13px;
   }
 
-  section.work ul.work-list li .sub {
+  ul.work-list li .sub {
     font-size: 13px;
   }
 }
 
 @media (max-width: 640px) {
-  section.work ul.work-list {
+  ul.work-list {
     flex-direction: column;
     gap: 28px;
   }
 
-  section.work ul.work-list.mb {
+  ul.work-list.mb {
     margin-bottom: 40px;
   }
 
-  section.work ul.work-list li figure {
+  ul.work-list li figure {
     margin-bottom: 8px;
   }
 
-  section.work ul.work-list li .txt-top {
+  ul.work-list li figure::before {
+    border-radius: var(--radius-sm);
+  }
+
+  ul.work-list li .txt-top {
     margin-bottom: 0;
   }
 
-  section.work ul.work-list li .txt-top .tit {
+  ul.work-list li .txt-top .tit {
     font-size: 18px;
     line-height: 26px;
   }

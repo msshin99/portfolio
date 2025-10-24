@@ -3,6 +3,11 @@ body {
   background: #fff;
 }
 
+body.sub {
+  color: #fff;
+  background: #000;
+}
+
 .award {
   max-width: 1530px;
   margin: 0 auto;
@@ -28,6 +33,12 @@ body {
   max-width: 1880px;
   margin: 0 auto;
   padding: 0 40px;
+}
+
+@media (max-width: 640px) {
+  .subpage {
+    padding: 0 20px;
+  }
 }
 
 .portfolio-info {
@@ -142,15 +153,22 @@ body {
   gap: 20px;
 }
 
+.box-container img {
+  max-width: 100%;
+  height: auto;
+}
+
+.box-container .left img {
+  border-radius: var(--radius-md);
+}
+
 .box-container figure {
-  background: #f4f5f9;
-  height: 24vw;
   border-radius: var(--radius-md);
   margin-bottom: 20px;
   position: relative;
 }
 
-.box-container figure .tit {
+.box-container .right .tit {
   font-family: var(--font-En);
   font-size: 20px;
   line-height: 28px;
@@ -160,7 +178,7 @@ body {
   margin-left: 16px;
 }
 
-.box-container figure .tit::before {
+.box-container .right .tit::before {
   content: "";
   position: absolute;
   width: 8px;
@@ -169,19 +187,6 @@ body {
   border-radius: 50%;
   top: 10px;
   left: -16px;
-}
-
-.box-container figure img {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  translate: -50% -50%;
-  max-width: 100%;
-  height: auto;
-}
-
-.box-container figure.web img {
-  padding: 30px;
 }
 
 .box-container figure:last-child {
@@ -193,12 +198,15 @@ body {
 }
 
 .box-container .right {
+  background: #f4f5f9;
   width: 50%;
+  border-radius: var(--radius-md);
+  padding: 30px;
 }
 
-.box-container .right figure {
-  height: 49vw;
-  padding: 30px;
+.box-container .right img {
+  max-width: 100%;
+  height: auto;
 }
 
 .swiper.device {
@@ -462,4 +470,58 @@ body {
 
 .img-wrap img {
   height: auto;
+}
+
+/* ----------------------work -------------------- */
+
+.portfolio-list {
+  padding: 100px 0 80px;
+}
+
+.portfolio-list ul.work-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  justify-content: space-between;
+  gap: 40px 20px;
+}
+
+.portfolio-list .contents {
+  margin-bottom: 140px;
+}
+
+.portfolio-list h2 {
+  margin-bottom: 30px;
+}
+
+@media (max-width: 1024px) {
+  .portfolio-list {
+    padding: 80px 0 60px;
+  }
+
+  .portfolio-list .contents {
+    margin-bottom: 100px;
+  }
+
+  .portfolio-list h2 {
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .portfolio-list {
+    padding: 60px 0 40px;
+  }
+
+  .portfolio-list ul.work-list {
+    grid-template-columns: repeat(1, 1fr);
+    gap: 28px;
+  }
+
+  .portfolio-list .contents {
+    margin-bottom: 80px;
+  }
+
+  .portfolio-list h2 {
+    margin-bottom: 18px;
+  }
 }
