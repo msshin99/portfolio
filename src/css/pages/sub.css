@@ -65,6 +65,10 @@ body.sub {
   }
 }
 
+.portfolio-info {
+  margin-bottom: 80px;
+}
+
 .portfolio-info .top-title {
   margin-bottom: 40px;
 }
@@ -173,6 +177,10 @@ body.sub {
 }
 
 @media (max-width: 1024px) {
+  .portfolio-info {
+    margin-bottom: 60px;
+  }
+
   .portfolio-info .top-title {
     margin-bottom: 24px;
   }
@@ -205,7 +213,11 @@ body.sub {
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 640px) {
+  .portfolio-info {
+    margin-bottom: 60px;
+  }
+
   .portfolio-info .top-title {
     margin-bottom: 18px;
   }
