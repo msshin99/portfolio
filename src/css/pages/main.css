@@ -209,6 +209,7 @@ section .section-title .main-txt p {
   line-height: 36px;
   font-weight: var(--medium);
   text-align: center;
+  opacity: 0.6;
 }
 
 @media (max-width: 1024px) {
