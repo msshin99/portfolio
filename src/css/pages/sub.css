@@ -171,6 +171,11 @@ body.sub {
   color: var(--sub-tertiary-txt);
 }
 
+.portfolio-info .middle-txt ul.right li span:last-child b {
+  color: var(--sub-primary-txt);
+  font-weight: var(--medium);
+}
+
 .portfolio-info a.more {
   font-family: var(--font-En);
   font-size: 16px;
@@ -425,6 +430,10 @@ body.sub {
   margin-bottom: 0;
 }
 
+.font-info .font-style-guide.prmr .left .tit {
+  font-family: var(--prata);
+}
+
 .font-info .font-style-guide .left .tit {
   font-family: var(--font-En);
   font-size: 20px;
@@ -442,6 +451,10 @@ body.sub {
 .font-info .font-style-guide.three .left .tit {
   font-weight: 400;
   color: #999;
+}
+
+.font-info .font-style-guide.prmr .left .sub {
+  font-family: var(--prata);
 }
 
 .font-info .font-style-guide .left .sub {
@@ -615,7 +628,7 @@ body.sub {
 }
 
 .portfolio-list {
-  padding: 100px 0 80px;
+  padding: 180px 0 80px;
 }
 
 .portfolio-list ul.work-list {
@@ -635,7 +648,7 @@ body.sub {
 
 @media (max-width: 1024px) {
   .portfolio-list {
-    padding: 80px 0 60px;
+    padding: 140px 0 60px;
   }
 
   .portfolio-list .contents {
@@ -649,7 +662,7 @@ body.sub {
 
 @media (max-width: 767px) {
   .portfolio-list {
-    padding: 60px 0 40px;
+    padding: 100px 0 40px;
   }
 
   .portfolio-list ul.work-list {
