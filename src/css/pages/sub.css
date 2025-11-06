@@ -3,6 +3,37 @@ body.sub {
   background: #fff;
 }
 
+.cont {
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+  margin: 0 auto;
+}
+
+.cont.prmr {
+  background: url(../../../assets/portfolio/prmr/bg-img.jpg) no-repeat 50% 0%;
+}
+
+.cont.nordune {
+  background: url(../../../assets/portfolio/nordune/bg-img.jpg) no-repeat 50% 0%;
+}
+
+.cont.goalcheck {
+  background: url(../../../assets/portfolio/goalcheck/bg-img.jpg) no-repeat 50%
+    0%;
+}
+
+.cont a {
+  display: block;
+  width: 100%;
+  max-width: 1610px;
+  margin: 0 auto;
+}
+
+.cont a > img {
+  width: 100%;
+}
+
 .award {
   max-width: 1530px;
   margin: 0 auto;
@@ -368,6 +399,10 @@ body.sub {
 
 .font-info {
   margin-bottom: 140px;
+}
+
+.font-info.mr {
+  margin-bottom: 40px;
 }
 
 .font-info figure {
