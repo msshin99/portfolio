@@ -255,8 +255,12 @@ body.no-scroll {
     padding: 18px 20px;
   }
 
+  #header .mo-menu {
+    width: 26px;
+  }
+
   #header h1.logo img {
-    width: 150px;
+    width: 160px;
   }
 }
 

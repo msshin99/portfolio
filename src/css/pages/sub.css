@@ -113,8 +113,8 @@ body.sub {
 
 @media (max-width: 640px) {
   .sub-title {
-    gap: 16px;
-    margin-bottom: 40px;
+    gap: 8px;
+    margin-bottom: 24px;
   }
 
   .sub-txt h5 {
@@ -124,8 +124,8 @@ body.sub {
   }
 
   .sub-title p {
-    font-size: 24px;
-    line-height: 34px;
+    font-size: 18px;
+    line-height: 26px;
   }
 
   .sub-txt .sub {
@@ -166,7 +166,7 @@ body.sub {
 
 @media (max-width: 640px) {
   .visual.sub {
-    margin-bottom: 60px;
+    margin-bottom: 40px;
   }
 
   .visual.sub {
@@ -330,6 +330,10 @@ body.sub {
 @media (max-width: 640px) {
   .portfolio-info {
     margin-bottom: 60px;
+  }
+
+  .portfolio-info .top-title h3 {
+    margin-bottom: 4px;
   }
 
   .portfolio-info .top-title {
