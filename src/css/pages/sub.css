@@ -483,6 +483,7 @@ body.sub {
 
   .box-container .left {
     width: 100%;
+    gap: 20px;
   }
 
   .box-container .right {
@@ -541,9 +542,14 @@ body.sub {
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 640px) {
   .box-container {
     margin-bottom: 60px;
+    gap: 12px;
+  }
+
+  .box-container .left {
+    gap: 12px;
   }
 
   .box-container .right .tit {
