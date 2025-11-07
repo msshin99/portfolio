@@ -23,6 +23,10 @@ body.sub {
     0%;
 }
 
+.web {
+  overflow: hidden;
+}
+
 .cont a {
   display: block;
   width: 100%;
@@ -131,6 +135,18 @@ body.sub {
 
   .subpage {
     padding: 0 16px;
+  }
+
+  .cont.prmr {
+    background: unset;
+  }
+
+  .cont.nordune {
+    background: unset;
+  }
+
+  .cont.goalcheck {
+    background: unset;
   }
 }
 
