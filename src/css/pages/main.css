@@ -704,22 +704,22 @@ section.skills ul.skill-list li {
   border-radius: var(--radius-md);
 }
 
-.swiper.skill {
+section.skills ul.skill-list li .swiper.skill {
   width: 100%;
   height: 100%;
 }
 
-.swiper-wrapper {
+section.skills ul.skill-list li .swiper-wrapper {
   height: 100%;
 }
 
-.swiper-slide {
+section.skills ul.skill-list li .swiper-slide {
   width: 100%;
   height: 100%;
   position: relative;
 }
 
-.swiper-slide::before {
+section.skills ul.skill-list li .swiper-slide::before {
   content: "";
   position: absolute;
   width: 100%;
@@ -733,35 +733,35 @@ section.skills ul.skill-list li {
   border-radius: var(--radius-md);
 }
 
-.swiper-slide.figma::before {
+section.skills ul.skill-list li .swiper-slide.figma::before {
   background: #fff;
 }
 
-.swiper-slide.html::before {
+section.skills ul.skill-list li .swiper-slide.html::before {
   background: #e34c26;
 }
 
-.swiper-slide.css::before {
+section.skills ul.skill-list li .swiper-slide.css::before {
   background: #264de4;
 }
 
-.swiper-slide.js::before {
+section.skills ul.skill-list li .swiper-slide.js::before {
   background: #f0db4f;
 }
 
-.swiper-slide.github::before {
+section.skills ul.skill-list li .swiper-slide.github::before {
   background: #fff;
 }
 
-.swiper-slide.photoshop::before {
+section.skills ul.skill-list li .swiper-slide.photoshop::before {
   background: #001e36;
 }
 
-.swiper-slide.ils::before {
+section.skills ul.skill-list li .swiper-slide.ils::before {
   background: #330000;
 }
 
-.swiper-slide.code::before {
+section.skills ul.skill-list li .swiper-slide.code::before {
   background: #0877b9;
 }
 
@@ -770,7 +770,7 @@ section.skills ul.skill-list li:hover .swiper-slide::before {
   opacity: 1;
 }
 
-.swiper-slide img {
+section.skills ul.skill-list li .swiper-slide img {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -806,7 +806,7 @@ section.skills ul.skill-list li:hover .swiper-slide svg path {
     height: 24vw;
   }
 
-  .swiper-slide img {
+  section.skills ul.skill-list li .swiper-slide img {
     max-width: 12%;
   }
 }
@@ -821,7 +821,7 @@ section.skills ul.skill-list li:hover .swiper-slide svg path {
     height: 28vw;
   }
 
-  .swiper-slide img {
+  section.skills ul.skill-list li .swiper-slide img {
     max-width: 14%;
   }
 }
