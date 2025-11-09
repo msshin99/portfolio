@@ -16,8 +16,5 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // 3. mo-nav-open 요소 클래스 토글 (배경 오버레이 나타나거나 사라짐)
     moNavOpen.classList.toggle("is-open");
-
-    // ✅ 4. 핵심: mo-nav-open이 열릴 때 body에 'no-scroll' 클래스를 토글하여 스크롤을 막습니다.
-    body.classList.toggle("no-scroll");
   });
 });
