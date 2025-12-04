@@ -34,6 +34,10 @@ body.sub {
   margin: 0 auto;
 }
 
+.cont.dpd a {
+  max-width: 860px;
+}
+
 .cont a > img {
   width: 100%;
 }
