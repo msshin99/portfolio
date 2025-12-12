@@ -1,16 +1,23 @@
 #header {
-  max-width: 1880px;
+  position: fixed;
+  width: 100%;
   padding: 18px 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 48px;
   font-family: var(--font-En);
-  position: absolute;
   z-index: 10;
-  width: 100%;
   left: 50%;
   transform: translateX(-50%);
+  transition: background 0.3s ease;
+}
+
+#header.scrolled {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 #header.sub {

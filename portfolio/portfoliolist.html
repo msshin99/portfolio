@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="../src/css/pages/layout.css" />
     <link rel="stylesheet" href="../src/css/pages/main.css" />
     <link rel="stylesheet" href="../src/css/pages/sub.css" />
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="../src/js/layout.js"></script>
   </head>
   <body>
@@ -69,7 +72,7 @@
 
     <div class="subpage">
       <div class="portfolio-list">
-        <div class="contents">
+        <div class="contents" data-aos="fade-up" data-aos-duration="3000">
           <h2>WEB DESIGN</h2>
           <ul class="work-list sub-page">
             <li>
@@ -124,7 +127,7 @@
 
         <!-- ------------------- -->
 
-        <div class="contents">
+        <div class="contents" data-aos="fade-up" data-aos-duration="3000">
           <h2>GRAPIC DESIGN</h2>
           <ul class="work-list sub-page">
             <li>
@@ -173,7 +176,7 @@
       </div>
     </div>
 
-    <footer>
+    <footer data-aos="fade-up" data-aos-duration="2000">
       <div>
         <figure>
           <img src="../assets/comn/footer-txt.png" alt="" />
@@ -186,4 +189,7 @@
       </div>
     </footer>
   </body>
+  <script>
+    AOS.init();
+  </script>
 </html>

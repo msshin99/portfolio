@@ -12,10 +12,13 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/swiper@12/swiper-bundle.min.css"
     />
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script
       src="https://cdn.jsdelivr.net/npm/swiper@12/swiper-bundle.min.js"
       defer
     ></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="src/js/layout.js"></script>
     <script src="src/js/slide.js" defer></script>
   </head>
@@ -80,7 +83,7 @@
       <main>
         <div class="visual">
           <figure><img src="assets/visual-img.jpg" alt="" /></figure>
-          <div class="txt">
+          <div class="txt" data-aos="fade-up" data-aos-duration="3000">
             <h2>The Web Designer<br />for Bold Visual Experiences</h2>
             <p>
               Where creativity meets functionality for effortless user
@@ -90,7 +93,7 @@
         </div>
 
         <section class="intro">
-          <div class="top">
+          <div class="top" data-aos="fade-up" data-aos-duration="3000">
             <span class="sub-txt">(About)</span>
             <div class="right">
               <h3>
@@ -106,7 +109,7 @@
               </p>
             </div>
           </div>
-          <div class="bottom">
+          <div class="bottom" data-aos="fade-up" data-aos-duration="3000">
             <ul class="keyword">
               <li>
                 <span class="num">01.</span>
@@ -136,7 +139,7 @@
           </div>
         </section>
 
-        <section class="work">
+        <section class="work" data-aos="fade-up" data-aos-duration="3000">
           <div class="section-title">
             <span class="sub-txt">(Professional)</span>
             <div class="main-txt">
@@ -211,7 +214,7 @@
           </ul>
         </section>
 
-        <section class="service">
+        <section class="service" data-aos="fade-up" data-aos-duration="3000">
           <div class="section-title">
             <span class="sub-txt">(Solutions)</span>
             <div class="main-txt">
@@ -275,7 +278,7 @@
           </ul>
         </section>
 
-        <section class="skills">
+        <section class="skills" data-aos="fade-up" data-aos-duration="3000">
           <div class="section-title">
             <span class="sub-txt">(Capabilities)</span>
             <div class="main-txt">
@@ -351,7 +354,7 @@
           </ul>
         </section>
       </main>
-      <footer>
+      <footer data-aos="fade-up" data-aos-duration="3000">
         <div>
           <figure>
             <img src="assets/comn/footer-txt.png" alt="" />
@@ -365,4 +368,7 @@
       </footer>
     </div>
   </body>
+  <script>
+    AOS.init();
+  </script>
 </html>
