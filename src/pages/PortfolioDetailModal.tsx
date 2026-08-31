@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useLocation, useNavigate, type Location } from "react-router-dom";
 import { motion } from "framer-motion";
 import Header from "../components/layout/Header";
@@ -22,6 +22,9 @@ interface NavState {
 
 /** 흰 배경/본문이 나타나는 속도(히어로가 다 자리잡은 뒤 트리거됨) 및 닫을 때 페이드아웃 속도. */
 const REVEAL_TRANSITION = { duration: 0.5, ease: [0.65, 0, 0.35, 1] as const };
+
+/** PortfolioDetail.tsx와 동일 — goldenpine만 다크 테마. */
+const DARK_SLUGS = new Set(["goldenpine"]);
 
 /**
  * PortfolioList 위에 뜨는 상세 오버레이. App.tsx가 URL의 backgroundLocation state를 보고
@@ -88,6 +91,10 @@ export default function PortfolioDetailModal({ slug }: PortfolioDetailModalProps
 
   if (!detail || !isDetailSlug(slug, knownSlugs)) return null;
 
+  const isDark = DARK_SLUGS.has(detail.slug);
+  const settledBg = isDark ? "#000000" : "#ffffff";
+  const transparentBg = isDark ? "rgba(0,0,0,0)" : "rgba(255,255,255,0)";
+
   const prevSlug = getAdjacentSlug(slug, -1, knownSlugs);
   const nextSlug = getAdjacentSlug(slug, 1, knownSlugs);
   const prevTitle = rows?.find((r) => r.slug === prevSlug)?.title ?? prevSlug;
@@ -99,9 +106,18 @@ export default function PortfolioDetailModal({ slug }: PortfolioDetailModalProps
       tabIndex={-1}
       className="fixed inset-0 z-[500] overflow-y-auto text-sub-primary-txt outline-none"
       initial={false}
-      animate={{ backgroundColor: heroSettled ? "#ffffff" : "rgba(255,255,255,0)" }}
+      animate={{ backgroundColor: heroSettled ? settledBg : transparentBg }}
       exit={{ opacity: 0 }}
       transition={REVEAL_TRANSITION}
+      style={
+        isDark
+          ? ({
+              "--color-sub-primary-txt": "#ffffff",
+              "--color-sub-secondary-txt": "#cfcfcf",
+              "--color-sub-tertiary-txt": "#9a9a9a",
+            } as CSSProperties)
+          : undefined
+      }
     >
       <Header variant="default" />
 
@@ -119,7 +135,9 @@ export default function PortfolioDetailModal({ slug }: PortfolioDetailModalProps
         transition={REVEAL_TRANSITION}
       >
         <div className="subpage max-w-[1880px] mx-auto px-10 max-sm:px-4 pb-20">
-          <div className="flex justify-between items-center border-t border-black/10 pt-10 max-sm:flex-col max-sm:items-start max-sm:gap-4">
+          <div
+            className={`flex justify-between items-center border-t pt-10 max-sm:flex-col max-sm:items-start max-sm:gap-4 ${isDark ? "border-white/10" : "border-black/10"}`}
+          >
             <button
               type="button"
               onClick={() => goToSlug(`/portfolio/${prevSlug}`)}

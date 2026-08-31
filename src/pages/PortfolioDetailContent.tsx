@@ -47,6 +47,7 @@ export default function PortfolioDetailContent({
   // 포함되는 동작이었다 — 그 동작을 그대로 유지).
   const { rows: relatedRows } = usePortfolios();
   const relatedWorks = (relatedRows ?? []).map(mapRowToWorkItem);
+  const isDark = detail.slug === "goldenpine";
 
   return (
     <>
@@ -117,33 +118,38 @@ export default function PortfolioDetailContent({
             href={detail.websiteUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="more group font-en text-base leading-6 font-medium bg-sub-primary-txt text-white flex items-center gap-1.5 w-fit px-6 py-3 rounded-full border border-sub-primary-txt transition-all duration-500 ease-[ease] hover:bg-white hover:text-sub-primary-txt max-sm:text-sm max-sm:leading-[22px] max-sm:px-5 max-sm:py-2.5"
+            className={[
+              "more group font-en text-base leading-6 font-medium flex items-center gap-1.5 w-fit px-6 py-3 rounded-full border transition-all duration-500 ease-[ease] max-sm:text-sm max-sm:leading-[22px] max-sm:px-5 max-sm:py-2.5",
+              isDark
+                ? "bg-white text-black border-white hover:bg-black hover:text-white"
+                : "bg-sub-primary-txt text-white border-sub-primary-txt hover:bg-white hover:text-sub-primary-txt",
+            ].join(" ")}
           >
             Go to website
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="max-sm:w-[18px]">
               <path
                 d="M8.33325 3.33337H3.33325V16.6667H16.6666V11.6667"
-                stroke="white"
+                stroke={isDark ? "#000000" : "white"}
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="transition-all duration-500 ease-[ease] group-hover:stroke-[#222]"
+                className={`transition-all duration-500 ease-[ease] ${isDark ? "group-hover:stroke-white" : "group-hover:stroke-[#222]"}`}
               />
               <path
                 d="M14.1667 3.33337L16.6667 5.83337L14.1667 8.33337"
-                stroke="white"
+                stroke={isDark ? "#000000" : "white"}
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="transition-all duration-500 ease-[ease] group-hover:stroke-[#222]"
+                className={`transition-all duration-500 ease-[ease] ${isDark ? "group-hover:stroke-white" : "group-hover:stroke-[#222]"}`}
               />
               <path
                 d="M15.8333 5.83337H13C11.3431 5.83337 10 7.17652 10 8.83337V10"
-                stroke="white"
+                stroke={isDark ? "#000000" : "white"}
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="transition-all duration-500 ease-[ease] group-hover:stroke-[#222]"
+                className={`transition-all duration-500 ease-[ease] ${isDark ? "group-hover:stroke-white" : "group-hover:stroke-[#222]"}`}
               />
             </svg>
           </a>

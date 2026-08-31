@@ -64,10 +64,13 @@ function GuideRight({ guide }: { guide: FontGuide }) {
             "hover:-translate-y-1.5 hover:shadow-[0_16px_32px_rgba(0,0,0,0.12)]",
           ].join(" ")}
         >
-          <p className="tit font-en text-lg leading-[26px] font-medium text-sub-primary-txt max-lg:text-base max-lg:leading-6 max-sm:text-sm max-sm:leading-5">
+          {/* 이 카드 배경은 항상 밝은 회색(#f4f5f9)이라 text-sub-primary/secondary-txt처럼 페이지
+              테마 변수를 따르는 클래스를 쓰면 다크 테마 페이지(goldenpine)에서 흰 글자가 밝은
+              배경 위에 얹혀 안 보이게 된다. 카드 자체가 항상 밝으므로 글자색은 리터럴로 고정한다. */}
+          <p className="tit font-en text-lg leading-[26px] font-medium text-[#222222] max-lg:text-base max-lg:leading-6 max-sm:text-sm max-sm:leading-5">
             {card.tit}
           </p>
-          <span className="sub font-en text-sm leading-[22px] font-light text-sub-secondary-txt max-lg:text-xs max-lg:leading-[18px]">
+          <span className="sub font-en text-sm leading-[22px] font-light text-[#505050] max-lg:text-xs max-lg:leading-[18px]">
             {card.sub}
           </span>
         </li>
