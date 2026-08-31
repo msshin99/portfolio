@@ -1,0 +1,44 @@
+import Header from "../components/layout/Header";
+import Footer from "../components/layout/Footer";
+import Reveal from "../components/common/Reveal";
+import WorkCard from "../components/common/WorkCard";
+import { portfolioListGroups } from "../data/works";
+import { usePortfolios, mapRowToWorkItem } from "../lib/portfolioApi";
+
+const h2Class =
+  "font-en text-[68px] leading-[76px] font-medium max-lg:text-[56px] max-lg:leading-[66px] max-sm:text-[40px] max-sm:leading-[48px] mb-[30px] max-lg:mb-6 max-sm:mb-[18px]";
+
+export default function PortfolioList() {
+  // nordune/goalcheck/prmr는 Supabase에서 불러와 "WEB DESIGN" 그룹 맨 앞에 끼워 넣는다 —
+  // 관리자가 새 프로젝트를 등록하면 코드 변경 없이 여기 자동으로 나타난다.
+  const { rows } = usePortfolios();
+  const dynamicItems = (rows ?? []).map(mapRowToWorkItem);
+  const groups = portfolioListGroups.map((group) =>
+    group.heading === "WEB DESIGN" ? { ...group, items: [...dynamicItems, ...group.items] } : group
+  );
+
+  return (
+    <div className="wrap relative bg-black text-white min-h-screen">
+      <Header variant="default" />
+      <div className="subpage max-w-[1880px] mx-auto px-10 max-sm:px-4">
+        <div className="portfolio-list pt-[180px] pb-20 max-lg:pt-[140px] max-lg:pb-[60px] max-[767px]:pt-[100px] max-[767px]:pb-10">
+          {groups.map((group) => (
+            <Reveal
+              key={group.heading}
+              duration={3000}
+              className="mb-[160px] max-lg:mb-[100px] max-[767px]:mb-20"
+            >
+              <h2 className={h2Class}>{group.heading}</h2>
+              <ul className="work-list sub-page grid grid-cols-3 justify-between gap-x-5 gap-y-10 max-[767px]:grid-cols-1 max-[767px]:gap-7">
+                {group.items.map((item) => (
+                  <WorkCard key={item.title} item={item} subPage shared />
+                ))}
+              </ul>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+      <Footer theme="dark" revealDuration={2000} />
+    </div>
+  );
+}

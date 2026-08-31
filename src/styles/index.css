@@ -1,0 +1,365 @@
+/* 폰트 임포트 */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap");
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+@import url("https://fonts.googleapis.com/css2?family=Prata&display=swap");
+
+@import "tailwindcss";
+
+/* 🔹 Global Design Tokens (variables.css 1:1 이관) */
+@theme {
+  /* ---------- Font ---------- */
+  --font-ko: "Pretendard", sans-serif;
+  --font-en: "Inter", sans-serif;
+  --font-prata: "Prata", serif;
+
+  /* ---------- Color Palette ---------- */
+  --color-primary: #3182f6;
+  --color-secondary: #18cb63;
+  --color-tertiary: #ff5c00;
+
+  /* Text Colors (dark theme) */
+  --color-primary-txt: #f56214;
+  --color-secondary-txt: #c7c7c7;
+  --color-tertiary-txt: #7c7c7c;
+
+  /* Text Colors (sub / light theme) */
+  --color-sub-primary-txt: #222222;
+  --color-sub-secondary-txt: #505050;
+  --color-sub-tertiary-txt: #767676;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+}
+
+/*
+ * ---------- reset.css 중 Tailwind preflight로 커버되지 않는 규칙 ----------
+ * 반드시 @layer base 안에 둘 것: layer 밖에 두면 CSS cascade layer 규칙상
+ * "unlayered" 스타일이 명시도(specificity)와 무관하게 @layer utilities의
+ * 모든 Tailwind 유틸리티(class="text-white" 등)보다 항상 우선 적용되어
+ * 버튼/링크 등에 직접 지정한 색상 유틸리티가 무시되는 문제가 있었다.
+ */
+@layer base {
+  body {
+    line-height: 1;
+  }
+
+  button {
+    border: 0;
+    background: transparent;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  ol,
+  ul {
+    list-style: none;
+  }
+}
+
+/* ---------- 전역 keyframes (main.css 이관) ---------- */
+@keyframes visualtxt {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes hue-spin {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* ---------- 인트로 프리로더 텍스트 리빌(마스크 안에서 아래->위로 올라오며 등장) ---------- */
+@keyframes intro-line-in {
+  from {
+    transform: translateY(100%) scale(0.97);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* 등장을 마친 글자가 계속 잔잔하게 위아래로 웨이브 타는 idle 애니메이션 */
+@keyframes intro-wave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/*
+ * 아래 커스텀 규칙들은 모두 @layer utilities 안에 둔다. layer 밖(unlayered)에 두면
+ * 명시도와 무관하게 항상 최우선 적용되어, 같은 요소에 나중에 추가할 수 있는 Tailwind
+ * 유틸리티 클래스를 예기치 않게 덮어써버릴 수 있기 때문이다(위 reset 규칙과 동일한 이유).
+ */
+@layer utilities {
+
+/*
+ * "형제 요소에 hover 시 나머지는 blur, hover한 요소만 선명"하게 만드는 패턴은
+ * Tailwind의 유틸리티 클래스만으로는 우선순위(hover가 group-hover를 이겨야 함)를
+ * 안정적으로 표현하기 어려워 원본 선택자 구조를 그대로 유지한다.
+ * (#header ul.gnb .sub-list, .mo-nav-open ul)
+ */
+.blur-siblings > * {
+  transition: filter 0.5s ease-in-out;
+}
+.blur-siblings:hover > * {
+  filter: blur(2px);
+}
+.blur-siblings:hover > *:hover {
+  filter: blur(0);
+}
+
+.blur-siblings-lg > * {
+  transition: filter 0.5s ease-in-out;
+}
+.blur-siblings-lg:hover > * {
+  filter: blur(5px);
+}
+.blur-siblings-lg:hover > *:hover {
+  filter: blur(0);
+}
+
+/*
+ * swiper가 런타임에 자동 생성하는 pagination bullet 등은 React props(JSX 클래스)로
+ * 다룰 수 없어 원본 sub.css의 .device 관련 규칙을 그대로 이식한다.
+ */
+.device .swiper-button-prev {
+  left: 30px !important;
+}
+
+.device .swiper-button-next {
+  right: 30px !important;
+}
+
+.device .swiper-button-prev,
+.device .swiper-button-next {
+  width: 40px !important;
+  height: 40px !important;
+  background-color: #d9d9d9;
+  color: #fff !important;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  z-index: 10;
+  top: 50% !important;
+  margin-top: 0 !important;
+  transform: translateY(-50%);
+  font-size: 2px;
+}
+
+.device .swiper-button-prev svg,
+.device .swiper-button-next svg {
+  width: 10px !important;
+  height: auto !important;
+}
+
+.device .swiper-button-prev:hover,
+.device .swiper-button-next:hover {
+  background-color: var(--color-sub-primary-txt);
+}
+
+.device .swiper-button-disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.device .swiper-pagination {
+  position: absolute;
+  bottom: 30px !important;
+}
+
+.device .swiper-pagination-bullet {
+  width: 12px !important;
+  height: 12px !important;
+  margin: 0 6px;
+  background: #d9d9d9 !important;
+  opacity: 1;
+  border-radius: 50px;
+  transition: all 0.3s;
+}
+
+.device .swiper-pagination-bullet-active {
+  width: 30px !important;
+  height: 12px !important;
+  background: var(--color-sub-primary-txt) !important;
+  border-radius: 4px !important;
+}
+
+@media (max-width: 1024px) {
+  .device .swiper-button-prev {
+    left: 20px !important;
+  }
+
+  .device .swiper-button-next {
+    right: 20px !important;
+  }
+
+  .device .swiper-button-prev,
+  .device .swiper-button-next {
+    width: 34px !important;
+    height: 34px !important;
+    top: 50% !important;
+    transform: translateY(-50%);
+    font-size: 1px;
+  }
+
+  .device .swiper-button-prev svg,
+  .device .swiper-button-next svg {
+    width: 8px !important;
+    height: auto !important;
+  }
+
+  .device .swiper-pagination {
+    bottom: 20px !important;
+  }
+
+  .device .swiper-pagination-bullet {
+    width: 10px !important;
+    height: 10px !important;
+    margin: 0 5px;
+  }
+
+  .device .swiper-pagination-bullet-active {
+    width: 26px !important;
+    height: 10px !important;
+    border-radius: 4px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .device .swiper-button-prev {
+    left: 14px !important;
+  }
+
+  .device .swiper-button-next {
+    right: 14px !important;
+  }
+
+  .device .swiper-button-prev,
+  .device .swiper-button-next {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .device .swiper-button-prev svg,
+  .device .swiper-button-next svg {
+    width: 7px !important;
+    height: auto !important;
+  }
+
+  .device .swiper-pagination {
+    bottom: 14px !important;
+  }
+
+  .device .swiper-pagination-bullet {
+    width: 9px !important;
+    height: 9px !important;
+    margin: 0 4px;
+  }
+
+  .device .swiper-pagination-bullet-active {
+    width: 22px !important;
+    height: 9px !important;
+    border-radius: 3px !important;
+  }
+}
+
+/* box-container .right .tit ("Mobile/Tablet/Pc" 라벨) */
+.box-container .right .tit {
+  font-family: var(--font-en);
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 500;
+  color: var(--color-sub-primary-txt);
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  margin-left: 16px;
+}
+
+.box-container .right .tit::before {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--color-sub-primary-txt);
+  border-radius: 50%;
+  top: 10px;
+  left: -16px;
+}
+
+@media (max-width: 1024px) {
+  .box-container .right .tit {
+    font-size: 18px;
+    line-height: 26px;
+    top: 20px;
+    left: 20px;
+    margin-left: 14px;
+  }
+
+  .box-container .right .tit::before {
+    width: 6px;
+    height: 6px;
+    top: 10px;
+    left: -14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .box-container .right .tit {
+    font-size: 16px;
+    line-height: 24px;
+    top: 14px;
+    left: 14px;
+    margin-left: 12px;
+  }
+
+  .box-container .right .tit::before {
+    width: 5px;
+    height: 5px;
+    top: 10px;
+    left: -12px;
+  }
+}
+
+} /* end @layer utilities */
