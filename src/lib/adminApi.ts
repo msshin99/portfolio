@@ -1,6 +1,7 @@
 import { supabase } from "./supabaseClient";
 import type { ContentBlock, PortfolioRow } from "./portfolioApi";
 import type { SiteContentRow } from "./siteContentApi";
+import type { GraphicWorkRow } from "./graphicWorksApi";
 
 const BUCKET = "portfolio-images";
 
@@ -102,6 +103,39 @@ export async function updateFeaturedOrder(
         .eq("slug", slug);
       if (error) throw error;
     }
+  }
+}
+
+export async function fetchAllGraphicWorks(): Promise<GraphicWorkRow[]> {
+  const { data, error } = await supabase.from("graphic_works").select("*").order("display_order", { ascending: true });
+  if (error) throw error;
+  return data as GraphicWorkRow[];
+}
+
+export type GraphicWorkInput = Omit<GraphicWorkRow, "id">;
+
+export async function createGraphicWork(input: GraphicWorkInput): Promise<GraphicWorkRow> {
+  const { data, error } = await supabase.from("graphic_works").insert(input).select().single();
+  if (error) throw error;
+  return data as GraphicWorkRow;
+}
+
+export async function updateGraphicWork(id: string, input: GraphicWorkInput): Promise<GraphicWorkRow> {
+  const { data, error } = await supabase.from("graphic_works").update(input).eq("id", id).select().single();
+  if (error) throw error;
+  return data as GraphicWorkRow;
+}
+
+export async function deleteGraphicWork(id: string): Promise<void> {
+  const { error } = await supabase.from("graphic_works").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/** 드래그로 재배열한 순서를 display_order(0부터)로 그대로 반영한다. */
+export async function reorderGraphicWorks(idsInOrder: string[]): Promise<void> {
+  for (const [index, id] of idsInOrder.entries()) {
+    const { error } = await supabase.from("graphic_works").update({ display_order: index }).eq("id", id);
+    if (error) throw error;
   }
 }
 

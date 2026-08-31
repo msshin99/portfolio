@@ -12,6 +12,7 @@ import AdminLogin from "./admin/AdminLogin";
 import AdminDashboard from "./admin/AdminDashboard";
 import AdminPortfolioForm from "./admin/AdminPortfolioForm";
 import AdminSiteContent from "./admin/AdminSiteContent";
+import AdminGraphicWorks from "./admin/AdminGraphicWorks";
 import RequireAuth from "./admin/RequireAuth";
 import AdminLayout from "./admin/AdminLayout";
 
@@ -108,6 +109,16 @@ export default function App() {
             <RequireAuth>
               <AdminLayout>
                 <AdminSiteContent />
+              </AdminLayout>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/graphic-works"
+          element={
+            <RequireAuth>
+              <AdminLayout>
+                <AdminGraphicWorks />
               </AdminLayout>
             </RequireAuth>
           }

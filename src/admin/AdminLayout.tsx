@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useSession } from "./useSession";
-import { GridIcon, LayoutTextIcon, LogoutIcon } from "./icons";
+import { GridIcon, LayoutTextIcon, LogoutIcon, PaletteIcon } from "./icons";
 import { ADMIN_BG } from "./ui";
 
 const NAV_ITEMS = [
@@ -19,6 +19,13 @@ const NAV_ITEMS = [
     description: "홈·소개 문구 및 이미지",
     icon: LayoutTextIcon,
     match: (path: string) => path.startsWith("/admin/site-content"),
+  },
+  {
+    to: "/admin/graphic-works",
+    label: "그래픽 디자인",
+    description: "GRAPIC DESIGN 카드 등록·순서",
+    icon: PaletteIcon,
+    match: (path: string) => path.startsWith("/admin/graphic-works"),
   },
 ];
 
