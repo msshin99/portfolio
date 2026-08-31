@@ -35,7 +35,7 @@ export default function PortfolioList() {
               className="mb-[160px] max-lg:mb-[100px] max-[767px]:mb-20"
             >
               <h2 className={h2Class}>{group.heading}</h2>
-              <ul className="work-list sub-page grid grid-cols-3 justify-between gap-x-5 gap-y-10 max-[767px]:grid-cols-1 max-[767px]:gap-7">
+              <ul className="work-list sub-page grid grid-cols-3 justify-between gap-x-5 gap-y-[60px] max-[767px]:grid-cols-1 max-[767px]:gap-7">
                 {group.items.map((item) => (
                   <WorkCard key={item.title} item={item} subPage shared />
                 ))}
