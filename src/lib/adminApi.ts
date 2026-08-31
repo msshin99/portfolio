@@ -71,6 +71,27 @@ export async function deletePortfolio(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/** 새 포트폴리오를 만들 때 리스트 맨 뒤에 붙도록, 현재 가장 큰 list_display_order + 1을
+ *  돌려준다(등록된 게 없으면 0). */
+export async function getNextListDisplayOrder(): Promise<number> {
+  const { data, error } = await supabase
+    .from("portfolios")
+    .select("list_display_order")
+    .order("list_display_order", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return data.length ? data[0].list_display_order + 1 : 0;
+}
+
+/** 관리자 "전체 포트폴리오" 표에서 드래그로 재배열한 순서를 list_display_order(0부터)로
+ *  그대로 반영한다. */
+export async function reorderPortfolioList(idsInOrder: string[]): Promise<void> {
+  for (const [index, id] of idsInOrder.entries()) {
+    const { error } = await supabase.from("portfolios").update({ list_display_order: index }).eq("id", id);
+    if (error) throw error;
+  }
+}
+
 /** 메인 노출 토글 + 순서 일괄 반영. 같은 main_display_order 값을 두 행이 동시에 잠깐이라도
  *  가지면 unique index에 걸리므로, 항상 "전부 해제 후 다시 채우는" 순서로 두 단계에 걸쳐
  *  업데이트한다. */
@@ -136,6 +157,28 @@ export async function reorderGraphicWorks(idsInOrder: string[]): Promise<void> {
   for (const [index, id] of idsInOrder.entries()) {
     const { error } = await supabase.from("graphic_works").update({ display_order: index }).eq("id", id);
     if (error) throw error;
+  }
+}
+
+/** 그래픽 디자인 항목에 메인 이미지를 넣으면 /portfolio/{slug} 상세페이지가 자동 생기는데,
+ *  이 URL 공간은 portfolios.slug와 공유한다(둘 다 PortfolioSlug.tsx가 처리). 두 테이블의
+ *  slug가 겹치면 어느 한쪽 페이지가 가려지므로, 두 테이블을 모두 확인해서 겹치면
+ *  "-2", "-3"처럼 숫자를 붙여 고유하게 만든다. */
+export async function generateUniqueGraphicWorkSlug(title: string): Promise<string> {
+  const base = slugify(title) || "graphic";
+  let candidate = base;
+  let suffix = 2;
+  // 두 테이블에 동시에 존재 여부를 물어야 하므로, 후보가 정해질 때마다 순차적으로 확인한다.
+  for (;;) {
+    const [{ data: portfolioMatch, error: portfolioError }, { data: graphicMatch, error: graphicError }] = await Promise.all([
+      supabase.from("portfolios").select("id").eq("slug", candidate).maybeSingle(),
+      supabase.from("graphic_works").select("id").eq("slug", candidate).maybeSingle(),
+    ]);
+    if (portfolioError) throw portfolioError;
+    if (graphicError) throw graphicError;
+    if (!portfolioMatch && !graphicMatch) return candidate;
+    candidate = `${base}-${suffix}`;
+    suffix += 1;
   }
 }
 

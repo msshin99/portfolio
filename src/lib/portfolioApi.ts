@@ -54,6 +54,9 @@ export interface PortfolioRow {
   content_blocks: ContentBlock[];
   is_featured_on_main: boolean;
   main_display_order: number | null;
+  /** /portfolio 리스트 페이지에 노출되는 순서(0부터). 관리자가 "전체 포트폴리오" 표에서
+   *  드래그로 재배열한다 — 홈 화면 전용인 main_display_order와는 별개 값. */
+  list_display_order: number;
 }
 
 /** PortfolioDetailContent.tsx 등 기존 렌더링 컴포넌트는 그대로 두고, DB row를 기존
@@ -130,7 +133,7 @@ async function fetchAllPortfolios(): Promise<PortfolioRow[]> {
   const { data, error } = await supabase
     .from("portfolios")
     .select("*")
-    .order("created_at", { ascending: true });
+    .order("list_display_order", { ascending: true });
   if (error) throw error;
   return data as PortfolioRow[];
 }

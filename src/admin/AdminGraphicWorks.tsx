@@ -16,23 +16,46 @@ import {
   updateGraphicWork,
   deleteGraphicWork,
   reorderGraphicWorks,
+  generateUniqueGraphicWorkSlug,
+  slugify,
 } from "../lib/adminApi";
 import { refreshGraphicWorks, type GraphicWorkRow } from "../lib/graphicWorksApi";
 import { AlertIcon, ExternalLinkIcon, GripIcon, PaletteIcon, PencilIcon, PlusIcon, TrashIcon, XIcon } from "./icons";
-import { Button, Card, EmptyState, InfoBanner, Input, Label, PageHeader } from "./ui";
+import { Button, Card, EmptyState, Hint, InfoBanner, Input, Label, PageHeader } from "./ui";
 
 type FormState = {
   title: string;
   date_label: string;
   caption: string;
   image_url: string;
+  main_image_url: string;
+  /** main_image_url이 있을 때만 쓰이는, 전용 페이지의 주소(슬러그). 제목을 입력하면
+   *  자동으로 채워지고(한글 제목은 slugify가 다 걸러내서 비어버리므로 필요하면 직접
+   *  고쳐 쓸 수 있게 편집 가능한 필드로 둔다) — AdminPortfolioForm.tsx와 동일한 패턴. */
+  slug: string;
   href: string;
 };
 
-const emptyForm = (): FormState => ({ title: "", date_label: "", caption: "", image_url: "", href: "" });
+const emptyForm = (): FormState => ({
+  title: "",
+  date_label: "",
+  caption: "",
+  image_url: "",
+  main_image_url: "",
+  slug: "",
+  href: "",
+});
 
 function rowToForm(row: GraphicWorkRow): FormState {
-  return { title: row.title, date_label: row.date_label, caption: row.caption, image_url: row.image_url, href: row.href };
+  return {
+    title: row.title,
+    date_label: row.date_label,
+    caption: row.caption,
+    image_url: row.image_url,
+    main_image_url: row.main_image_url ?? "",
+    slug: row.slug ?? "",
+    href: row.href,
+  };
 }
 
 function SortableRow({
@@ -71,6 +94,7 @@ function SortableRow({
         <p className="text-[15px] font-medium text-[#18181b] truncate">{row.title}</p>
         <p className="text-xs text-[#a1a1aa] truncate">
           {row.date_label} · {row.caption}
+          {row.main_image_url && <span className="ml-1.5 text-[#4f46e5]">· 전용 페이지 있음</span>}
         </p>
       </div>
       <a
@@ -109,8 +133,11 @@ export default function AdminGraphicWorks() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
+  const [slugTouched, setSlugTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  const editingRow = editingId && editingId !== "new" ? (rows?.find((r) => r.id === editingId) ?? null) : null;
 
   async function load() {
     try {
@@ -127,31 +154,63 @@ export default function AdminGraphicWorks() {
 
   function startAdd() {
     setForm(emptyForm());
+    setSlugTouched(false);
     setEditingId("new");
   }
 
   function startEdit(row: GraphicWorkRow) {
     setForm(rowToForm(row));
+    setSlugTouched(true);
     setEditingId(row.id);
   }
 
   function cancelEdit() {
     setEditingId(null);
     setForm(emptyForm());
+    setSlugTouched(false);
+  }
+
+  function handleTitleChange(value: string) {
+    setForm((p) => ({ ...p, title: value, slug: slugTouched ? p.slug : slugify(value) }));
   }
 
   async function handleSave() {
-    if (!form.title.trim() || !form.image_url || !form.href.trim()) {
-      setError("제목, 이미지, 링크는 필수입니다.");
+    if (!form.title.trim() || !form.image_url) {
+      setError("제목과 썸네일 이미지는 필수입니다.");
+      return;
+    }
+    if (!form.main_image_url && !form.href.trim()) {
+      setError("메인 이미지를 등록하거나(자동으로 전용 페이지가 생깁니다), 이동할 외부 링크를 입력해주세요.");
       return;
     }
     setSaving(true);
     setError(null);
     try {
+      let slug: string | null = null;
+      let href = form.href.trim();
+      if (form.main_image_url) {
+        const desired = form.slug.trim() || slugify(form.title);
+        // 슬러그가 기존과 같으면(안 바꿨으면) 그대로 재사용 — 이미 공유된 링크가 깨지지
+        // 않게 한다. 새로 입력했거나 새로 만드는 항목일 때만 중복 여부를 다시 확인한다.
+        slug = editingRow?.slug && desired === editingRow.slug ? editingRow.slug : await generateUniqueGraphicWorkSlug(desired);
+        href = `/portfolio/${slug}`;
+      }
+
+      const payload = {
+        title: form.title,
+        date_label: form.date_label,
+        caption: form.caption,
+        image_url: form.image_url,
+        main_image_url: form.main_image_url || null,
+        slug,
+        href,
+        display_order: editingRow?.display_order ?? rows?.length ?? 0,
+      };
+
       if (editingId === "new") {
-        await createGraphicWork({ ...form, display_order: rows?.length ?? 0 });
+        await createGraphicWork(payload);
       } else if (editingId) {
-        await updateGraphicWork(editingId, { ...form, display_order: rows?.find((r) => r.id === editingId)?.display_order ?? 0 });
+        await updateGraphicWork(editingId, payload);
       }
       refreshGraphicWorks();
       cancelEdit();
@@ -209,9 +268,9 @@ export default function AdminGraphicWorks() {
       />
 
       <InfoBanner title="이 페이지 사용법">
-        썸네일 이미지·제목·날짜 문구·설명·링크를 등록하면 포트폴리오 리스트 페이지의 <b>GRAPIC DESIGN</b> 그룹에 그대로
-        노출됩니다. 링크는 <b>/portfolio/chairpdp</b>처럼 사이트 내부 경로여도, Behance 등 외부 URL이어도 됩니다.
-        카드를 드래그하면 노출 순서가 바로 저장됩니다.
+        <b>썸네일 이미지</b>는 리스트 카드에 보이는 사진입니다. <b>메인 이미지</b>를 함께 등록하면 그 이미지를 크게
+        보여주는 전용 페이지가 자동으로 만들어지고, 카드를 클릭하면 그 페이지로 이동합니다. 메인 이미지 없이 외부
+        링크(Behance 등)로만 연결할 수도 있습니다. 카드를 드래그하면 노출 순서가 바로 저장됩니다.
       </InfoBanner>
 
       {error && (
@@ -235,7 +294,7 @@ export default function AdminGraphicWorks() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>제목</Label>
-              <Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="예: Memory in frame" />
+              <Input value={form.title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="예: Memory in frame" />
             </div>
             <div>
               <Label>날짜 문구</Label>
@@ -248,18 +307,46 @@ export default function AdminGraphicWorks() {
             <Input value={form.caption} onChange={(e) => setForm((p) => ({ ...p, caption: e.target.value }))} placeholder="예: Logo design" />
           </div>
 
-          <div>
-            <Label>링크 (내부 경로 또는 외부 URL)</Label>
-            <Input
-              value={form.href}
-              onChange={(e) => setForm((p) => ({ ...p, href: e.target.value }))}
-              placeholder="예: /portfolio/chairpdp 또는 https://www.behance.net/..."
-            />
+          <div className="pt-2 border-t border-black/[0.05]">
+            <Label>썸네일 이미지 (카드에 보이는 사진)</Label>
+            <ImageUploadField label="" slug="graphic-works" value={form.image_url} onChange={(url) => setForm((p) => ({ ...p, image_url: url }))} />
           </div>
 
-          <div>
-            <Label>썸네일 이미지</Label>
-            <ImageUploadField label="" slug="graphic-works" value={form.image_url} onChange={(url) => setForm((p) => ({ ...p, image_url: url }))} />
+          <div className="pt-2 border-t border-black/[0.05]">
+            <Label>메인 이미지 (선택 — 등록하면 전용 페이지가 자동 생성됩니다)</Label>
+            <ImageUploadField
+              label=""
+              slug="graphic-works-main"
+              value={form.main_image_url}
+              onChange={(url) => setForm((p) => ({ ...p, main_image_url: url }))}
+            />
+            {form.main_image_url ? (
+              <div className="mt-3">
+                <Label>전용 페이지 주소 (슬러그)</Label>
+                <Input
+                  value={form.slug}
+                  onChange={(e) => {
+                    setForm((p) => ({ ...p, slug: slugify(e.target.value) }));
+                    setSlugTouched(true);
+                  }}
+                  placeholder="예: memory-in-frame"
+                />
+                <Hint>
+                  제목을 입력하면 자동으로 채워집니다(한글 제목은 영문 주소로 변환되지 않으니 필요하면 직접 고쳐
+                  쓰세요). 저장하면 <b>/portfolio/{form.slug || "..."}</b> 페이지가 자동으로 만들어지고, 카드를
+                  클릭하면 그 페이지로 이동합니다.
+                </Hint>
+              </div>
+            ) : (
+              <div className="mt-3">
+                <Label>링크 (외부 URL)</Label>
+                <Input
+                  value={form.href}
+                  onChange={(e) => setForm((p) => ({ ...p, href: e.target.value }))}
+                  placeholder="예: https://www.behance.net/..."
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3 pt-2">

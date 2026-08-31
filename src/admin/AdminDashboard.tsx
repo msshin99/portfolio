@@ -11,7 +11,7 @@ import {
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "../lib/supabaseClient";
-import { deletePortfolio, updateFeaturedOrder } from "../lib/adminApi";
+import { deletePortfolio, updateFeaturedOrder, reorderPortfolioList } from "../lib/adminApi";
 import { refreshPortfolios, type PortfolioRow } from "../lib/portfolioApi";
 import { AlertIcon, ExternalLinkIcon, GridIcon, GripIcon, PencilIcon, PlusIcon, StarIcon, TrashIcon } from "./icons";
 import { Badge, Button, Card, EmptyState, InfoBanner, PageHeader } from "./ui";
@@ -50,6 +50,82 @@ function SortableFeaturedRow({ row, index, onRemove }: { row: PortfolioRow; inde
   );
 }
 
+function SortablePortfolioRow({
+  row,
+  onToggleFeatured,
+  onDelete,
+}: {
+  row: PortfolioRow;
+  onToggleFeatured: (checked: boolean) => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.id });
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 }}
+      className={isDragging ? "relative z-10 bg-white shadow-lg" : "group"}
+    >
+      <td className="py-3.5 px-2 border-t border-black/[0.05]">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing text-[#c4c4cc] hover:text-[#71717a] select-none p-1 touch-none"
+          aria-label="순서 변경"
+        >
+          <GripIcon className="w-5 h-5" />
+        </button>
+      </td>
+      <td className="py-3.5 px-2 border-t border-black/[0.05]">
+        <img src={row.hero_image_url ?? ""} alt="" className="w-20 h-14 object-cover rounded-md bg-[#f0f0f5]" />
+      </td>
+      <td className="py-3.5 px-2 border-t border-black/[0.05] text-[#18181b] font-medium">{row.title}</td>
+      <td className="py-3.5 px-2 border-t border-black/[0.05] text-[#a1a1aa]">
+        <span className="inline-flex items-center gap-1.5">
+          /portfolio/{row.slug}
+          <a
+            href={`/portfolio/${row.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#c4c4cc] hover:text-[#4f46e5]"
+          >
+            <ExternalLinkIcon className="w-3.5 h-3.5" />
+          </a>
+        </span>
+      </td>
+      <td className="py-3.5 px-2 border-t border-black/[0.05] text-center">
+        <input
+          type="checkbox"
+          checked={row.is_featured_on_main}
+          onChange={(e) => onToggleFeatured(e.target.checked)}
+          className="h-[18px] w-[18px] rounded border-black/20 accent-[#4f46e5]"
+        />
+      </td>
+      <td className="py-3.5 px-2 border-t border-black/[0.05] text-right whitespace-nowrap">
+        <div className="flex items-center justify-end gap-1.5 opacity-70 group-hover:opacity-100">
+          <Link
+            to={`/admin/portfolios/${row.id}/edit`}
+            className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-[#71717a] hover:bg-[#4f46e5]/8 hover:text-[#4f46e5]"
+            title="수정"
+          >
+            <PencilIcon className="w-[18px] h-[18px]" />
+          </Link>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-[#71717a] hover:bg-[#dc2626]/8 hover:text-[#dc2626]"
+            title="삭제"
+          >
+            <TrashIcon className="w-[18px] h-[18px]" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 export default function AdminDashboard() {
   const [rows, setRows] = useState<PortfolioRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +133,7 @@ export default function AdminDashboard() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   async function load() {
-    const { data, error } = await supabase.from("portfolios").select("*").order("created_at", { ascending: true });
+    const { data, error } = await supabase.from("portfolios").select("*").order("list_display_order", { ascending: true });
     if (error) {
       setError(error.message);
       return;
@@ -95,6 +171,23 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleListDragEnd(event: DragEndEvent) {
+    if (!rows) return;
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = rows.findIndex((r) => r.id === active.id);
+    const newIndex = rows.findIndex((r) => r.id === over.id);
+    const reordered = arrayMove(rows, oldIndex, newIndex);
+    setRows(reordered);
+    try {
+      await reorderPortfolioList(reordered.map((r) => r.id));
+      refreshPortfolios();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "순서 저장에 실패했습니다.");
+      await load();
+    }
+  }
+
   if (error) {
     return (
       <div className="flex items-center gap-2 rounded-xl bg-[#fef2f2] px-4 py-3 text-sm text-[#dc2626]">
@@ -110,7 +203,6 @@ export default function AdminDashboard() {
   const featured = rows
     .filter((r) => r.is_featured_on_main)
     .sort((a, b) => (a.main_display_order ?? 0) - (b.main_display_order ?? 0));
-  const notFeatured = rows.filter((r) => !r.is_featured_on_main);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -191,7 +283,10 @@ export default function AdminDashboard() {
           <GridIcon className="w-[18px] h-[18px] text-[#4f46e5]" />
           전체 포트폴리오
         </h2>
-        <p className="text-[15px] text-[#a1a1aa] mb-5">등록된 모든 작업물입니다. 체크박스로 홈페이지 노출 여부를 바로 바꿀 수 있습니다.</p>
+        <p className="text-[15px] text-[#a1a1aa] mb-5">
+          등록된 모든 작업물입니다. /portfolio 리스트 페이지에 이 순서 그대로 노출되며, 드래그하면 바로 저장됩니다.
+          체크박스로 홈페이지 노출 여부를 바로 바꿀 수 있습니다.
+        </p>
         {rows.length === 0 ? (
           <EmptyState
             icon={<GridIcon className="w-8 h-8" />}
@@ -200,69 +295,38 @@ export default function AdminDashboard() {
           />
         ) : (
         <div className="overflow-x-auto -mx-2">
-          <table className="w-full text-[15px] border-separate border-spacing-0">
-            <thead>
-              <tr className="text-left text-[#a1a1aa]">
-                <th className="py-3 px-2 font-medium text-xs uppercase tracking-wide">썸네일</th>
-                <th className="py-3 px-2 font-medium text-xs uppercase tracking-wide">제목</th>
-                <th className="py-3 px-2 font-medium text-xs uppercase tracking-wide">slug</th>
-                <th className="py-3 px-2 font-medium text-xs uppercase tracking-wide text-center" title="홈페이지 상단에 노출할지 여부">
-                  메인 노출
-                </th>
-                <th className="py-3 px-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...featured, ...notFeatured].map((row) => (
-                <tr key={row.id} className="group">
-                  <td className="py-3.5 px-2 border-t border-black/[0.05]">
-                    <img src={row.hero_image_url ?? ""} alt="" className="w-20 h-14 object-cover rounded-md bg-[#f0f0f5]" />
-                  </td>
-                  <td className="py-3.5 px-2 border-t border-black/[0.05] text-[#18181b] font-medium">{row.title}</td>
-                  <td className="py-3.5 px-2 border-t border-black/[0.05] text-[#a1a1aa]">
-                    <span className="inline-flex items-center gap-1.5">
-                      /portfolio/{row.slug}
-                      <a
-                        href={`/portfolio/${row.slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[#c4c4cc] hover:text-[#4f46e5]"
-                      >
-                        <ExternalLinkIcon className="w-3.5 h-3.5" />
-                      </a>
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-2 border-t border-black/[0.05] text-center">
-                    <input
-                      type="checkbox"
-                      checked={row.is_featured_on_main}
-                      onChange={(e) => handleToggleFeatured(row, e.target.checked)}
-                      className="h-[18px] w-[18px] rounded border-black/20 accent-[#4f46e5]"
-                    />
-                  </td>
-                  <td className="py-3.5 px-2 border-t border-black/[0.05] text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1.5 opacity-70 group-hover:opacity-100">
-                      <Link
-                        to={`/admin/portfolios/${row.id}/edit`}
-                        className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-[#71717a] hover:bg-[#4f46e5]/8 hover:text-[#4f46e5]"
-                        title="수정"
-                      >
-                        <PencilIcon className="w-[18px] h-[18px]" />
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(row)}
-                        className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-[#71717a] hover:bg-[#dc2626]/8 hover:text-[#dc2626]"
-                        title="삭제"
-                      >
-                        <TrashIcon className="w-[18px] h-[18px]" />
-                      </button>
-                    </div>
-                  </td>
+          {/* DndContext는 접근성 안내용 숨김 div를 children 옆에 추가로 렌더링한다 — <table> 안에
+              바로 넣으면 그 div가 table의 직계 자식이 되어 버려 유효하지 않은 HTML이 된다.
+              그래서 DndContext는 table 자체를 감싸고, DOM을 렌더링하지 않는 SortableContext만
+              tbody를 감싼다. */}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleListDragEnd}>
+            <table className="w-full text-[15px] border-separate border-spacing-0">
+              <thead>
+                <tr className="text-left text-[#a1a1aa]">
+                  <th className="py-3 px-2"></th>
+                  <th className="py-3 px-2 font-medium text-xs uppercase tracking-wide">썸네일</th>
+                  <th className="py-3 px-2 font-medium text-xs uppercase tracking-wide">제목</th>
+                  <th className="py-3 px-2 font-medium text-xs uppercase tracking-wide">slug</th>
+                  <th className="py-3 px-2 font-medium text-xs uppercase tracking-wide text-center" title="홈페이지 상단에 노출할지 여부">
+                    메인 노출
+                  </th>
+                  <th className="py-3 px-2"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+                <tbody>
+                  {rows.map((row) => (
+                    <SortablePortfolioRow
+                      key={row.id}
+                      row={row}
+                      onToggleFeatured={(checked) => handleToggleFeatured(row, checked)}
+                      onDelete={() => handleDelete(row)}
+                    />
+                  ))}
+                </tbody>
+              </SortableContext>
+            </table>
+          </DndContext>
         </div>
         )}
       </Card>

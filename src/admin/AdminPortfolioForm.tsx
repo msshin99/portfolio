@@ -7,6 +7,7 @@ import {
   createPortfolio,
   updatePortfolio,
   assembleContentBlocks,
+  getNextListDisplayOrder,
   type PortfolioInput,
 } from "../lib/adminApi";
 import { refreshPortfolios, type ContentBlock } from "../lib/portfolioApi";
@@ -148,6 +149,10 @@ export default function AdminPortfolioForm() {
     is_featured_on_main: false,
     main_display_order: null,
   });
+  // 수정 모드에서는 기존 값을 그대로 유지하고, 새로 등록할 때만 저장 직전에 "현재 맨 뒤"
+  // 값을 새로 받아온다(다른 관리자가 그사이 순서를 바꿨을 수도 있어서, 폼 진입 시점이 아니라
+  // 저장 시점에 조회한다).
+  const [listDisplayOrder, setListDisplayOrder] = useState<number | null>(null);
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -182,6 +187,7 @@ export default function AdminPortfolioForm() {
         setDescription(row.description.length ? row.description : [""]);
         setMeta(row.meta.map((m) => ({ label: m.label, value: m.value, note: m.note ?? "" })));
         setFeaturedState({ is_featured_on_main: row.is_featured_on_main, main_display_order: row.main_display_order });
+        setListDisplayOrder(row.list_display_order);
 
         const bc = row.content_blocks.find((b): b is BoxContainer => b.type === "box_container");
         if (bc) setBoxContainer(bc);
@@ -209,6 +215,7 @@ export default function AdminPortfolioForm() {
     setSaving(true);
     setError(null);
     try {
+      const resolvedListDisplayOrder = listDisplayOrder ?? (await getNextListDisplayOrder());
       const input: PortfolioInput = {
         slug,
         title,
@@ -224,6 +231,7 @@ export default function AdminPortfolioForm() {
         content_blocks: assembleContentBlocks({ boxContainer, fontInfoBlocks, colorInfo, mainImage }),
         is_featured_on_main: featuredState.is_featured_on_main,
         main_display_order: featuredState.main_display_order,
+        list_display_order: resolvedListDisplayOrder,
       };
 
       if (isEdit && id) {

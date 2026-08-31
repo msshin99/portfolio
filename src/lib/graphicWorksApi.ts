@@ -7,7 +7,12 @@ export interface GraphicWorkRow {
   title: string;
   date_label: string;
   caption: string;
+  /** 카드 썸네일. */
   image_url: string;
+  /** 이 값이 있으면 /portfolio/{slug}에 이 이미지를 보여주는 전용 상세페이지가 자동 생긴다
+   *  (PortfolioImage 컴포넌트 재사용). 없으면 href가 가리키는 곳(외부 링크 등)으로 바로 이동. */
+  main_image_url: string | null;
+  slug: string | null;
   href: string;
   display_order: number;
 }
