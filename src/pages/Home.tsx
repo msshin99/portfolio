@@ -12,7 +12,7 @@ import ServiceItem from "../components/common/ServiceItem";
 import SkillSwiper from "../components/common/SkillSwiper";
 import SectionTitle from "../components/common/SectionTitle";
 import visualImg from "../assets/visual-img.jpg";
-import { keywords } from "../data/keywords";
+import { keywords as defaultKeywords, type KeywordItem } from "../data/keywords";
 import { services as defaultServices, type ServiceItem as ServiceItemData } from "../data/services";
 import { skillGroups } from "../data/skills";
 import { usePortfolios, mapRowToWorkItem } from "../lib/portfolioApi";
@@ -28,6 +28,21 @@ const DEFAULT_INTRO_DESCRIPTION =
 
 const DEFAULT_SERVICE_DESCRIPTION =
   "저는 디자인을 '보여주는 일'이 아니라 '이해하고 연결하는 과정'이라 생각합니다. 기획부터 디자인, 퍼블리싱까지의 전 과정을 통해, 브랜드의 이야기가 사용자에게 자연스럽게 닿는 경험을 만들어갑니다.";
+
+/** 관리자가 site_content에 keyword_{n}_title/sub/image를 채우면 그 값으로, 비워두면
+ *  data/keywords.ts의 기본 콘텐츠로 대체된다. "01." 같은 번호 라벨은 관리자가 편집할 수
+ *  없는 위치 표시용이라 원본 데이터의 num을 그대로 쓴다. */
+function resolveKeywords(siteContent: Parameters<typeof getSiteText>[0]): KeywordItem[] {
+  return defaultKeywords.map((kw, i) => {
+    const n = i + 1;
+    return {
+      num: kw.num,
+      title: getSiteText(siteContent, `keyword_${n}_title`, kw.title),
+      sub: getSiteText(siteContent, `keyword_${n}_sub`, kw.sub),
+      image: getSiteImage(siteContent, `keyword_${n}_image`, kw.image),
+    };
+  });
+}
 
 /** 관리자가 site_content에 service_{n}_title/image/description을 채우면 그 값으로,
  *  비워두면 data/services.ts의 기본 콘텐츠로 대체된다. title은 hero_heading과 같은 방식으로
@@ -75,6 +90,7 @@ export default function Home() {
   const heroImage = getSiteImage(siteContent, "hero_image", visualImg);
   const introHeading = getSiteText(siteContent, "intro_heading", DEFAULT_INTRO_HEADING);
   const introDescription = getSiteText(siteContent, "intro_description", DEFAULT_INTRO_DESCRIPTION);
+  const resolvedKeywords = resolveKeywords(siteContent);
   const serviceDescription = getSiteText(siteContent, "service_description", DEFAULT_SERVICE_DESCRIPTION);
   const resolvedServices = resolveServices(siteContent);
   const featuredRows = chunk(
@@ -102,7 +118,7 @@ export default function Home() {
               y={40}
               stagger={0.1}
             >
-              {keywords.map((item) => (
+              {resolvedKeywords.map((item) => (
                 <KeywordCard key={item.num} item={item} />
               ))}
             </StaggerReveal>

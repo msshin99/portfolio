@@ -24,13 +24,15 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 
 const BUCKET = "portfolio-images";
 const ASSETS_ROOT = path.join(__dirname, "..", "src", "assets");
+const CONTENT_TYPES = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png" };
 
 async function uploadImage(relPath, filename) {
   const filePath = path.join(ASSETS_ROOT, relPath);
   const buffer = readFileSync(filePath);
   const storagePath = `site-content/${filename}`;
+  const ext = path.extname(filename).toLowerCase();
   const { error } = await supabase.storage.from(BUCKET).upload(storagePath, buffer, {
-    contentType: "image/jpeg",
+    contentType: CONTENT_TYPES[ext] ?? "application/octet-stream",
     upsert: true,
   });
   if (error) throw new Error(`업로드 실패 (${storagePath}): ${error.message}`);
@@ -68,6 +70,20 @@ await upsertText(
   "service_description",
   "저는 디자인을 '보여주는 일'이 아니라 '이해하고 연결하는 과정'이라 생각합니다. 기획부터 디자인, 퍼블리싱까지의 전 과정을 통해, 브랜드의 이야기가 사용자에게 자연스럽게 닿는 경험을 만들어갑니다."
 );
+
+// data/keywords.ts 기본값 4개 카드(소개 섹션 아래 키워드 그리드).
+const KEYWORDS = [
+  { n: 1, title: "선동 동력", sub: "Ability to Lead", file: "keyword/img-01.png", filename: "keyword-1.png" },
+  { n: 2, title: "경험 유영", sub: "Experience Swimming", file: "keyword/img-02.png", filename: "keyword-2.png" },
+  { n: 3, title: "구조적 심도", sub: "Structural Depth", file: "keyword/img-03.png", filename: "keyword-3.png" },
+  { n: 4, title: "가치 확산", sub: "Spread of Value", file: "keyword/img-04.png", filename: "keyword-4.png" },
+];
+
+for (const kw of KEYWORDS) {
+  await upsertText(`keyword_${kw.n}_title`, kw.title);
+  await upsertText(`keyword_${kw.n}_sub`, kw.sub);
+  await upsertImage(`keyword_${kw.n}_image`, kw.file, kw.filename);
+}
 
 // About.tsx 기본값.
 await upsertText(

@@ -21,12 +21,13 @@ const KNOWN_FIELDS: { key: string; label: string; type: "text" | "textarea" | "i
 
 const GROUPS: { id: string; title: string; description: string; icon: typeof HomeIcon }[] = [
   { id: "home", title: "홈 화면 히어로", description: "사이트에 처음 들어왔을 때 맨 위에 보이는 화면", icon: HomeIcon },
-  { id: "intro", title: "소개(Intro) 섹션", description: "히어로 아래 '(About)' 소개 영역", icon: InfoIcon },
+  { id: "intro", title: "소개(Intro) 섹션", description: "히어로 아래 '(About)' 소개 영역 + 키워드 카드 4개", icon: InfoIcon },
   { id: "service", title: "서비스(Service) 섹션", description: "'My Service' 설명글 + 서비스 카드 3개", icon: SparkleIcon },
   { id: "about", title: "소개(About) 페이지", description: "별도 About 페이지", icon: UserIcon },
 ];
 
 const SERVICE_SLOTS = [1, 2, 3];
+const KEYWORD_SLOTS = [1, 2, 3, 4];
 
 const TOC_ITEMS = [
   ...GROUPS.map((g) => ({ id: `group-${g.id}`, label: g.title.replace(/\s*\(.*?\)\s*/g, "") })),
@@ -188,6 +189,90 @@ function ServiceCardEditor({
   );
 }
 
+/** 키워드 카드 하나(한글 제목 + 영문 부제 + 아이콘 이미지)를 한 번에 저장한다. 카드 앞의
+ *  "01." 같은 번호는 카드 위치로 자동 정해지는 표시용 라벨이라 편집 대상에서 뺀다. */
+function KeywordCardEditor({
+  index,
+  rows,
+  onSaved,
+}: {
+  index: number;
+  rows: SiteContentRow[];
+  onSaved: () => void;
+}) {
+  const titleKey = `keyword_${index}_title`;
+  const subKey = `keyword_${index}_sub`;
+  const imageKey = `keyword_${index}_image`;
+  const titleRow = rows.find((r) => r.key === titleKey);
+  const subRow = rows.find((r) => r.key === subKey);
+  const imageRow = rows.find((r) => r.key === imageKey);
+
+  const [title, setTitle] = useState("");
+  const [sub, setSub] = useState("");
+  const [imageUrl, setImageUrl] = useState(imageRow?.value_image_url ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setTitle(titleRow?.value_text ?? "");
+    setSub(subRow?.value_text ?? "");
+    setImageUrl(imageRow?.value_image_url ?? "");
+  }, [titleRow, subRow, imageRow]);
+
+  async function handleSave() {
+    setSaving(true);
+    setSaved(false);
+    try {
+      await Promise.all([
+        upsertSiteContent({ key: titleKey, value_text: title, value_image_url: null }),
+        upsertSiteContent({ key: subKey, value_text: sub, value_image_url: null }),
+        upsertSiteContent({ key: imageKey, value_text: null, value_image_url: imageUrl }),
+      ]);
+      refreshSiteContent();
+      setSaved(true);
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card className="p-6 flex flex-col gap-4">
+      <h3 className="text-[15px] font-semibold text-[#18181b]">
+        키워드 카드 {index} <span className="text-[#a1a1aa] font-normal">({String(index).padStart(2, "0")}.)</span>
+      </h3>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>한글 제목</Label>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="예: 선동 동력" />
+        </div>
+        <div>
+          <Label>영문 부제</Label>
+          <Input value={sub} onChange={(e) => setSub(e.target.value)} placeholder="예: Ability to Lead" />
+        </div>
+      </div>
+
+      <div>
+        <Label>아이콘 이미지</Label>
+        <ImageUploadField label="" slug="site-content" value={imageUrl} onChange={setImageUrl} />
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Button type="button" variant="primary" size="sm" onClick={handleSave} disabled={saving}>
+          {saving ? "저장 중..." : "저장"}
+        </Button>
+        {saved && (
+          <span className="inline-flex items-center gap-1 text-xs text-[#16a34a]">
+            <CheckCircleIcon className="w-3.5 h-3.5" />
+            저장됨
+          </span>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 function CustomFieldRow({
   row,
   onSaved,
@@ -275,6 +360,7 @@ export default function AdminSiteContent() {
   const knownKeys = new Set([
     ...KNOWN_FIELDS.map((f) => f.key),
     ...SERVICE_SLOTS.flatMap((n) => [`service_${n}_title`, `service_${n}_image`, `service_${n}_description`]),
+    ...KEYWORD_SLOTS.flatMap((n) => [`keyword_${n}_title`, `keyword_${n}_sub`, `keyword_${n}_image`]),
   ]);
   const customRows = rows.filter((r) => !knownKeys.has(r.key));
 
@@ -297,6 +383,8 @@ export default function AdminSiteContent() {
           {KNOWN_FIELDS.filter((f) => f.group === group.id).map((field) => (
             <KnownFieldEditor key={field.key} field={field} row={rows.find((r) => r.key === field.key)} onSaved={load} />
           ))}
+          {group.id === "intro" &&
+            KEYWORD_SLOTS.map((n) => <KeywordCardEditor key={n} index={n} rows={rows} onSaved={load} />)}
           {group.id === "service" &&
             SERVICE_SLOTS.map((n) => <ServiceCardEditor key={n} index={n} rows={rows} onSaved={load} />)}
         </div>
