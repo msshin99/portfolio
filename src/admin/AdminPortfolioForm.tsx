@@ -34,12 +34,44 @@ const emptyBoxContainer = (): BoxContainer => ({
   sub2_image_url: "",
   device_slides: [],
 });
+/** 새 폰트 블록을 처음부터 빈 값으로 시작하면 매번 3개 가이드(Headline/Title/Body)를
+ *  손으로 다 채워야 해서 번거로웠다 — nordune에 이미 등록된 가이드 구성을 기본 템플릿으로
+ *  깔아두고, 관리자는 값만 프로젝트에 맞게 고쳐 쓰면 되게 한다. 이미지(image_url 등)는
+ *  프로젝트마다 다르므로 템플릿에 포함하지 않고 빈 값으로 둔다. */
+const NORDUNE_FONT_GUIDES_TEMPLATE: FontInfo["guides"] = [
+  {
+    title: "Headline",
+    sample: "we Design with purpose, creating experinces",
+    weight: "Bold",
+    sizes: ["116", "46", "40"],
+    letter_spacing: "0%",
+    tags: ["h2", "h3"],
+  },
+  {
+    title: "Title",
+    sample: "we Design with purpose, creating experinces",
+    weight: "Medium",
+    variant: "two",
+    sizes: ["24", "20", "18"],
+    letter_spacing: "0%",
+    tags: ["h4", "h5", "p"],
+  },
+  {
+    title: "Body",
+    sample: "we Design with purpose, creating experinces",
+    weight: "Regular",
+    variant: "three",
+    sizes: ["16", "14"],
+    letter_spacing: "0%",
+    tags: ["p", "button", "span", "a"],
+  },
+];
 const emptyFontInfo = (): FontInfo => ({
   type: "font_info",
   image_url: "",
   image_mobile_url: "",
   tight: false,
-  guides: [],
+  guides: structuredClone(NORDUNE_FONT_GUIDES_TEMPLATE),
 });
 const emptyColorInfo = (): ColorInfo => ({ type: "color_info", description: "", cards: [] });
 const emptyMainImage = (): MainImageBlock => ({ type: "main_image", main_image_url: "" });

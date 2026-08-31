@@ -42,11 +42,13 @@ export default function PortfolioDetailContent({
   heroSettled = true,
   onHeroSettled,
 }: PortfolioDetailContentProps) {
-  // Related Projects: Supabase에 등록된 전체 프로젝트를 그대로 보여준다(기존 정적
-  // relatedWorks도 항상 nordune/goalcheck/prmr 전부를 보여줬고, 보고 있는 프로젝트 자신도
-  // 포함되는 동작이었다 — 그 동작을 그대로 유지).
+  // Related Projects: 지금 보고 있는 프로젝트 자신은 제외하고, 다른 프로젝트로 이동할 수
+  // 있는 카드를 최대 3개까지만 보여준다.
   const { rows: relatedRows } = usePortfolios();
-  const relatedWorks = (relatedRows ?? []).map(mapRowToWorkItem);
+  const relatedWorks = (relatedRows ?? [])
+    .filter((row) => row.slug !== detail.slug)
+    .slice(0, 3)
+    .map(mapRowToWorkItem);
   const isDark = detail.slug === "goldenpine";
 
   return (
