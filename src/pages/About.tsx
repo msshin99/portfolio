@@ -1,7 +1,16 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Header from "../components/layout/Header";
+import Footer from "../components/layout/Footer";
+import IntroTop from "../components/home/IntroTop";
+import SectionTitle from "../components/common/SectionTitle";
+import Reveal from "../components/common/Reveal";
+import { useTilt } from "../hooks/useTilt";
+import { useMagnetic } from "../hooks/useMagnetic";
 import profileImg from "../assets/portfolio/profile.jpg";
 import { useSiteContent, getSiteText, getSiteImage } from "../lib/siteContentApi";
 
+const DEFAULT_ABOUT_HEADING = "모두를 집중시키는 디자이너 신민석입니다";
 const DEFAULT_ABOUT_DESCRIPTION =
   "언제나 남들과 다른 시각으로 디자인을 바라보며, 평범함 속에 숨겨진 새로운 가능성을 발견하고, 익숙한 것들에서 비범함을 이끌어냅니다.";
 
@@ -45,55 +54,162 @@ const infoRows: InfoRow[] = [
   },
 ];
 
+const EMAIL_RE = /\S+@\S+\.\S+/;
+const PHONE_RE = /^\d{2,3}-\d{3,4}-\d{4}$/;
+
+/** 이메일/전화번호처럼 실제로 눌러서 쓸 수 있는 값은 mailto:/tel: 링크로 바꿔준다 —
+ *  단순 텍스트 나열이 아니라 실제로 눌러볼 수 있는 항목이 섞여 있어야 "인터랙티브"하다. */
+function ItemText({ text }: { text: string }) {
+  if (EMAIL_RE.test(text)) {
+    return (
+      <a href={`mailto:${text}`} className="transition-colors duration-300 hover:text-primary-txt">
+        {text}
+      </a>
+    );
+  }
+  if (PHONE_RE.test(text)) {
+    return (
+      <a href={`tel:${text.replace(/-/g, "")}`} className="transition-colors duration-300 hover:text-primary-txt">
+        {text}
+      </a>
+    );
+  }
+  return <>{text}</>;
+}
+
+interface InfoAccordionRowProps {
+  row: InfoRow;
+  index: number;
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+/** 자격사항/학력사항 같은 5개 카테고리를 아코디언으로 여닫는 한 행. 토글 아이콘에는
+ *  useMagnetic을 걸어, 커서가 다가가면 아이콘 자체가 살짝 끌려오는 미세한 반응을 준다. */
+function InfoAccordionRow({ row, index, isOpen, onToggle }: InfoAccordionRowProps) {
+  const magneticRef = useMagnetic<HTMLSpanElement>({ strength: 10 });
+
+  return (
+    <li className="border-b border-white/10">
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={onToggle}
+        className="group/row flex w-full items-center justify-between gap-6 py-8 text-left transition-colors duration-300 hover:bg-white/[0.03] max-lg:py-6 max-sm:py-5"
+      >
+        <span className="flex items-center gap-6 max-sm:gap-3">
+          <span
+            className={[
+              "font-en text-sm font-medium transition-colors duration-300",
+              isOpen ? "text-primary-txt" : "text-tertiary-txt group-hover/row:text-secondary-txt",
+            ].join(" ")}
+          >
+            {String(index + 1).padStart(2, "0")}
+          </span>
+          <span
+            className={[
+              "font-ko text-2xl font-medium transition-colors duration-300 max-lg:text-xl max-sm:text-lg",
+              isOpen ? "text-white" : "text-secondary-txt group-hover/row:text-white",
+            ].join(" ")}
+          >
+            {row.label}
+          </span>
+        </span>
+
+        <span ref={magneticRef} className="relative h-4 w-4 shrink-0 will-change-transform">
+          <span
+            className={[
+              "absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white transition-transform duration-300",
+              isOpen ? "rotate-45" : "rotate-0",
+            ].join(" ")}
+          />
+          <span
+            className={[
+              "absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white transition-transform duration-300",
+              isOpen ? "-rotate-45" : "rotate-0",
+            ].join(" ")}
+          />
+        </span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {isOpen ? (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="grid grid-cols-2 gap-x-8 gap-y-4 pb-8 pl-[52px] max-lg:pl-10 max-sm:grid-cols-1 max-sm:gap-3 max-sm:pb-5 max-sm:pl-8">
+              {row.items.map((item) => (
+                <p key={item.text} className="font-ko text-base font-light leading-6 text-secondary-txt max-sm:text-sm">
+                  <ItemText text={item.text} />
+                  {item.date ? <span className="mt-1 block text-sm leading-5 text-tertiary-txt">{item.date}</span> : null}
+                </p>
+              ))}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </li>
+  );
+}
+
 export default function About() {
   const { rows: siteContent } = useSiteContent();
   const description = getSiteText(siteContent, "about_description", DEFAULT_ABOUT_DESCRIPTION);
   const profilePhoto = getSiteImage(siteContent, "about_profile_image", profileImg);
 
+  // 다른 비주얼 요소(키워드 카드, 섹션 타이틀)와 같은 톤의 인터랙션을 프로필 사진에도 준다 —
+  // 다만 실사 인물 사진이라 아이콘만큼 과감하진 않게 각도/확대를 절제했다.
+  const tiltRef = useTilt<HTMLElement>({ max: 10, scale: 1.04 });
+
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
   return (
-    <div className="sub bg-white text-sub-primary-txt min-h-screen">
-      <Header variant="sub" />
+    <div className="wrap relative bg-black text-white min-h-screen">
+      <Header variant="default" />
 
-      <div className="about-page max-w-[1400px] mx-auto px-10 py-20 max-xl:px-10 max-xl:py-15 max-[767px]:px-4 max-[767px]:py-10">
-        <div className="profile flex justify-between gap-10 max-[767px]:flex-col">
-          <div className="left-info w-full max-w-[370px] max-xl:max-w-[280px] max-[767px]:max-w-full">
-            <img
-              src={profilePhoto}
-              alt="신민석 프로필 사진"
-              className="w-full max-w-[260px] mb-5 max-xl:w-[70%] max-xl:mb-3.5 max-[767px]:w-full max-[767px]:max-w-[767px] max-[767px]:mb-2.5"
-            />
-            <h5 className="tit font-ko text-[26px] leading-9 font-light text-sub-primary-txt relative mb-12 max-xl:text-2xl max-xl:leading-8 max-xl:mb-9 max-[767px]:text-xl max-[767px]:leading-7 max-[767px]:mb-[30px] after:absolute after:content-[''] after:w-[60px] after:h-0.5 after:bg-[#e5e5ec] after:left-0 after:bottom-[-18px] max-[767px]:after:bottom-[-14px]">
-              모두를 <b className="font-bold">집중시키는 디자이너</b>
-              <br className="max-[767px]:hidden" />
-              신민석입니다
-            </h5>
-            <p className="desc font-ko text-base leading-6 font-light text-sub-secondary-txt max-xl:text-sm max-xl:leading-5">
-              {description}
-            </p>
-          </div>
+      <main>
+        <div className="about-page max-w-[1400px] mx-auto px-10 pt-[180px] pb-[160px] max-lg:px-10 max-lg:pt-[140px] max-lg:pb-[100px] max-sm:px-5 max-sm:pt-[100px] max-sm:pb-[60px]">
+          <Reveal duration={3000} className="about-hero mb-[140px] max-lg:mb-20 max-sm:mb-14">
+            <IntroTop heading={DEFAULT_ABOUT_HEADING} description={description} />
+          </Reveal>
 
-          <ul className="right-info grid grid-cols-2 gap-x-[30px] gap-y-0 max-xl:gap-[30px]">
-            {infoRows.map((row) => (
-              <li
-                key={row.label}
-                className="flex items-start gap-8 font-ko text-base leading-[22px] max-xl:flex-col max-xl:gap-4 max-xl:text-[15px] max-[767px]:text-sm max-[767px]:leading-5 max-[767px]:gap-2.5"
+          <Reveal duration={3000}>
+            <SectionTitle subTxt="(Profile)" title="Info" description="항목을 눌러 자세한 내용을 펼쳐보세요." />
+
+            <div className="profile flex gap-[80px] max-lg:flex-col max-lg:gap-10">
+              <figure
+                ref={tiltRef}
+                className="group relative sticky top-[160px] w-full max-w-[300px] shrink-0 self-start will-change-transform max-lg:static max-lg:max-w-[220px] max-sm:mx-auto max-sm:max-w-[180px]"
               >
-                <div className="left-tit text-sub-primary-txt font-medium">{row.label}</div>
-                <div className="list-desc">
-                  {row.items.map((item) => (
-                    <p key={item.text} className="font-light text-sub-primary-txt mb-4 last:mb-0 max-xl:mb-3">
-                      {item.text}
-                      {item.date ? (
-                        <span className="block text-sm leading-5 text-sub-tertiary-txt w-full">{item.date}</span>
-                      ) : null}
-                    </p>
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
+                <span className="pointer-events-none absolute -inset-6 rounded-2xl opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-[0.15] [background:radial-gradient(circle,var(--color-primary-txt),transparent_70%)]" />
+                <img
+                  src={profilePhoto}
+                  alt="신민석 프로필 사진"
+                  className="relative w-full rounded-md [filter:drop-shadow(0_0_0_rgba(0,0,0,0))] transition-[filter] duration-500 group-hover:[filter:drop-shadow(0_20px_28px_rgba(0,0,0,0.5))] max-lg:rounded-sm"
+                />
+              </figure>
+
+              <ul className="flex-1 border-t border-white/10">
+                {infoRows.map((row, index) => (
+                  <InfoAccordionRow
+                    key={row.label}
+                    row={row}
+                    index={index}
+                    isOpen={openIndex === index}
+                    onToggle={() => setOpenIndex((prev) => (prev === index ? null : index))}
+                  />
+                ))}
+              </ul>
+            </div>
+          </Reveal>
         </div>
-      </div>
+      </main>
+
+      <Footer theme="dark" revealDuration={3000} />
     </div>
   );
 }
