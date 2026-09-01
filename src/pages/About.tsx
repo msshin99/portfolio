@@ -16,7 +16,7 @@ const DEFAULT_ABOUT_DESCRIPTION =
 
 interface InfoRow {
   label: string;
-  items: { text: string; date?: string }[];
+  items: { text: string; date?: string; role?: string }[];
 }
 
 const infoRows: InfoRow[] = [
@@ -50,7 +50,24 @@ const infoRows: InfoRow[] = [
   },
   {
     label: "경력사항",
-    items: [{ text: "위드시스템", date: "2024.03 ~ 2025.05" }],
+    items: [
+      { text: "위드시스템", date: "2024.03 ~ 2025.05" },
+      {
+        text: "시그널디코드(SignalDecode)",
+        date: "2025.12 ~ 2026.01 · 2개월",
+        role: "UI/UX디자인 · 디자인팀 사원",
+      },
+      {
+        text: "주식회사 시그널디코드",
+        date: "2026.01 ~ 2026.06 · 6개월",
+        role: "UI/UX디자인 · 디자인팀 사원",
+      },
+      {
+        text: "주식회사 헤담",
+        date: "2026.06 ~ 2026.08 · 3개월",
+        role: "UI/UX디자인 · 마케팅팀 사원",
+      },
+    ],
   },
 ];
 
@@ -146,6 +163,7 @@ function InfoAccordionRow({ row, index, isOpen, onToggle }: InfoAccordionRowProp
                 <p key={item.text} className="font-ko text-base font-light leading-6 text-secondary-txt max-sm:text-sm">
                   <ItemText text={item.text} />
                   {item.date ? <span className="mt-1 block text-sm leading-5 text-tertiary-txt">{item.date}</span> : null}
+                  {item.role ? <span className="mt-0.5 block text-sm leading-5 text-tertiary-txt">{item.role}</span> : null}
                 </p>
               ))}
             </div>
