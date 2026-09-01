@@ -118,8 +118,8 @@ export default function Home() {
               y={40}
               stagger={0.1}
             >
-              {resolvedKeywords.map((item) => (
-                <KeywordCard key={item.num} item={item} />
+              {resolvedKeywords.map((item, index) => (
+                <KeywordCard key={item.num} item={item} index={index} />
               ))}
             </StaggerReveal>
           </div>
