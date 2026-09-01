@@ -186,7 +186,7 @@ export default function Preloader() {
         }}
       />
 
-      {/* 콘텐츠(링/라벨/이름/바): exit 시작 시 패널이 열리기 전에 먼저 빠르게 사라진다 */}
+      {/* 콘텐츠(글로우/링/라벨/이름/바): exit 시작 시 패널이 열리기 전에 먼저 빠르게 사라진다 */}
       <div
         className={[
           "absolute inset-0 transition-[opacity,transform] ease-out",
@@ -194,35 +194,39 @@ export default function Preloader() {
         ].join(" ")}
         style={{ transitionDuration: `${CONTENT_FADE_MS}ms` }}
       >
+        {/* 화면 중앙에 은은하게 숨쉬는 화이트 앰비언트 글로우 — 완전히 빈 암전 대신
+            로딩 내내 살아있는 배경감을 준다(색은 기존 화이트/블랙 컨셉 그대로 유지). */}
+        <div
+          className="absolute left-1/2 top-1/2 h-[70vmin] w-[70vmin] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-40 blur-[100px] [animation:intro-glow-pulse_4s_ease-in-out_infinite] [background:radial-gradient(circle,rgba(255,255,255,0.9),transparent_70%)]"
+        />
+
         {/* 좌상단: 진행률만큼 채워지며 동시에 계속 도는 원형 링 — 채워짐 + 회전이 겹쳐 더 역동적으로 보인다 */}
-        <svg
-          width="64"
-          height="64"
-          viewBox="0 0 64 64"
-          className="absolute left-8 top-8 max-sm:left-5 max-sm:top-5 animate-[spin_3s_linear_infinite]"
-        >
-          <circle cx="32" cy="32" r={RADIUS} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-          <circle
-            cx="32"
-            cy="32"
-            r={RADIUS}
-            fill="none"
-            stroke="#fff"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeDasharray={CIRCUMFERENCE}
-            strokeDashoffset={dashOffset}
-            transform="rotate(-90 32 32)"
-          />
-        </svg>
+        <div className="absolute left-8 top-8 max-sm:left-5 max-sm:top-5">
+          <div className="pointer-events-none absolute -inset-4 rounded-full opacity-70 blur-xl [animation:intro-glow-pulse_2.6s_ease-in-out_infinite] [background:radial-gradient(circle,rgba(255,255,255,0.9),transparent_70%)]" />
+          <svg width="72" height="72" viewBox="0 0 72 72" className="relative animate-[spin_3s_linear_infinite]">
+            <circle cx="36" cy="36" r={RADIUS} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+            <circle
+              cx="36"
+              cy="36"
+              r={RADIUS}
+              fill="none"
+              stroke="#fff"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeDasharray={CIRCUMFERENCE}
+              strokeDashoffset={dashOffset}
+              transform="rotate(-90 36 36)"
+            />
+          </svg>
+        </div>
 
         {/* 좌하단: LOADING 라벨 */}
-        <p className="absolute left-8 bottom-8 max-sm:left-5 max-sm:bottom-5 font-mono text-xs tracking-[0.2em] text-white/70">
+        <p className="absolute left-8 bottom-8 max-sm:left-5 max-sm:bottom-5 font-en text-xs tracking-[0.2em] text-white/70">
           LOADING...
         </p>
 
         {/* 우하단: 진행률 숫자 카운터 — 좌하단 LOADING 라벨과 대칭을 이루며 빈 공간을 채운다 */}
-        <p className="absolute right-8 bottom-8 max-sm:right-5 max-sm:bottom-5 font-mono text-sm font-bold tracking-[0.15em] text-white tabular-nums">
+        <p className="absolute right-8 bottom-8 max-sm:right-5 max-sm:bottom-5 font-en text-sm font-bold tracking-[0.15em] text-white tabular-nums">
           {String(Math.round(progress)).padStart(3, "0")}%
         </p>
 
@@ -238,7 +242,8 @@ export default function Preloader() {
             </p>
           </div>
           {/* 이름: 글자 단위로 딜레이를 주며 등장(웨이브처럼 순서대로 떠오름) → 자리를 잡은 뒤에는
-              각 글자가 계속 낮은 진폭으로 위아래 웨이브를 탄다 */}
+              각 글자가 계속 낮은 진폭으로 위아래 웨이브를 타며, 동시에 흰색 밝기가 오가는
+              그라디언트 글린트가 함께 돈다(컬러는 화이트 톤만 사용). */}
           <h1 className="font-en text-[64px] leading-[1.4] tracking-tight font-bold text-white md:text-[104px] max-sm:text-[38px] mb-8 max-sm:mb-6 flex flex-wrap gap-x-[0.22em]">
             {NAME_WORDS.map((word, wi) => (
               <span key={wi} className="inline-flex">
@@ -252,8 +257,13 @@ export default function Preloader() {
                       style={{ animationDelay: `${delay}ms` }}
                     >
                       <span
-                        className="inline-block [animation:intro-wave_2.4s_ease-in-out_infinite]"
-                        style={{ animationDelay: `${delay + LETTER_IN_MS}ms` }}
+                        className={[
+                          "inline-block bg-clip-text text-transparent",
+                          "[background-image:linear-gradient(100deg,#ffffff_0%,rgba(255,255,255,0.45)_45%,#ffffff_90%)]",
+                          "[background-size:240%_100%]",
+                          "[animation:intro-wave_2.4s_ease-in-out_infinite,intro-text-glint_3.2s_ease-in-out_infinite]",
+                        ].join(" ")}
+                        style={{ animationDelay: `${delay + LETTER_IN_MS}ms, 0ms` }}
                       >
                         {ch}
                       </span>
@@ -263,8 +273,11 @@ export default function Preloader() {
               </span>
             ))}
           </h1>
-          <div className="h-3 max-sm:h-2 bg-white/10 overflow-hidden">
+          <div className="relative h-3 max-sm:h-2 bg-white/10 overflow-hidden">
             <div className="h-full bg-white" style={{ width: `${progress}%` }} />
+            {/* 트랙 위를 주기적으로 스쳐 지나가는 하이라이트 글린트 — 완전히 정적인 바보다
+                "지금 로딩 중"이라는 인상을 더 생동감 있게 전달한다. */}
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-white/80 to-transparent mix-blend-screen [animation:intro-shine-sweep_2.6s_ease-in-out_infinite]" />
           </div>
         </div>
       </div>
