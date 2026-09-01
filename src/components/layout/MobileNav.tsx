@@ -24,11 +24,6 @@ export default function MobileNav({ open }: MobileNavProps) {
           <Link to="/about">About</Link>
         </li>
         <li className="font-en text-[48px] leading-[56px] font-bold text-center block mb-7 text-white last:mb-0">
-          <a href="https://github.com/msshin99?tab=repositories" target="_blank" rel="noopener noreferrer">
-            Github
-          </a>
-        </li>
-        <li className="font-en text-[48px] leading-[56px] font-bold text-center block mb-7 text-white last:mb-0">
           <a href="https://www.behance.net/c177644f" target="_blank" rel="noopener noreferrer">
             Behence
           </a>

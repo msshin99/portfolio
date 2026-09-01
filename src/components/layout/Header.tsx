@@ -121,18 +121,6 @@ export default function Header({ variant = "default" }: HeaderProps) {
                   : "text-secondary-txt hover:text-white",
               ].join(" ")}
             >
-              <a href="https://github.com/msshin99?tab=repositories" target="_blank" rel="noopener noreferrer">
-                Github
-              </a>
-            </li>
-            <li
-              className={[
-                "text-base leading-6 font-light",
-                isSub
-                  ? "text-sub-tertiary-txt hover:text-sub-primary-txt"
-                  : "text-secondary-txt hover:text-white",
-              ].join(" ")}
-            >
               <a href="https://www.behance.net/c177644f" target="_blank" rel="noopener noreferrer">
                 Behance
               </a>
