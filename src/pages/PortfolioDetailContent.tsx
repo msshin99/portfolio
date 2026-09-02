@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import WorkCard from "../components/common/WorkCard";
 import DeviceSwiper from "../components/portfolio/DeviceSwiper";
@@ -50,6 +51,7 @@ export default function PortfolioDetailContent({
     .slice(0, 3)
     .map(mapRowToWorkItem);
   const isDark = detail.slug === "goldenpine";
+  const [hoveredColorIndex, setHoveredColorIndex] = useState<number | null>(null);
 
   return (
     <>
@@ -116,45 +118,47 @@ export default function PortfolioDetailContent({
             </ul>
           </div>
 
-          <a
-            href={detail.websiteUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={[
-              "more group font-en text-base leading-6 font-medium flex items-center gap-1.5 w-fit px-6 py-3 rounded-full border transition-all duration-500 ease-[ease] max-sm:text-sm max-sm:leading-[22px] max-sm:px-5 max-sm:py-2.5",
-              isDark
-                ? "bg-white text-black border-white hover:bg-black hover:text-white"
-                : "bg-sub-primary-txt text-white border-sub-primary-txt hover:bg-white hover:text-sub-primary-txt",
-            ].join(" ")}
-          >
-            Go to website
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="max-sm:w-[18px]">
-              <path
-                d="M8.33325 3.33337H3.33325V16.6667H16.6666V11.6667"
-                stroke={isDark ? "#000000" : "white"}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`transition-all duration-500 ease-[ease] ${isDark ? "group-hover:stroke-white" : "group-hover:stroke-[#222]"}`}
-              />
-              <path
-                d="M14.1667 3.33337L16.6667 5.83337L14.1667 8.33337"
-                stroke={isDark ? "#000000" : "white"}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`transition-all duration-500 ease-[ease] ${isDark ? "group-hover:stroke-white" : "group-hover:stroke-[#222]"}`}
-              />
-              <path
-                d="M15.8333 5.83337H13C11.3431 5.83337 10 7.17652 10 8.83337V10"
-                stroke={isDark ? "#000000" : "white"}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`transition-all duration-500 ease-[ease] ${isDark ? "group-hover:stroke-white" : "group-hover:stroke-[#222]"}`}
-              />
-            </svg>
-          </a>
+          {detail.websiteUrl ? (
+            <a
+              href={detail.websiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={[
+                "more group font-en text-base leading-6 font-medium flex items-center gap-1.5 w-fit px-6 py-3 rounded-full border transition-all duration-500 ease-[ease] max-sm:text-sm max-sm:leading-[22px] max-sm:px-5 max-sm:py-2.5",
+                isDark
+                  ? "bg-white text-black border-white hover:bg-black hover:text-white"
+                  : "bg-sub-primary-txt text-white border-sub-primary-txt hover:bg-white hover:text-sub-primary-txt",
+              ].join(" ")}
+            >
+              Go to website
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="max-sm:w-[18px]">
+                <path
+                  d="M8.33325 3.33337H3.33325V16.6667H16.6666V11.6667"
+                  stroke={isDark ? "#000000" : "white"}
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-all duration-500 ease-[ease] ${isDark ? "group-hover:stroke-white" : "group-hover:stroke-[#222]"}`}
+                />
+                <path
+                  d="M14.1667 3.33337L16.6667 5.83337L14.1667 8.33337"
+                  stroke={isDark ? "#000000" : "white"}
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-all duration-500 ease-[ease] ${isDark ? "group-hover:stroke-white" : "group-hover:stroke-[#222]"}`}
+                />
+                <path
+                  d="M15.8333 5.83337H13C11.3431 5.83337 10 7.17652 10 8.83337V10"
+                  stroke={isDark ? "#000000" : "white"}
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-all duration-500 ease-[ease] ${isDark ? "group-hover:stroke-white" : "group-hover:stroke-[#222]"}`}
+                />
+              </svg>
+            </a>
+          ) : null}
         </div>
 
         <Reveal duration={1500} className="box-container mb-[140px] flex gap-5 max-lg:flex-col max-lg:mb-[100px] max-sm:mb-[60px] max-sm:gap-3">
@@ -196,13 +200,19 @@ export default function PortfolioDetailContent({
 
           <StaggerReveal
             as="ul"
-            className="color-card award max-w-[1530px] mx-auto grid grid-cols-5 gap-5 max-lg:grid-cols-3 max-lg:gap-4 max-sm:grid-cols-2 max-sm:gap-3"
+            className="color-card award max-w-[1530px] mx-auto flex max-lg:flex-col"
             y={30}
             fromScale={0.9}
             stagger={0.06}
           >
-            {detail.colorInfo.cards.map((card) => (
-              <ColorCard key={card.name} card={card} />
+            {detail.colorInfo.cards.map((card, i) => (
+              <ColorCard
+                key={i}
+                card={card}
+                index={i}
+                hoveredIndex={hoveredColorIndex}
+                onHover={setHoveredColorIndex}
+              />
             ))}
           </StaggerReveal>
         </div>
