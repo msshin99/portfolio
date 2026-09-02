@@ -11,6 +11,7 @@ import profileImg from "../assets/portfolio/profile.jpg";
 import { useSiteContent, getSiteText, getSiteImage } from "../lib/siteContentApi";
 
 const DEFAULT_ABOUT_HEADING = "모두를 집중시키는 디자이너 신민석입니다";
+const DEFAULT_ABOUT_HEADING_EN = "A designer who commands everyone's attention.";
 const DEFAULT_ABOUT_DESCRIPTION =
   "언제나 남들과 다른 시각으로 디자인을 바라보며, 평범함 속에 숨겨진 새로운 가능성을 발견하고, 익숙한 것들에서 비범함을 이끌어냅니다.";
 
@@ -192,7 +193,7 @@ export default function About() {
       <main>
         <div className="about-page max-w-[1400px] mx-auto px-10 pt-[180px] pb-[160px] max-lg:px-10 max-lg:pt-[140px] max-lg:pb-[100px] max-sm:px-5 max-sm:pt-[100px] max-sm:pb-[60px]">
           <Reveal duration={3000} className="about-hero mb-[140px] max-lg:mb-20 max-sm:mb-14">
-            <IntroTop heading={DEFAULT_ABOUT_HEADING} description={description} />
+            <IntroTop heading={DEFAULT_ABOUT_HEADING} hoverHeading={DEFAULT_ABOUT_HEADING_EN} description={description} />
           </Reveal>
 
           <Reveal duration={3000}>

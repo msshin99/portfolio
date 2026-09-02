@@ -23,6 +23,8 @@ const DEFAULT_HERO_SUBTEXT = "Where creativity meets functionality for effortles
 
 const DEFAULT_INTRO_HEADING =
   "Design moves people. And people move the world. Design is not just what we see it’s how we feel, remember, and connect.";
+const DEFAULT_INTRO_HEADING_KO =
+  "디자인은 사람을 움직이고, 사람은 세상을 움직입니다. 디자인은 보이는 것이 아니라 느끼고, 기억하고, 연결되는 것입니다.";
 const DEFAULT_INTRO_DESCRIPTION =
   "사소한 요소 하나에도 의미를 담고, 그 안에서 공감과 연결의 순간을 만들어내는 디자인을 추구합니다. 나의 디자인은 '어떻게 보일까'보다 '어떻게 느껴질까'를 더 깊이 고민합니다. 저는 디자인을 통해 사람들의 하루에 잔잔한 변화를 만들고, 기억에 남는 경험과 진심이 닿는 브랜드를 만들어가고자 합니다.";
 
@@ -110,7 +112,11 @@ export default function Home() {
         <Hero image={heroImage} heading={heroHeading} subtext={heroSubtext} />
 
         <section className={`intro ${sectionClass}`}>
-          <IntroTop heading={introHeading} description={introDescription} />
+          <IntroTop
+            heading={introHeading}
+            hoverHeading={introHeading === DEFAULT_INTRO_HEADING ? DEFAULT_INTRO_HEADING_KO : undefined}
+            description={introDescription}
+          />
           <div className="bottom">
             <StaggerReveal
               as="ul"
