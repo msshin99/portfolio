@@ -51,7 +51,7 @@ function scrollToTop() {
  *  (1950,-40)/끝점(1950,110)과 M + 6번의 C(곡선) + Z 구조를 동일하게 유지해서, 브라우저가
  *  각 좌표를 1:1로 보간해 부드럽게 흘러가듯 모핑되게 한다(구조가 다르면 중간에 뚝뚝
  *  끊기며 바뀐다). 오른쪽 끝은 캔버스 가장자리에 항상 붙어 있어야 하니 고정해두고,
- *  왼쪽으로 뻗어나가는 리본의 굴곡·두께·끝점 위치만 네 가지로 다르게 줬다. */
+ *  왼쪽으로 뻗어나가는 리본의 굴곡·두께·끝점 위치만 다섯 가지로 다르게 줬다. */
 const WAVE_SHAPES = [
   // 1) 완만한 대각선 리본 (기본형)
   "M1950,-40 C1650,-30 1350,30 1150,70 C880,125 620,240 360,410 C320,436 290,452 268,462 " +
@@ -65,6 +65,9 @@ const WAVE_SHAPES = [
   // 4) S자에 가깝게 굽이치며 왼쪽으로 더 뻗는 리본
   "M1950,-40 C1700,20 1400,20 1150,110 C920,190 680,280 420,400 C360,428 320,445 280,458 " +
     "C330,425 410,380 510,335 C740,232 1010,140 1320,160 C1580,178 1800,210 1950,90 Z",
+  // 5) 끝이 위로 살짝 훅처럼 말려 올라가는 형태
+  "M1950,-40 C1750,10 1500,120 1200,180 C900,240 600,340 350,430 C315,443 285,455 258,466 " +
+    "C300,430 380,375 480,330 C760,205 1080,110 1400,120 C1620,127 1820,90 1950,-10 Z",
 ];
 
 function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
@@ -103,7 +106,7 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
             type="translate"
             from="0 0"
             to="900 0"
-            dur="3.2s"
+            dur="2.3s"
             repeatCount="indefinite"
           />
         </pattern>
@@ -126,7 +129,7 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
             type="translate"
             from="0 0"
             to="3100 0"
-            dur="2.6s"
+            dur="1.9s"
             repeatCount="indefinite"
           />
         </linearGradient>
@@ -134,7 +137,7 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
             <use>로 그 모양을 그대로 재사용한다 — 이러면 모핑 애니메이션이 한 곳에만
             있어도 두 레이어가 항상 완벽하게 같은 순간의 같은 모양을 그리게 된다. */}
         <path id={pathId} d={WAVE_SHAPES[0]}>
-          <animate attributeName="d" values={morphValues} dur="10s" calcMode="linear" repeatCount="indefinite" />
+          <animate attributeName="d" values={morphValues} dur="6.5s" calcMode="linear" repeatCount="indefinite" />
         </path>
         <mask id={maskId}>
           <use href={`#${pathId}`} fill="#fff" filter={`url(#${crispBlurId})`} />
