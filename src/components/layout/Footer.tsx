@@ -73,17 +73,20 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
         </filter>
         {/* 타일 안의 점 자체에 CSS transform/animation을 걸면 크롬이 패턴을 더 이상
             반복 타일로 그리지 않고 뭉개서 그려버린다(도트가 사라지고 뿌연 덩어리로 보임).
-            대신 pattern 자체의 patternTransform을 SMIL로 움직이면 타일링은 그대로 두고
-            그 격자만 미끄러지듯 이동해서, 정확히 타일 크기(9px)만큼 왕복 없이 반복해도
-            이음매 없이 흘러가는 도트 웨이브가 된다. */}
+            SMIL(animate/animateTransform)은 CSS가 아니라 속성 자체를 바꾸는 방식이라
+            이 문제가 없어서, 이동(patternTransform)과 크기 변화(r)를 둘 다 SMIL로 건다.
+            duration을 짧게(1.2~1.4초) 잡아서 천천히 흐르는 느낌이 아니라 실제로 살아
+            움직이는 듯한 역동적인 웨이브가 되도록 했다. */}
         <pattern id={dotsId} width="9" height="9" patternUnits="userSpaceOnUse">
-          <circle cx="4.5" cy="4.5" r="2.4" fill={dotColor} />
+          <circle cx="4.5" cy="4.5" r="2.4" fill={dotColor}>
+            <animate attributeName="r" values="1.1;3.3;1.1" dur="1.4s" repeatCount="indefinite" />
+          </circle>
           <animateTransform
             attributeName="patternTransform"
             type="translate"
             from="0 0"
             to="9 9"
-            dur="5s"
+            dur="1.2s"
             repeatCount="indefinite"
           />
         </pattern>
@@ -111,8 +114,8 @@ function FooterContent({ theme }: { theme: "dark" | "sub" }) {
       <div
         className={[
           "utility-bar flex items-start justify-between gap-6 pb-10",
-          "font-en text-xs leading-[18px] tracking-[0.01em]",
-          "max-lg:flex-col max-lg:gap-3 max-lg:pb-6",
+          "font-en text-base leading-[24px] tracking-[0.01em]",
+          "max-lg:flex-col max-lg:gap-3 max-lg:pb-6 max-lg:text-sm max-lg:leading-5",
         ].join(" ")}
       >
         <div className={utilityStrongClass}>
@@ -148,15 +151,15 @@ function FooterContent({ theme }: { theme: "dark" | "sub" }) {
           몰라도 항상 뷰포트 기준으로 중앙 정렬되어 양 끝이 정확히 화면 가장자리에 맞는다. */}
       <div className="graphic relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-black aspect-[1900/460] max-lg:aspect-[3/2] max-sm:aspect-[4/5]">
         <HalftoneWave />
-        <span className="absolute left-6 bottom-6 font-en text-sm font-bold uppercase tracking-[0.08em] text-white max-sm:left-4 max-sm:bottom-4 max-sm:text-xs">
+        <span className="absolute left-6 bottom-6 font-en text-2xl font-bold uppercase tracking-[0.06em] text-white max-lg:text-xl max-sm:left-4 max-sm:bottom-4 max-sm:text-base">
           Shin Min Seok
         </span>
-        <span className="absolute right-6 bottom-6 max-w-[70%] text-right font-en text-base italic font-medium text-white max-lg:text-sm max-sm:right-4 max-sm:bottom-4 max-sm:max-w-[80%] max-sm:text-xs">
+        <span className="absolute right-6 bottom-6 max-w-[70%] text-right font-en text-2xl italic font-medium text-white max-lg:text-lg max-sm:right-4 max-sm:bottom-4 max-sm:max-w-[80%] max-sm:text-sm">
           『 Design quietly. Impact loudly. 』
         </span>
         {/* 태블릿 이하에서 3열 유틸리티 바가 세로로 쌓이면서 숨긴 copyright을 그래픽 안에도
             한 줄 남겨 둔다 — 화면이 좁아도 저작권 표기가 사라지지 않도록. */}
-        <p className="absolute left-6 top-6 font-en text-xs text-white/60 hidden max-lg:block max-sm:left-4 max-sm:top-4">
+        <p className="absolute left-6 top-6 font-en text-sm text-white/60 hidden max-lg:block max-sm:left-4 max-sm:top-4">
           ©{year} SHIN MIN SEOK
         </p>
       </div>
