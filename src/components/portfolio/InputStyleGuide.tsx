@@ -317,9 +317,9 @@ export default function InputStyleGuide() {
         rotateX={12}
         stagger={0.12}
       >
-        <InputCard label="140px">{(inView) => <SelectField width={140} active={inView} />}</InputCard>
-        <InputCard label="220px">{(inView) => <DateField width={220} active={inView} />}</InputCard>
-        <InputCard label="480px">{(inView) => <PasswordField width={480} active={inView} />}</InputCard>
+        <InputCard label="Select">{(inView) => <SelectField width={140} active={inView} />}</InputCard>
+        <InputCard label="Date">{(inView) => <DateField width={220} active={inView} />}</InputCard>
+        <InputCard label="Password">{(inView) => <PasswordField width={480} active={inView} />}</InputCard>
       </StaggerReveal>
     </div>
   );
