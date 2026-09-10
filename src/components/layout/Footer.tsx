@@ -52,6 +52,7 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
   const softBlurId = "footer-wave-soft";
   const crispBlurId = "footer-wave-crisp";
   const dotsId = "footer-wave-dots";
+  const sweepId = "footer-wave-sweep";
 
   const blobA =
     "M1950,-40 C1650,-30 1350,30 1150,70 C880,125 620,240 360,410 C320,436 290,452 268,462 " +
@@ -71,30 +72,37 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
         <filter id={crispBlurId} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="10" />
         </filter>
-        {/* 타일 안의 점 자체에 CSS transform/animation을 걸면 크롬이 패턴을 더 이상
-            반복 타일로 그리지 않고 뭉개서 그려버린다(도트가 사라지고 뿌연 덩어리로 보임).
-            SMIL(animate/animateTransform)은 CSS가 아니라 속성 자체를 바꾸는 방식이라
-            이 문제가 없다.
-            단순히 대각선 한 방향(0,0 -> 9,9)으로만 왕복 없이 반복하면, 격자 전체가
-            똑같이 움직여서 눈에는 "이동"보다 "점멸/반짝임"으로 더 강하게 읽힌다 —
-            오른쪽 -> 아래 -> 왼쪽 -> 위 순서로 사각형 궤도를 그리며 패턴을 이동시켜
-            상하좌우로 뚜렷하게 휩쓸려 다니는 느낌을 준다(각 이동값은 타일 크기 9의
-            배수라 어느 지점에서도 이음매 없이 반복된다). 크기(r) 변화는 진폭을 줄이고
-            이동과 다른 주기로 돌려서, "움직임"이 주가 되고 반짝임은 거드는 정도로만
-            남긴다. */}
         <pattern id={dotsId} width="9" height="9" patternUnits="userSpaceOnUse">
-          <circle cx="4.5" cy="4.5" r="2.2" fill={dotColor}>
-            <animate attributeName="r" values="1.6;2.8;1.6" dur="1.7s" repeatCount="indefinite" />
-          </circle>
+          <circle cx="4.5" cy="4.5" r="2.4" fill={dotColor} />
+        </pattern>
+        {/* 도트 하나하나를 움직이면 반경(9px 타일) 안에서만 꼼지락거리는 걸로 보여서
+            "제자리에서만 움직인다"는 인상을 준다 — 폭 전체(100%)를 가로지르는 움직임을
+            만들려면 도트는 가만히 두고, 그 위에 넓은 빛줄기(하이라이트 그라디언트) 하나가
+            캔버스 밖 왼쪽에서 오른쪽 끝까지 부드럽게 쓸고 지나가게 한다. 지나가는 동안
+            닿는 도트만 밝아졌다 사라지는 방식이라 실제로 화면 전체 폭을 가로지르는
+            움직임이 눈에 분명히 보이고, 은은한 빛이 스치는 느낌이라 화려하지 않고
+            고급스럽다. 양 끝에서 이미 투명해진 채로 화면 밖에 있다가 다시 시작하므로
+            반복 지점이 튀지 않는다. */}
+        <linearGradient
+          id={sweepId}
+          gradientUnits="userSpaceOnUse"
+          x1="-650"
+          y1="-80"
+          x2="-150"
+          y2="540"
+        >
+          <stop offset="0%" stopColor={dotColor} stopOpacity="0" />
+          <stop offset="50%" stopColor="#ffffff" stopOpacity="0.95" />
+          <stop offset="100%" stopColor={dotColor} stopOpacity="0" />
           <animateTransform
-            attributeName="patternTransform"
+            attributeName="gradientTransform"
             type="translate"
-            values="0 0; 9 0; 9 9; 0 9; 0 0"
-            keyTimes="0; 0.25; 0.5; 0.75; 1"
-            dur="2.4s"
+            from="0 0"
+            to="3100 0"
+            dur="4.5s"
             repeatCount="indefinite"
           />
-        </pattern>
+        </linearGradient>
         <mask id={maskId}>
           <path d={blobA} fill="#fff" filter={`url(#${crispBlurId})`} />
         </mask>
@@ -102,6 +110,13 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
 
       <path d={blobA} filter={`url(#${softBlurId})`} fill={dotColor} opacity="0.5" />
       <rect width="100%" height="100%" fill={`url(#${dotsId})`} mask={`url(#${maskId})`} />
+      <rect
+        width="100%"
+        height="100%"
+        fill={`url(#${sweepId})`}
+        mask={`url(#${maskId})`}
+        style={{ mixBlendMode: "screen" }}
+      />
     </svg>
   );
 }
