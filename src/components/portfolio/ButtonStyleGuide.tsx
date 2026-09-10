@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AnimatePresence, animate, motion, useInView, useMotionValue, useTransform } from "framer-motion";
 import StaggerReveal from "../common/StaggerReveal";
 
@@ -219,9 +219,12 @@ function CountUpNumber({
 function FreeformCard({ buttonWidth, buttonHeight }: { buttonWidth: number; buttonHeight: number }) {
   const { ref, inView } = useCardReveal();
   return (
-    <div ref={ref} className="flex-1 flex flex-col h-[249px] rounded-md bg-[#f8f8fa] p-8">
+    <div ref={ref} className="flex-1 max-lg:flex-none flex flex-col h-[249px] rounded-md bg-[#f8f8fa] p-8">
       <p className="font-ko text-sm leading-5 tracking-[-0.35px] text-sub-secondary-txt">자유변형 가이드</p>
-      <div className="flex flex-1 items-center justify-center">
+      {/* max-sm:pl-11 — 버튼 왼쪽에 절대좌표로 붙는 높이 눈금(숫자+세로선)이 앉을 자리를
+          미리 확보해 둔다. 이게 없으면 버튼이 모바일 좁은 폭을 거의 다 차지해버려서
+          높이 눈금이 카드 배경 바깥으로 삐져나간다. */}
+      <div className="flex flex-1 items-center justify-center max-sm:pl-11">
         {/* 버튼을 기준(중심)으로 두고, 가로/높이 눈금선은 모두 absolute로 버튼에 매달아
             배치한다 — 눈금선은 레이아웃 흐름에서 빠지므로 버튼의 실제 크기·중앙 위치에는
             전혀 영향을 주지 않고, 눈금선 쪽 크기(폭 100%/높이 100%)만 버튼 값을 그대로
@@ -258,13 +261,17 @@ function MinMarginCard({ buttonHeight }: { buttonHeight: number }) {
   const tabBase =
     "inline-flex cursor-pointer items-center justify-center whitespace-nowrap rounded-[4px] px-6 font-ko text-sm font-medium tracking-[-0.35px] transition-colors duration-200";
   const tabStyle = { height: buttonHeight };
+  // gap을 그냥 style.gap으로 주면 인라인 스타일이 항상 클래스보다 우선해서 아래
+  // max-sm:!gap-4가 모바일에서도 절대 적용되지 않는다 — CSS 변수로 값만 전달하고
+  // 실제 gap 적용은 Tailwind 클래스(gap-[var(...)])로 넘겨야 반응형 오버라이드가 먹힌다.
+  const gapVarStyle = { "--btn-gap": `${buttonHeight}px` } as CSSProperties;
 
   return (
-    <div ref={ref} className="flex-1 flex flex-col h-[249px] rounded-md bg-[#f8f8fa] p-8">
+    <div ref={ref} className="flex-1 max-lg:flex-none flex flex-col h-[249px] rounded-md bg-[#f8f8fa] p-8">
       <p className="font-ko text-sm leading-5 tracking-[-0.35px] text-sub-secondary-txt">버튼 최소 마진 가이드</p>
       <div
-        className="flex flex-1 flex-wrap items-center justify-center max-sm:gap-4"
-        style={{ gap: buttonHeight }}
+        className="flex flex-1 flex-wrap items-center justify-center gap-[var(--btn-gap)] max-sm:!gap-4"
+        style={gapVarStyle}
       >
         {/* 기본 상태 — hover 시 오른쪽 예시(hover 상태)와 같은 색으로 전환된다. */}
         <motion.span
@@ -306,7 +313,7 @@ function MinMarginCard({ buttonHeight }: { buttonHeight: number }) {
 function ExpandingMarginCard({ buttonHeight }: { buttonHeight: number }) {
   const { ref, inView } = useCardReveal();
   return (
-    <div ref={ref} className="flex-1 flex flex-col h-[249px] rounded-md bg-[#f8f8fa] p-8">
+    <div ref={ref} className="flex-1 max-lg:flex-none flex flex-col h-[249px] rounded-md bg-[#f8f8fa] p-8">
       <p className="font-ko text-sm leading-5 tracking-[-0.35px] text-sub-secondary-txt [word-break:keep-all]">
         4글자 이상인 경우 폰트 기준 좌우 마진 24px로 잡고 늘어난다.
       </p>

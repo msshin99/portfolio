@@ -275,7 +275,7 @@ function PasswordField({ width, active }: { width: number; active: boolean }) {
 function InputCard({ label, children }: { label: string; children: (inView: boolean) => ReactNode }) {
   const { ref, inView } = useCardReveal();
   return (
-    <div ref={ref} className="flex-1 flex flex-col h-[249px] rounded-md bg-[#f8f8fa] p-8">
+    <div ref={ref} className="flex-1 max-lg:flex-none flex flex-col h-[249px] rounded-md bg-[#f8f8fa] p-8">
       <p className="font-ko text-sm leading-5 tracking-[-0.35px] text-sub-secondary-txt">{label}</p>
       <div className="flex flex-1 items-center justify-center">{children(inView)}</div>
     </div>
@@ -289,15 +289,15 @@ export default function InputStyleGuide() {
         기본 인풋
       </p>
       <ul className="flex flex-col gap-2.5 mb-10 max-sm:mb-6">
-        <li className="flex items-center gap-2.5">
-          <span className="h-1 w-1 shrink-0 rounded-full bg-sub-secondary-txt" />
+        <li className="flex items-start gap-2.5">
+          <span className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-sub-secondary-txt" />
           <span className="font-ko text-lg leading-[26px] tracking-[-0.45px] text-sub-secondary-txt max-sm:text-base">
             모든 버튼 및 탭메뉴의 사이즈는 <b className="font-semibold text-sub-primary-txt">padding: 16px 16px</b> 및
             폰트사이즈는 <b className="font-semibold text-sub-primary-txt">body3</b>로 통일
           </span>
         </li>
-        <li className="flex items-center gap-2.5">
-          <span className="h-1 w-1 shrink-0 rounded-full bg-sub-secondary-txt" />
+        <li className="flex items-start gap-2.5">
+          <span className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-sub-secondary-txt" />
           <span className="font-ko text-lg leading-[26px] tracking-[-0.45px] text-sub-secondary-txt max-sm:text-base">
             width의 크기는 기본 480px를 기준(회원정보페이지)으로 두고{" "}
             <b className="font-semibold text-sub-primary-txt">상황에따라 크기 자유롭게 조절</b>
