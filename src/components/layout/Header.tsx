@@ -44,7 +44,12 @@ export default function Header({ variant = "default" }: HeaderProps) {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? "hidden" : "";
+    // menuOpen이 false일 때 무조건 overflow=""를 대입하면, Preloader처럼 body 스크롤을
+    // 이미 잠가둔 다른 컴포넌트의 잠금을 마운트 시점에 곧바로 풀어버린다(메뉴가 열린 적도
+    // 없는데 body.style.overflow가 계속 ""로 리셋됨). 메뉴가 실제로 열릴 때만 이 effect가
+    // overflow에 관여하도록 가드한다.
+    if (!menuOpen) return;
+    document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
     };
