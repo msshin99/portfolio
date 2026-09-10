@@ -1,5 +1,4 @@
-import footerTxt from "../../assets/comn/footer-txt.png";
-import footerTxtBlack from "../../assets/comn/footer-txt-black.png";
+import { useEffect, useState } from "react";
 import Reveal from "../common/Reveal";
 
 interface FooterProps {
@@ -8,66 +7,143 @@ interface FooterProps {
   revealDuration?: number;
 }
 
-const badgeBase =
-  "absolute font-en text-[18px] leading-[26px] font-medium px-[22px] py-4 rounded-[50px] text-white " +
-  "max-lg:text-base max-lg:leading-6 max-lg:px-[14px] max-lg:py-[10px] " +
-  "max-sm:text-xs max-sm:leading-5 max-sm:px-[10px] max-sm:py-1.5";
+const CITY = "Seoul";
+const TIME_ZONE = "Asia/Seoul";
+const GMT_LABEL = "GMT +09";
+
+/** 1초마다 갱신되는 서울 시각 — "06:52:13 PM" / "Thursday, Sep 10, 2026" 두 줄로 나눠 쓴다. */
+function useSeoulClock() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const time = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  }).format(now);
+
+  const date = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIME_ZONE,
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(now);
+
+  return { time, date };
+}
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/** 하프톤 도트로 채워진 대각선 웨이브 그래픽 — 실제 하프톤 인쇄처럼 톤에 따라 점 크기가
+ *  달라지는 건 아니고, 부드럽게 블러된 웨이브 실루엣을 마스크로 써서 점 패턴이 그 경계에서
+ *  자연스럽게 옅어지도록 흉내낸 것이다. 두 겹으로 쌓는다: 아래는 크게 블러된 은은한 광원,
+ *  위는 도트 패턴을 살짝만 블러된 같은 실루엣으로 마스킹해 질감을 낸다. */
+function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
+  const maskId = "footer-wave-mask";
+  const softBlurId = "footer-wave-soft";
+  const crispBlurId = "footer-wave-crisp";
+  const dotsId = "footer-wave-dots";
+
+  const blobA =
+    "M1950,-40 C1650,-30 1350,30 1150,70 C880,125 620,240 360,410 C320,436 290,452 268,462 " +
+    "C300,438 350,405 430,368 C660,262 940,190 1200,220 C1450,250 1700,240 1950,110 Z";
+
+  return (
+    <svg
+      viewBox="0 0 1900 460"
+      preserveAspectRatio="xMidYMid slice"
+      className="absolute inset-0 h-full w-full"
+      aria-hidden="true"
+    >
+      <defs>
+        <filter id={softBlurId} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="26" />
+        </filter>
+        <filter id={crispBlurId} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="10" />
+        </filter>
+        <pattern id={dotsId} width="9" height="9" patternUnits="userSpaceOnUse">
+          <circle cx="4.5" cy="4.5" r="2.4" fill={dotColor} />
+        </pattern>
+        <mask id={maskId}>
+          <path d={blobA} fill="#fff" filter={`url(#${crispBlurId})`} />
+        </mask>
+      </defs>
+
+      <path d={blobA} filter={`url(#${softBlurId})`} fill={dotColor} opacity="0.5" />
+      <rect width="1900" height="460" fill={`url(#${dotsId})`} mask={`url(#${maskId})`} />
+    </svg>
+  );
+}
 
 function FooterContent({ theme }: { theme: "dark" | "sub" }) {
+  const { time, date } = useSeoulClock();
+  const isSub = theme === "sub";
+  const year = new Date().getFullYear();
+
+  const utilityTextClass = isSub ? "text-sub-secondary-txt" : "text-white/70";
+  const utilityStrongClass = isSub ? "text-sub-primary-txt" : "text-white";
+
   return (
-    <div className="relative flex justify-center items-center">
-      <figure>
-        <img
-          src={theme === "sub" ? footerTxtBlack : footerTxt}
-          alt=""
-          className="max-w-full h-auto max-sm:min-w-[320px]"
-        />
-      </figure>
-      <span
+    <div>
+      <div
         className={[
-          badgeBase,
-          "bg-[#6f47db] top-[-14%] left-[20.2%] animate-[float_2.7s_ease-in-out_infinite_alternate]",
-          "max-sm:top-[-22%] max-sm:left-[17.2%]",
+          "utility-bar flex items-start justify-between gap-6 pb-10",
+          "font-en text-xs leading-[18px] tracking-[0.01em]",
+          "max-lg:flex-col max-lg:gap-3 max-lg:pb-6",
         ].join(" ")}
       >
-        Grapic design
-      </span>
-      <span
-        className={[
-          badgeBase,
-          "bg-[#6f47db] top-[32%] left-[80%] animate-[float_2.5s_ease-in-out_infinite_alternate]",
-          "max-lg:top-[98%] max-lg:left-[18%] max-sm:hidden",
-        ].join(" ")}
-      >
-        Grapic design
-      </span>
-      <span
-        className={[
-          badgeBase,
-          "bg-[#0ecb7b] top-[-5%] right-[20%] [animation-delay:0.5s] animate-[float_2.3s_ease-in-out_infinite_alternate]",
-          "max-lg:top-[-8%] max-sm:top-[28%] max-sm:right-[2%]",
-        ].join(" ")}
-      >
-        Web design
-      </span>
-      <span
-        className={[
-          badgeBase,
-          "bg-[#f56214] bottom-[26%] left-[3.1%] [animation-delay:0.2s] animate-[float_1.6s_ease-in-out_infinite_alternate]",
-          "max-lg:left-[-2%] max-sm:bottom-[-10%] max-sm:left-0",
-        ].join(" ")}
-      >
-        Publishing
-      </span>
-      <span
-        className={[
-          badgeBase,
-          "bg-[#f56214] bottom-[-1.8%] left-[64.4%] animate-[float_2.5s_ease-in-out_infinite_alternate]",
-          "max-lg:bottom-[-10%] max-lg:left-[64%] max-sm:hidden",
-        ].join(" ")}
-      >
-        Publishing
-      </span>
+        <div className={utilityStrongClass}>
+          <p className="font-medium">
+            {CITY} {time}
+          </p>
+          <p className={utilityTextClass}>
+            {date} ({GMT_LABEL})
+          </p>
+        </div>
+
+        <div className={utilityStrongClass}>
+          <button
+            type="button"
+            onClick={scrollToTop}
+            className={[
+              "cursor-pointer font-medium transition-opacity duration-200 hover:opacity-70",
+              utilityStrongClass,
+            ].join(" ")}
+          >
+            Back to top ↑
+          </button>
+          <p className={utilityTextClass}>Open for new projects · {year}</p>
+        </div>
+
+        <p className={[utilityStrongClass, "font-medium max-lg:hidden"].join(" ")}>
+          ©{year} SHIN MIN SEOK
+        </p>
+      </div>
+
+      <div className="graphic relative w-full overflow-hidden rounded-lg bg-black aspect-[1900/460] max-lg:aspect-[3/2] max-sm:aspect-[4/5]">
+        <HalftoneWave />
+        <span className="absolute left-6 bottom-6 font-en text-sm font-bold uppercase tracking-[0.08em] text-white max-sm:left-4 max-sm:bottom-4 max-sm:text-xs">
+          Shin Min Seok
+        </span>
+        <span className="absolute right-6 bottom-6 max-w-[70%] text-right font-en text-base italic font-medium text-white max-lg:text-sm max-sm:right-4 max-sm:bottom-4 max-sm:max-w-[80%] max-sm:text-xs">
+          『 Design quietly. Impact loudly. 』
+        </span>
+        {/* 태블릿 이하에서 3열 유틸리티 바가 세로로 쌓이면서 숨긴 copyright을 그래픽 안에도
+            한 줄 남겨 둔다 — 화면이 좁아도 저작권 표기가 사라지지 않도록. */}
+        <p className="absolute left-6 top-6 font-en text-xs text-white/60 hidden max-lg:block max-sm:left-4 max-sm:top-4">
+          ©{year} SHIN MIN SEOK
+        </p>
+      </div>
     </div>
   );
 }
@@ -81,14 +157,14 @@ export default function Footer({ theme = "dark", revealDuration }: FooterProps) 
   // 포함되므로 이 문제가 생기지 않는다.
   if (revealDuration != null) {
     return (
-      <Reveal as="footer" duration={revealDuration} className="max-w-[1880px] px-10 mx-auto pb-[180px] max-lg:px-5 max-lg:pb-[140px] max-sm:px-[10px] max-sm:pb-[46px]">
+      <Reveal as="footer" duration={revealDuration} className="max-w-[1880px] px-10 mx-auto pb-[100px] max-lg:px-5 max-lg:pb-[70px] max-sm:px-[10px] max-sm:pb-[40px]">
         <FooterContent theme={theme} />
       </Reveal>
     );
   }
 
   return (
-    <footer className="max-w-[1880px] px-10 mx-auto pb-[180px] max-lg:px-5 max-lg:pb-[140px] max-sm:px-[10px] max-sm:pb-[46px]">
+    <footer className="max-w-[1880px] px-10 mx-auto pb-[100px] max-lg:px-5 max-lg:pb-[70px] max-sm:px-[10px] max-sm:pb-[40px]">
       <FooterContent theme={theme} />
     </footer>
   );
