@@ -71,8 +71,21 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
         <filter id={crispBlurId} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="10" />
         </filter>
+        {/* 타일 안의 점 자체에 CSS transform/animation을 걸면 크롬이 패턴을 더 이상
+            반복 타일로 그리지 않고 뭉개서 그려버린다(도트가 사라지고 뿌연 덩어리로 보임).
+            대신 pattern 자체의 patternTransform을 SMIL로 움직이면 타일링은 그대로 두고
+            그 격자만 미끄러지듯 이동해서, 정확히 타일 크기(9px)만큼 왕복 없이 반복해도
+            이음매 없이 흘러가는 도트 웨이브가 된다. */}
         <pattern id={dotsId} width="9" height="9" patternUnits="userSpaceOnUse">
           <circle cx="4.5" cy="4.5" r="2.4" fill={dotColor} />
+          <animateTransform
+            attributeName="patternTransform"
+            type="translate"
+            from="0 0"
+            to="9 9"
+            dur="5s"
+            repeatCount="indefinite"
+          />
         </pattern>
         <mask id={maskId}>
           <path d={blobA} fill="#fff" filter={`url(#${crispBlurId})`} />
@@ -80,7 +93,7 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
       </defs>
 
       <path d={blobA} filter={`url(#${softBlurId})`} fill={dotColor} opacity="0.5" />
-      <rect width="1900" height="460" fill={`url(#${dotsId})`} mask={`url(#${maskId})`} />
+      <rect width="100%" height="100%" fill={`url(#${dotsId})`} mask={`url(#${maskId})`} />
     </svg>
   );
 }
