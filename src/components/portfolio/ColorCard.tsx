@@ -30,7 +30,11 @@ export default function ColorCard({ card, index, hoveredIndex, onHover }: ColorC
         "relative flex items-end p-5 text-white h-[400px] overflow-hidden cursor-pointer",
         "max-lg:!flex-none max-lg:h-[110px] max-lg:p-4",
         "max-sm:h-[90px] max-sm:p-3.5",
-        card.border ? "border-y border-r border-[#ddd] max-lg:border-r-0" : "",
+        // 데스크톱은 가로로 나란히 늘어서므로 왼쪽은 옆 카드와의 경계로 충분해 border-r만
+        // 둔다. max-lg부터는 세로로 쌓이면서 카드마다 좌우가 모두 페이지 배경에 닿기
+        // 때문에, 그대로 두면 왼쪽·오른쪽 테두리가 잘려 보인다 — border-l을 더해 4면을
+        // 모두 막는다.
+        card.border ? "border-y border-r border-[#ddd] max-lg:border-l" : "",
       ].join(" ")}
       style={{
         background: card.background,

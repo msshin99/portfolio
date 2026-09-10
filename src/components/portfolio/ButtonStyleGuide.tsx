@@ -221,10 +221,12 @@ function FreeformCard({ buttonWidth, buttonHeight }: { buttonWidth: number; butt
   return (
     <div ref={ref} className="flex-1 max-lg:flex-none flex flex-col h-[249px] rounded-md bg-[#f8f8fa] p-8">
       <p className="font-ko text-sm leading-5 tracking-[-0.35px] text-sub-secondary-txt">자유변형 가이드</p>
-      {/* max-sm:pl-11 — 버튼 왼쪽에 절대좌표로 붙는 높이 눈금(숫자+세로선)이 앉을 자리를
-          미리 확보해 둔다. 이게 없으면 버튼이 모바일 좁은 폭을 거의 다 차지해버려서
-          높이 눈금이 카드 배경 바깥으로 삐져나간다. */}
-      <div className="flex flex-1 items-center justify-center max-sm:pl-11">
+      {/* 높이 눈금(숫자+세로선)을 버튼 왼쪽에 절대좌표로 붙이면, 모바일처럼 버튼이 카드
+          폭을 거의 다 차지하는 화면에서는 둘 곳이 없어 버튼이 중앙에서 밀리거나(왼쪽에
+          여백을 미리 만들면) 카드 밖으로 삐져나간다(안 만들면). 그래서 모바일에서는 그
+          눈금을 숨기고, 버튼 아래에 별도의 캡션(max-sm:flex 블록)으로 대신 보여준다 —
+          버튼은 항상 정확히 카드 중앙에 남는다. */}
+      <div className="flex flex-1 flex-col items-center justify-center gap-2">
         {/* 버튼을 기준(중심)으로 두고, 가로/높이 눈금선은 모두 absolute로 버튼에 매달아
             배치한다 — 눈금선은 레이아웃 흐름에서 빠지므로 버튼의 실제 크기·중앙 위치에는
             전혀 영향을 주지 않고, 눈금선 쪽 크기(폭 100%/높이 100%)만 버튼 값을 그대로
@@ -239,7 +241,7 @@ function FreeformCard({ buttonWidth, buttonHeight }: { buttonWidth: number; butt
             <WidthGuideLine className="w-full" active={inView} delay={0.5} />
           </div>
 
-          <div className="absolute right-full top-0 mr-2 flex h-full items-center gap-1.5">
+          <div className="absolute right-full top-0 mr-2 hidden h-full items-center gap-1.5 lg:flex">
             <CountUpNumber
               value={buttonHeight}
               className="font-ko text-xs leading-[18px] tracking-[-0.3px] text-[#ee00ff]"
@@ -248,6 +250,19 @@ function FreeformCard({ buttonWidth, buttonHeight }: { buttonWidth: number; butt
             />
             <HeightGuideLine className="h-full" active={inView} delay={0.5} />
           </div>
+        </div>
+
+        {/* 모바일/태블릿 전용 높이 캡션 — 버튼 옆에 눈금을 놓을 자리가 없을 때, 버튼
+            아래 한 줄로 같은 정보를 보여준다. */}
+        <div className="flex items-center gap-1.5 lg:hidden">
+          <span className="h-1.5 w-6 rounded-full bg-[#ee00ff]" />
+          <CountUpNumber
+            value={buttonHeight}
+            className="font-ko text-xs leading-[18px] tracking-[-0.3px] text-[#ee00ff]"
+            active={inView}
+            delay={0.55}
+          />
+          <span className="font-ko text-xs leading-[18px] tracking-[-0.3px] text-[#ee00ff]">px</span>
         </div>
       </div>
     </div>

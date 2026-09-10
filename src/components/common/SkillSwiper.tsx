@@ -32,19 +32,22 @@ export default function SkillSwiper({ slides }: SkillSwiperProps) {
       >
         {slides.map((slide) => (
           <SwiperSlide key={slide.key} className="relative w-full h-full">
+            {/* 터치 기기는 hover가 발생하지 않아 group-hover만으로는 max-lg 이하 화면에서
+                컬러 배경/아이콘이 영원히 나타나지 않는다 — max-lg부터는 hover 결과를
+                기본값으로 켜 둔다. */}
             <span
-              className="pointer-events-none absolute inset-0 rounded-md transition-transform duration-300 ease-[ease-in-out] scale-[0.8] opacity-0 group-hover:scale-100 group-hover:opacity-100"
+              className="pointer-events-none absolute inset-0 rounded-md transition-transform duration-300 ease-[ease-in-out] scale-[0.8] opacity-0 group-hover:scale-100 group-hover:opacity-100 max-lg:scale-100 max-lg:opacity-100"
               style={{ backgroundColor: slide.hoverBg }}
             />
             <img
               src={slide.image}
               alt={slide.key}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[15%] h-auto max-lg:max-w-[12%] max-sm:max-w-[14%]"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[15%] h-auto max-lg:max-w-[12%] max-sm:max-w-[14%] max-lg:hidden"
             />
             <img
               src={slide.imageHover}
               alt=""
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[15%] h-auto max-lg:max-w-[12%] max-sm:max-w-[14%] opacity-0 group-hover:opacity-100"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[15%] h-auto max-lg:max-w-[12%] max-sm:max-w-[14%] opacity-0 group-hover:opacity-100 max-lg:opacity-100"
             />
           </SwiperSlide>
         ))}

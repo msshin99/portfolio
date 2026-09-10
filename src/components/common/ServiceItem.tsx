@@ -28,16 +28,14 @@ export default function ServiceItem({ item }: ServiceItemProps) {
         className={[
           "right flex items-center gap-8 max-w-[840px] w-full justify-between",
           "max-lg:max-w-[600px]",
-          "max-sm:max-w-full max-sm:gap-0",
+          "max-sm:max-w-full max-sm:gap-3",
         ].join(" ")}
       >
-        <figure
-          className={[
-            "shrink-0",
-            "max-sm:absolute max-sm:right-[-40px] max-sm:top-1/2 max-sm:-translate-x-1/2 max-sm:-translate-y-1/2",
-            "max-sm:opacity-0 max-sm:transition-[opacity,transform] max-sm:duration-500 max-sm:ease-[ease] max-sm:group-hover:opacity-100",
-          ].join(" ")}
-        >
+        {/* 데스크톱은 hover 시 이미지가 화면 오른쪽에서 살짝 등장하는 연출이지만, 터치
+            기기는 hover가 없어 그 상태(opacity-0)가 절대 바뀌지 않는다 — 모바일에서는
+            absolute 배치와 hover 게이트를 걷어내고, 텍스트 옆에 항상 보이는 작은
+            썸네일로 대신한다. */}
+        <figure className="shrink-0">
           <div ref={tiltRef} className="will-change-transform">
             <img
               src={item.image}
@@ -45,7 +43,7 @@ export default function ServiceItem({ item }: ServiceItemProps) {
               className={[
                 "max-w-full h-auto rounded-md",
                 "max-lg:rounded-sm max-lg:min-w-[148px]",
-                "max-sm:w-[136px] max-sm:min-w-[120px]",
+                "max-sm:w-20 max-sm:min-w-0",
               ].join(" ")}
             />
           </div>
@@ -55,7 +53,7 @@ export default function ServiceItem({ item }: ServiceItemProps) {
             "font-ko text-sm leading-[22px] font-light text-tertiary-txt max-w-[440px]",
             "transition-all duration-500 ease-[ease] group-hover:text-secondary-txt",
             "max-lg:max-w-[380px]",
-            "max-sm:max-w-full",
+            "max-sm:max-w-none max-sm:min-w-0 max-sm:flex-1",
           ].join(" ")}
         >
           {item.description}

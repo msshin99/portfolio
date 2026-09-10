@@ -4,7 +4,11 @@ import { gsap } from "../../lib/gsap";
 const headingClass = [
   "font-en text-center text-[100px] leading-[132px] font-bold mb-6",
   "max-lg:text-[76px] max-lg:leading-[88px] max-lg:mb-[18px]",
-  "max-sm:text-[60px] max-sm:leading-[72px] max-sm:mb-2.5",
+  // "Designer", "Experiences" 같은 긴 영단어가 60px 굵은 글씨에서는 좁은 화면 폭보다
+  // 넓어져 줄바꿈 없이 화면 밖으로 넘쳐 잘려 보였다 — 폭이 좁은 화면에서 더 확실히
+  // 줄어들도록 40px까지 낮추고, 그래도 넘치는 경우를 대비해 break-words로 단어 중간
+  // 줄바꿈을 허용해 항상 화면 안에 들어오게 한다.
+  "max-sm:text-[40px] max-sm:leading-[48px] max-sm:mb-2.5 max-sm:px-4 max-sm:break-words",
   "bg-[linear-gradient(90deg,#1f2937,#6b7280,#f9fafb,#1f2937)] [background-size:400%_400%]",
   "bg-clip-text text-transparent",
   "animate-[visualtxt_16s_ease_infinite,hue-spin_18s_linear_infinite]",
@@ -124,7 +128,7 @@ export default function Hero({ image, heading, subtext }: HeroProps) {
         </h2>
         <p
           ref={subRef}
-          className="font-en text-2xl leading-9 font-medium text-center opacity-60 max-lg:text-xl max-lg:leading-7 max-sm:text-lg max-sm:leading-[26px]"
+          className="font-en text-2xl leading-9 font-medium text-center opacity-60 max-lg:text-xl max-lg:leading-7 max-sm:text-lg max-sm:leading-[26px] max-sm:px-4 max-sm:break-words"
         >
           {subtext}
         </p>
