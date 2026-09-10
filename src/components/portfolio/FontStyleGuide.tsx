@@ -46,7 +46,7 @@ function GuideLeft({ guide }: { guide: FontGuide }) {
   );
 }
 
-function GuideRight({ guide }: { guide: FontGuide }) {
+function GuideRight({ guide, isDark = false }: { guide: FontGuide; isDark?: boolean }) {
   const cards: { tit: ReactNode; sub: string }[] = [
     { tit: <b className="font-medium">{guide.weight}</b>, sub: "Font Weight" },
     {
@@ -74,18 +74,32 @@ function GuideRight({ guide }: { guide: FontGuide }) {
         <li
           key={i}
           className={[
-            "bg-[#f4f5f9] rounded-[4px] w-full max-w-[445px] p-[16px_18px] max-lg:p-[12px_14px] max-lg:max-w-full max-sm:max-w-full",
-            "transition-transform duration-300 ease-[ease] will-change-transform",
-            "hover:-translate-y-1.5 hover:shadow-[0_16px_32px_rgba(0,0,0,0.12)]",
+            isDark ? "bg-[#161616]" : "bg-[#f4f5f9]",
+            "rounded-[4px] w-full max-w-[445px] p-[16px_18px] max-lg:p-[12px_14px] max-lg:max-w-full max-sm:max-w-full",
+            "transition-transform duration-300 ease-[ease] will-change-transform hover:-translate-y-1.5",
+            isDark ? "hover:shadow-[0_16px_32px_rgba(255,211,89,0.15)]" : "hover:shadow-[0_16px_32px_rgba(0,0,0,0.12)]",
           ].join(" ")}
         >
-          {/* 이 카드 배경은 항상 밝은 회색(#f4f5f9)이라 text-sub-primary/secondary-txt처럼 페이지
-              테마 변수를 따르는 클래스를 쓰면 다크 테마 페이지(goldenpine)에서 흰 글자가 밝은
-              배경 위에 얹혀 안 보이게 된다. 카드 자체가 항상 밝으므로 글자색은 리터럴로 고정한다. */}
-          <p className="tit font-en text-lg leading-[26px] font-medium text-[#222222] max-lg:text-base max-lg:leading-6 max-sm:text-sm max-sm:leading-5">
+          {/* 카드 배경은 페이지 테마에 따라 밝은 회색(#f4f5f9) 또는 어두운 회색(#161616,
+              goldenpine 전용)으로 고정되고, 그 배경 자체가 이미 두 값 중 하나로 확정돼 있어
+              text-sub-primary/secondary-txt 같은 페이지 테마 변수를 따르는 클래스를 쓰면 안 된다
+              (theme 변수가 바뀌어도 이 카드 배경은 안 바뀌므로, 밝은 배경에 흰 글자 또는 어두운
+              배경에 검정 글자가 얹혀 안 보이게 될 수 있다). 그래서 글자색도 항상 배경에 맞춰
+              리터럴로 고정한다. */}
+          <p
+            className={[
+              "tit font-en text-lg leading-[26px] font-medium max-lg:text-base max-lg:leading-6 max-sm:text-sm max-sm:leading-5",
+              isDark ? "text-white" : "text-[#222222]",
+            ].join(" ")}
+          >
             {card.tit}
           </p>
-          <span className="sub font-en text-sm leading-[22px] font-light text-[#505050] max-lg:text-xs max-lg:leading-[18px]">
+          <span
+            className={[
+              "sub font-en text-sm leading-[22px] font-light max-lg:text-xs max-lg:leading-[18px]",
+              isDark ? "text-white/60" : "text-[#505050]",
+            ].join(" ")}
+          >
             {card.sub}
           </span>
         </li>
@@ -96,9 +110,12 @@ function GuideRight({ guide }: { guide: FontGuide }) {
 
 interface FontStyleGuideProps {
   block: FontInfoBlock;
+  /** true면 우측 스펙 카드를 밝은 회색(#f4f5f9) 대신 어두운 회색(#161616) + 흰 글자로
+   *  보여준다. 검정+골드 다크 테마인 goldenpine 상세페이지에서만 전달된다. */
+  isDark?: boolean;
 }
 
-export default function FontStyleGuide({ block }: FontStyleGuideProps) {
+export default function FontStyleGuide({ block, isDark = false }: FontStyleGuideProps) {
   return (
     <div
       className={`font-info max-w-[1530px] mx-auto ${block.tight ? "mb-10" : "mb-[140px]"} max-lg:mb-[100px] max-sm:mb-[60px]`}
@@ -127,7 +144,7 @@ export default function FontStyleGuide({ block }: FontStyleGuideProps) {
           ].join(" ")}
         >
           <GuideLeft guide={guide} />
-          <GuideRight guide={guide} />
+          <GuideRight guide={guide} isDark={isDark} />
         </div>
       ))}
     </div>

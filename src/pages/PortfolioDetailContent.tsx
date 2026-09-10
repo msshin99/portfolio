@@ -245,7 +245,7 @@ export default function PortfolioDetailContent({
 
         {detail.fontInfoBlocks.map((block, i) => (
           <Reveal key={i} duration={1500}>
-            <FontStyleGuide block={block} />
+            <FontStyleGuide block={block} isDark={isDark} />
           </Reveal>
         ))}
 
