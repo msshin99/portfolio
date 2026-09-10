@@ -47,16 +47,35 @@ function scrollToTop() {
  *  달라지는 건 아니고, 부드럽게 블러된 웨이브 실루엣을 마스크로 써서 점 패턴이 그 경계에서
  *  자연스럽게 옅어지도록 흉내낸 것이다. 두 겹으로 쌓는다: 아래는 크게 블러된 은은한 광원,
  *  위는 도트 패턴을 살짝만 블러된 같은 실루엣으로 마스킹해 질감을 낸다. */
+/** 웨이브 실루엣이 여러 형태를 오가며 모핑되는 애니메이션에 쓰는 경로들 — 전부 시작점
+ *  (1950,-40)/끝점(1950,110)과 M + 6번의 C(곡선) + Z 구조를 동일하게 유지해서, 브라우저가
+ *  각 좌표를 1:1로 보간해 부드럽게 흘러가듯 모핑되게 한다(구조가 다르면 중간에 뚝뚝
+ *  끊기며 바뀐다). 오른쪽 끝은 캔버스 가장자리에 항상 붙어 있어야 하니 고정해두고,
+ *  왼쪽으로 뻗어나가는 리본의 굴곡·두께·끝점 위치만 네 가지로 다르게 줬다. */
+const WAVE_SHAPES = [
+  // 1) 완만한 대각선 리본 (기본형)
+  "M1950,-40 C1650,-30 1350,30 1150,70 C880,125 620,240 360,410 C320,436 290,452 268,462 " +
+    "C300,438 350,405 430,368 C660,262 940,190 1200,220 C1450,250 1700,240 1950,110 Z",
+  // 2) 더 가파르게 꺾이며 얇아지는 리본, 끝점이 더 아래로
+  "M1950,-40 C1700,-20 1300,90 1050,160 C800,230 550,330 330,440 C300,455 280,463 260,468 " +
+    "C295,445 360,410 450,375 C720,270 1020,175 1300,150 C1550,128 1780,150 1950,60 Z",
+  // 3) 완만하고 두툼한 리본, 배가 크게 부풂
+  "M1950,-40 C1600,10 1250,-10 1000,80 C700,190 480,290 340,390 C310,412 285,432 265,450 " +
+    "C310,420 400,370 520,320 C780,215 1080,130 1380,140 C1600,148 1800,120 1950,20 Z",
+  // 4) S자에 가깝게 굽이치며 왼쪽으로 더 뻗는 리본
+  "M1950,-40 C1700,20 1400,20 1150,110 C920,190 680,280 420,400 C360,428 320,445 280,458 " +
+    "C330,425 410,380 510,335 C740,232 1010,140 1320,160 C1580,178 1800,210 1950,90 Z",
+];
+
 function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
   const maskId = "footer-wave-mask";
   const softBlurId = "footer-wave-soft";
   const crispBlurId = "footer-wave-crisp";
   const dotsId = "footer-wave-dots";
   const sweepId = "footer-wave-sweep";
-
-  const blobA =
-    "M1950,-40 C1650,-30 1350,30 1150,70 C880,125 620,240 360,410 C320,436 290,452 268,462 " +
-    "C300,438 350,405 430,368 C660,262 940,190 1200,220 C1450,250 1700,240 1950,110 Z";
+  const pathId = "footer-wave-path";
+  // 마지막에 첫 모양으로 다시 돌아오게 해서, 한 바퀴 돌아도 끊김 없이 반복되게 한다.
+  const morphValues = [...WAVE_SHAPES, WAVE_SHAPES[0]].join(";");
 
   return (
     <svg
@@ -111,12 +130,18 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
             repeatCount="indefinite"
           />
         </linearGradient>
+        {/* 실제 모양은 이 path 하나에서만 정의하고, 아래 두 곳(마스크/은은한 광원)은
+            <use>로 그 모양을 그대로 재사용한다 — 이러면 모핑 애니메이션이 한 곳에만
+            있어도 두 레이어가 항상 완벽하게 같은 순간의 같은 모양을 그리게 된다. */}
+        <path id={pathId} d={WAVE_SHAPES[0]}>
+          <animate attributeName="d" values={morphValues} dur="10s" calcMode="linear" repeatCount="indefinite" />
+        </path>
         <mask id={maskId}>
-          <path d={blobA} fill="#fff" filter={`url(#${crispBlurId})`} />
+          <use href={`#${pathId}`} fill="#fff" filter={`url(#${crispBlurId})`} />
         </mask>
       </defs>
 
-      <path d={blobA} filter={`url(#${softBlurId})`} fill={dotColor} opacity="0.5" />
+      <use href={`#${pathId}`} filter={`url(#${softBlurId})`} fill={dotColor} opacity="0.5" />
       <rect width="100%" height="100%" fill={`url(#${dotsId})`} mask={`url(#${maskId})`} />
       <rect
         width="100%"
