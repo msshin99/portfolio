@@ -143,7 +143,10 @@ function FooterContent({ theme }: { theme: "dark" | "sub" }) {
         </p>
       </div>
 
-      <div className="graphic relative w-full overflow-hidden rounded-lg bg-black aspect-[1900/460] max-lg:aspect-[3/2] max-sm:aspect-[4/5]">
+      {/* 이 그래픽만 부모의 max-w-[1880px]+px-10 안쪽 여백을 벗어나 화면 끝까지 꽉 채운다
+          ("풀블리드"). left-1/2 + -translate-x-1/2 + w-screen 조합은 부모의 실제 패딩 값을
+          몰라도 항상 뷰포트 기준으로 중앙 정렬되어 양 끝이 정확히 화면 가장자리에 맞는다. */}
+      <div className="graphic relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-black aspect-[1900/460] max-lg:aspect-[3/2] max-sm:aspect-[4/5]">
         <HalftoneWave />
         <span className="absolute left-6 bottom-6 font-en text-sm font-bold uppercase tracking-[0.08em] text-white max-sm:left-4 max-sm:bottom-4 max-sm:text-xs">
           Shin Min Seok
