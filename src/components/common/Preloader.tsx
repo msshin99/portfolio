@@ -54,8 +54,8 @@ const TIMINGS: Record<"first" | "returning", IntroTiming> = {
     rearrangeDuration: 1.5,
     rearrangeStaggerMax: 0.9,
     gridHoldDuration: 0.6,
-    holeDuration: 1.15,
-    fadeOutDuration: 0.7,
+    holeDuration: 1.9,
+    fadeOutDuration: 1.1,
     subtitleDelay: 2.1,
     subtitleFadeDuration: 0.6,
     subtitleHold: 1.4,
@@ -67,8 +67,8 @@ const TIMINGS: Record<"first" | "returning", IntroTiming> = {
     rearrangeDuration: 0.75,
     rearrangeStaggerMax: 0.45,
     gridHoldDuration: 0.3,
-    holeDuration: 0.6,
-    fadeOutDuration: 0.35,
+    holeDuration: 0.95,
+    fadeOutDuration: 0.55,
     subtitleDelay: 1.0,
     subtitleFadeDuration: 0.3,
     subtitleHold: 0.7,
@@ -319,11 +319,28 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
       }
 
       if (holeState.active) {
+        // 원형 clip으로 딱 잘라 지우면 경계가 칼로 벤 듯 또렷해서, 실제 히어로
+        // 이미지가 이미 다 그려진 채로 갑자기 "뙇" 나타나는 것처럼 보였다(= 너무
+        // 급하게 전환되는 느낌의 핵심 원인). 대신 중심은 완전히 지우고 가장자리로
+        // 갈수록 옅어지는 방사형 그라디언트를 destination-out으로 겹쳐 그려서,
+        // 딱딱한 원이 아니라 안개가 걷히듯 부드럽게 번져 사라지게 한다.
+        const r = heroParticle.radius;
+        const gradient = ctx.createRadialGradient(
+          heroParticle.x,
+          heroParticle.y,
+          Math.max(0, r * 0.35),
+          heroParticle.x,
+          heroParticle.y,
+          r
+        );
+        gradient.addColorStop(0, "rgba(0,0,0,1)");
+        gradient.addColorStop(1, "rgba(0,0,0,0)");
         ctx.save();
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.arc(heroParticle.x, heroParticle.y, heroParticle.radius, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.clearRect(0, 0, width, height);
+        ctx.arc(heroParticle.x, heroParticle.y, r, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
       }
     };
@@ -400,8 +417,13 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
       const holeEnd = gridHoldEnd + timing.holeDuration;
 
       // Phase 4: 캔버스 오버레이 전체 페이드아웃 -> 스크롤 해제 + 언마운트
-      master.to(container, { opacity: 0, duration: timing.fadeOutDuration }, holeEnd - 0.1);
-      master.call(finish, [], holeEnd + timing.fadeOutDuration - 0.1);
+      // 구멍이 다 자란 뒤(holeEnd)에야 페이드를 시작하면 "구멍 다 뚫림 -> 그제서야
+      // 페이드"로 두 단계가 끊어져 보인다. 구멍이 자라는 도중(40% 지점)부터 전체
+      // 페이드를 겹쳐 시작해서, 부분적으로 옅어진 캔버스 위로 안개가 걷히듯 하나의
+      // 흐름으로 이어지게 한다.
+      const fadeStart = gridHoldEnd + timing.holeDuration * 0.4;
+      master.to(container, { opacity: 0, duration: timing.fadeOutDuration, ease: "power1.inOut" }, fadeStart);
+      master.call(finish, [], Math.max(holeEnd, fadeStart + timing.fadeOutDuration));
 
       // 서브 문구 페이드인 -> 유지 -> 페이드아웃 (별도 타임라인)
       if (subtitleEl) {
