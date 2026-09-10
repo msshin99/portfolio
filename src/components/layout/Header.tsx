@@ -67,12 +67,17 @@ export default function Header({ variant = "default" }: HeaderProps) {
             ].join(" "),
       ].join(" ")}
     >
-      <h1 className="logo w-[30%] max-lg:relative max-lg:z-[60]">
+      {/* w-[30%]는 데스크톱 넓은 헤더에서만 의도대로 여유 있게 남는다 — 태블릿/모바일처럼
+          헤더 자체가 좁아지면 30%가 로고 이미지의 고정 px 크기보다 작아져서, Tailwind
+          preflight의 img{max-width:100%} 때문에 이미지가 그 30% 폭까지 눌려버린다(=아무리
+          max-sm:w-[...]를 키워도 실제로는 더 작게 보였던 원인). max-lg부터는 컨테이너를
+          내용물(이미지) 크기에 맞게 auto로 풀어서 이미지가 지정한 크기 그대로 보이게 한다. */}
+      <h1 className="logo w-[30%] max-lg:relative max-lg:z-[60] max-lg:w-auto">
         <Link to="/">
           <img
             src={isSub ? logoBlack : logo}
             alt="신민석 포트폴리오 로고"
-            className="w-[226px] max-lg:w-[186px] max-sm:w-[160px]"
+            className="w-[226px] max-lg:w-[186px] max-sm:w-[204px]"
           />
         </Link>
       </h1>
