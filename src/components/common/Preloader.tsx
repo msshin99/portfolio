@@ -41,33 +41,37 @@ interface IntroTiming {
 }
 
 /** 첫 방문(first)과 같은 세션 안에서의 재방문/새로고침(returning)의 타이밍을 하나의
- *  설정 객체로 분리해서 관리한다 — returning은 대략 절반 속도로 재생된다. */
+ *  설정 객체로 분리해서 관리한다 — returning은 대략 절반 속도로 재생된다.
+ *  처음엔 전체적으로 지속시간이 짧아서(특히 holdDuration) "MSSHIN" 글자가 채 눈에
+ *  들어오기도 전에 그리드로 흩어져버리고, 각 단계 전환도 급하게 느껴졌다 — gather/
+ *  rearrange/hole 지속시간을 늘리고, 특히 글자 모양을 유지하는 holdDuration을 크게
+ *  늘려 실제로 "MSSHIN"을 읽을 시간을 준다. */
 const TIMINGS: Record<"first" | "returning", IntroTiming> = {
   first: {
-    gatherDuration: 1.1,
-    gatherStaggerMax: 0.6,
-    holdDuration: 0.6,
-    rearrangeDuration: 0.9,
-    rearrangeStaggerMax: 0.5,
-    gridHoldDuration: 0.35,
-    holeDuration: 0.7,
-    fadeOutDuration: 0.5,
-    subtitleDelay: 1.4,
-    subtitleFadeDuration: 0.5,
-    subtitleHold: 1.0,
+    gatherDuration: 1.7,
+    gatherStaggerMax: 1.0,
+    holdDuration: 1.9,
+    rearrangeDuration: 1.5,
+    rearrangeStaggerMax: 0.9,
+    gridHoldDuration: 0.6,
+    holeDuration: 1.15,
+    fadeOutDuration: 0.7,
+    subtitleDelay: 2.1,
+    subtitleFadeDuration: 0.6,
+    subtitleHold: 1.4,
   },
   returning: {
-    gatherDuration: 0.55,
-    gatherStaggerMax: 0.3,
-    holdDuration: 0.3,
-    rearrangeDuration: 0.45,
-    rearrangeStaggerMax: 0.25,
-    gridHoldDuration: 0.18,
-    holeDuration: 0.35,
-    fadeOutDuration: 0.3,
-    subtitleDelay: 0.7,
-    subtitleFadeDuration: 0.25,
-    subtitleHold: 0.5,
+    gatherDuration: 0.85,
+    gatherStaggerMax: 0.5,
+    holdDuration: 0.95,
+    rearrangeDuration: 0.75,
+    rearrangeStaggerMax: 0.45,
+    gridHoldDuration: 0.3,
+    holeDuration: 0.6,
+    fadeOutDuration: 0.35,
+    subtitleDelay: 1.0,
+    subtitleFadeDuration: 0.3,
+    subtitleHold: 0.7,
   },
 };
 
@@ -108,9 +112,16 @@ interface Point {
   y: number;
 }
 
-/** "MSSHIN" 텍스트를 오프스크린 캔버스에 그린 뒤 알파값을 스캔해서, 글자 모양을 이루는
- *  좌표 중 targetCount개를 무작위로 뽑는다. 스캔 step은 캔버스 크기에 비례해서, 화면이
- *  커져도 후보 픽셀 수가 지나치게 늘어나지 않게 한다. */
+/** "MSSHIN" 텍스트를 오프스크린 캔버스에 그린 뒤, 각 글자 획의 윤곽선을 따라 좌표를
+ *  뽑는다.
+ *
+ *  두 가지 시행착오를 거쳤다: (1) 촘촘한 step으로 후보를 잔뜩 모은 뒤 무작위로
+ *  targetCount개를 뽑으면 두꺼운 면엔 우연히 몰리고 가는 획엔 우연히 비어 얼룩덜룩
+ *  했다. (2) 그래서 획 내부를 꽉 채우는 균일 격자로 바꿨더니, 이번엔 "800" 굵기
+ *  글자가 그냥 뭉뚱그려진 사각 블록처럼 보여 오히려 덜 읽혔다. 최종적으로는 획의
+ *  내부가 아니라 윤곽선(안쪽/바깥쪽 경계)만 따라 점을 찍는 방식으로 정착했다 — 같은
+ *  개수라도 실루엣이 훨씬 또렷하게 드러난다. 격자 step은 이분 탐색으로 targetCount에
+ *  가장 가까운 값을 찾는다. */
 function buildTextPoints(text: string, width: number, height: number, targetCount: number): Point[] {
   const off = document.createElement("canvas");
   off.width = width;
@@ -134,15 +145,49 @@ function buildTextPoints(text: string, width: number, height: number, targetCoun
   octx.fillText(text, width / 2, height / 2);
 
   const { data } = octx.getImageData(0, 0, width, height);
-  const step = Math.max(2, Math.round(Math.min(width, height) / 220));
-  const candidates: Point[] = [];
-  for (let y = 0; y < height; y += step) {
-    for (let x = 0; x < width; x += step) {
-      const alpha = data[(y * width + x) * 4 + 3];
-      if (alpha > 120) candidates.push({ x, y });
+  const ALPHA_THRESHOLD = 120;
+  const isSolid = (x: number, y: number) => {
+    if (x < 0 || x >= width || y < 0 || y >= height) return false;
+    return data[(y * width + x) * 4 + 3] > ALPHA_THRESHOLD;
+  };
+
+  // 획 내부를 꽉 채우면(=alpha>threshold인 픽셀을 전부 격자로 쓰면) 두꺼운 "800" 굵기
+  // 글자는 그냥 뭉뚱그려진 사각 블록처럼 보여서 오히려 덜 읽힌다 — 대신 각 글자의
+  // 윤곽선(안쪽/바깥쪽 경계)만 따라 점을 찍으면, 같은 개수로도 획의 형태가 훨씬
+  // 또렷하게 드러난다(고전적인 파티클 텍스트 효과가 쓰는 방식).
+  const collectAtStep = (step: number): Point[] => {
+    const pts: Point[] = [];
+    for (let y = 0; y < height; y += step) {
+      for (let x = 0; x < width; x += step) {
+        if (!isSolid(x, y)) continue;
+        const isEdge =
+          !isSolid(x + step, y) || !isSolid(x - step, y) || !isSolid(x, y + step) || !isSolid(x, y - step);
+        if (isEdge) pts.push({ x, y });
+      }
     }
+    return pts;
+  };
+
+  // step이 작을수록(격자가 촘촘할수록) 점 개수가 많아진다 — 이분 탐색으로 targetCount에
+  // 가장 가까운 step을 찾는다.
+  let lo = 1;
+  let hi = Math.max(2, Math.round(Math.min(width, height) / 3));
+  let best = collectAtStep(Math.max(1, Math.round(Math.min(width, height) / 60)));
+  for (let i = 0; i < 18; i++) {
+    const step = Math.max(1, Math.round((lo + hi) / 2));
+    const pts = collectAtStep(step);
+    if (pts.length === 0) {
+      hi = step;
+      continue;
+    }
+    best = pts;
+    if (pts.length > targetCount) lo = step + 1;
+    else hi = step;
+    if (Math.abs(pts.length - targetCount) <= Math.max(2, targetCount * 0.03)) break;
+    if (lo >= hi) break;
   }
-  return sampleN(candidates, targetCount);
+
+  return sampleN(best, targetCount);
 }
 
 function sampleN<T>(arr: T[], n: number): T[] {
@@ -305,7 +350,9 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
           textY: tp.y,
           gridX: gp.x,
           gridY: gp.y,
-          radius: 1.4 + Math.random(),
+          // 글자를 이루는 점 하나하나가 눈에 잘 띄어야 "MSSHIN"이 읽힌다 — 기존
+          // 1.4~2.4px는 촘촘한 화면에서 너무 옅어 보였다.
+          radius: 1.9 + Math.random() * 1.3,
         };
       });
 
@@ -322,7 +369,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
       particles.forEach((p) => {
         master.to(
           p,
-          { x: p.textX, y: p.textY, duration: timing.gatherDuration, ease: "particleSnap" },
+          { x: p.textX, y: p.textY, duration: timing.gatherDuration, ease: "particleEase" },
           Math.random() * timing.gatherStaggerMax
         );
       });
@@ -333,7 +380,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
       particles.forEach((p) => {
         master.to(
           p,
-          { x: p.gridX, y: p.gridY, duration: timing.rearrangeDuration, ease: "particleSnap" },
+          { x: p.gridX, y: p.gridY, duration: timing.rearrangeDuration, ease: "particleEase" },
           holdEnd + Math.random() * timing.rearrangeStaggerMax
         );
       });
@@ -347,7 +394,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
       }, [], gridHoldEnd);
       master.to(
         heroParticle,
-        { radius: holeRadiusTarget, duration: timing.holeDuration, ease: "particleSnap" },
+        { radius: holeRadiusTarget, duration: timing.holeDuration, ease: "particleEase" },
         gridHoldEnd
       );
       const holeEnd = gridHoldEnd + timing.holeDuration;
