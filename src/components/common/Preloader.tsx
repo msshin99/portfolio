@@ -48,30 +48,30 @@ interface IntroTiming {
  *  늘려 실제로 "MSSHIN"을 읽을 시간을 준다. */
 const TIMINGS: Record<"first" | "returning", IntroTiming> = {
   first: {
-    gatherDuration: 1.7,
-    gatherStaggerMax: 1.0,
-    holdDuration: 1.9,
-    rearrangeDuration: 1.5,
-    rearrangeStaggerMax: 0.9,
-    gridHoldDuration: 0.6,
-    holeDuration: 1.9,
-    fadeOutDuration: 1.1,
-    subtitleDelay: 2.1,
-    subtitleFadeDuration: 0.6,
-    subtitleHold: 1.4,
+    gatherDuration: 1.95,
+    gatherStaggerMax: 1.15,
+    holdDuration: 2.3,
+    rearrangeDuration: 1.75,
+    rearrangeStaggerMax: 1.05,
+    gridHoldDuration: 0.75,
+    holeDuration: 2.1,
+    fadeOutDuration: 1.2,
+    subtitleDelay: 2.4,
+    subtitleFadeDuration: 0.7,
+    subtitleHold: 1.6,
   },
   returning: {
-    gatherDuration: 0.85,
-    gatherStaggerMax: 0.5,
-    holdDuration: 0.95,
-    rearrangeDuration: 0.75,
-    rearrangeStaggerMax: 0.45,
-    gridHoldDuration: 0.3,
-    holeDuration: 0.95,
-    fadeOutDuration: 0.55,
-    subtitleDelay: 1.0,
-    subtitleFadeDuration: 0.3,
-    subtitleHold: 0.7,
+    gatherDuration: 0.98,
+    gatherStaggerMax: 0.58,
+    holdDuration: 1.15,
+    rearrangeDuration: 0.88,
+    rearrangeStaggerMax: 0.53,
+    gridHoldDuration: 0.38,
+    holeDuration: 1.05,
+    fadeOutDuration: 0.6,
+    subtitleDelay: 1.2,
+    subtitleFadeDuration: 0.35,
+    subtitleHold: 0.8,
   },
 };
 
@@ -122,12 +122,19 @@ interface Point {
  *  내부가 아니라 윤곽선(안쪽/바깥쪽 경계)만 따라 점을 찍는 방식으로 정착했다 — 같은
  *  개수라도 실루엣이 훨씬 또렷하게 드러난다. 격자 step은 이분 탐색으로 targetCount에
  *  가장 가까운 값을 찾는다. */
-function buildTextPoints(text: string, width: number, height: number, targetCount: number): Point[] {
+interface TextPointsResult {
+  points: Point[];
+  /** 글자 실루엣의 가장 아래쪽 y좌표(캔버스/CSS px 기준) — 서브 문구를 이 아래
+   *  정확히 30px 지점에 배치하는 데 쓴다. */
+  textBottom: number;
+}
+
+function buildTextPoints(text: string, width: number, height: number, targetCount: number): TextPointsResult {
   const off = document.createElement("canvas");
   off.width = width;
   off.height = height;
   const octx = off.getContext("2d");
-  if (!octx) return [];
+  if (!octx) return { points: [], textBottom: height / 2 };
 
   octx.clearRect(0, 0, width, height);
   octx.fillStyle = "#fff";
@@ -137,11 +144,13 @@ function buildTextPoints(text: string, width: number, height: number, targetCoun
   let fontSize = height * 0.55;
   octx.font = `800 ${fontSize}px Inter, sans-serif`;
   const maxWidth = width * 0.86;
-  const measured = octx.measureText(text).width;
-  if (measured > maxWidth) {
-    fontSize *= maxWidth / measured;
+  let measured = octx.measureText(text);
+  if (measured.width > maxWidth) {
+    fontSize *= maxWidth / measured.width;
     octx.font = `800 ${fontSize}px Inter, sans-serif`;
+    measured = octx.measureText(text);
   }
+  const textBottom = height / 2 + (measured.actualBoundingBoxDescent || fontSize * 0.22);
   octx.fillText(text, width / 2, height / 2);
 
   const { data } = octx.getImageData(0, 0, width, height);
@@ -187,7 +196,7 @@ function buildTextPoints(text: string, width: number, height: number, targetCoun
     if (lo >= hi) break;
   }
 
-  return sampleN(best, targetCount);
+  return { points: sampleN(best, targetCount), textBottom };
 }
 
 function sampleN<T>(arr: T[], n: number): T[] {
@@ -342,6 +351,31 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
         ctx.arc(heroParticle.x, heroParticle.y, r, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
+
+        // 구멍이 뚫리는 그 순간 히어로 이미지 쪽으로 확 밝아졌다 잦아드는 빛
+        // 번짐을 겹쳐 그려서, 그냥 사라지는 게 아니라 "빵 터지며 드러나는"
+        // 임팩트를 준다. destination-out 지우기 다음(=이미 드러난 실제 콘텐츠
+        // 위)에 그려서, 새로 드러난 화면 위로 빛이 스치듯 보이게 한다.
+        if (flashState.opacity > 0.002) {
+          // 구멍 반지름(r)은 화면 전체를 덮을 때까지 계속 커지지만, 이 빛 번짐은
+          // 거기 얽매이지 않고 항상 같은 크기로 반짝인다 — "번지는 구멍"이 아니라
+          // "그 자리에서 한 번 터지는 빛"으로 보여야 임팩트가 산다.
+          const burstR = Math.min(width, height) * 0.22;
+          const burst = ctx.createRadialGradient(
+            heroParticle.x,
+            heroParticle.y,
+            0,
+            heroParticle.x,
+            heroParticle.y,
+            burstR
+          );
+          burst.addColorStop(0, `rgba(255,255,255,${flashState.opacity})`);
+          burst.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = burst;
+          ctx.beginPath();
+          ctx.arc(heroParticle.x, heroParticle.y, burstR, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     };
 
@@ -350,12 +384,20 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
     let particles: Particle[] = [];
     let heroParticle: Particle;
     const holeState = { active: false };
+    const flashState = { opacity: 0 };
 
     const setupAndPlay = () => {
       if (cancelled) return;
       const count = getParticleCount(width);
-      const textPoints = buildTextPoints(TEXT, width, height, count);
+      const { points: textPoints, textBottom } = buildTextPoints(TEXT, width, height, count);
       const gridPoints = buildGridPoints(count, width, height);
+
+      // 서브 문구를 퍼센트 기반 고정 위치가 아니라, 실제로 그려진 "MSSHIN" 글자
+      // 실루엣 바로 아래 30px 지점에 둔다.
+      if (subtitleEl) {
+        subtitleEl.style.top = `${textBottom + 30}px`;
+        subtitleEl.style.transform = "translateX(-50%)";
+      }
 
       particles = textPoints.map((tp, i) => {
         const start = randomOffscreenPoint(width, height);
@@ -414,6 +456,15 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
         { radius: holeRadiusTarget, duration: timing.holeDuration, ease: "particleEase" },
         gridHoldEnd
       );
+      // 구멍이 뚫리기 시작하는 바로 그 순간 확 밝아졌다(0.16s) 천천히 잦아드는(0.85s)
+      // 빛 번짐 — "서서히 사라짐"만 있던 전환에 한 박자의 임팩트를 더한다.
+      master.fromTo(
+        flashState,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.16, ease: "power2.out" },
+        gridHoldEnd
+      );
+      master.to(flashState, { opacity: 0, duration: 0.85, ease: "power2.out" }, gridHoldEnd + 0.16);
       const holeEnd = gridHoldEnd + timing.holeDuration;
 
       // Phase 4: 캔버스 오버레이 전체 페이드아웃 -> 스크롤 해제 + 언마운트
@@ -460,9 +511,12 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
   return (
     <div ref={containerRef} className="fixed inset-0 z-[999] pointer-events-none" aria-hidden="true">
       <canvas ref={canvasRef} className="block h-full w-full" />
+      {/* top은 JS에서 실제로 그려진 "MSSHIN" 글자 실루엣의 최하단 + 30px로 정확히
+          맞춘다(setupAndPlay 참고) — top-1/2는 그 계산이 끝나기 전까지의 안전한
+          기본값일 뿐이고, opacity-0이라 어차피 보이지 않는다. */}
       <p
         ref={subtitleRef}
-        className="absolute left-1/2 top-[62%] -translate-x-1/2 whitespace-nowrap font-en text-sm tracking-[0.08em] text-white/70 opacity-0 max-sm:text-xs"
+        className="absolute left-1/2 top-1/2 whitespace-nowrap font-en text-sm tracking-[0.08em] text-white/70 opacity-0 max-sm:text-xs"
       >
         {subtitle}
       </p>
