@@ -74,19 +74,24 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
         {/* 타일 안의 점 자체에 CSS transform/animation을 걸면 크롬이 패턴을 더 이상
             반복 타일로 그리지 않고 뭉개서 그려버린다(도트가 사라지고 뿌연 덩어리로 보임).
             SMIL(animate/animateTransform)은 CSS가 아니라 속성 자체를 바꾸는 방식이라
-            이 문제가 없어서, 이동(patternTransform)과 크기 변화(r)를 둘 다 SMIL로 건다.
-            duration을 짧게(1.2~1.4초) 잡아서 천천히 흐르는 느낌이 아니라 실제로 살아
-            움직이는 듯한 역동적인 웨이브가 되도록 했다. */}
+            이 문제가 없다.
+            단순히 대각선 한 방향(0,0 -> 9,9)으로만 왕복 없이 반복하면, 격자 전체가
+            똑같이 움직여서 눈에는 "이동"보다 "점멸/반짝임"으로 더 강하게 읽힌다 —
+            오른쪽 -> 아래 -> 왼쪽 -> 위 순서로 사각형 궤도를 그리며 패턴을 이동시켜
+            상하좌우로 뚜렷하게 휩쓸려 다니는 느낌을 준다(각 이동값은 타일 크기 9의
+            배수라 어느 지점에서도 이음매 없이 반복된다). 크기(r) 변화는 진폭을 줄이고
+            이동과 다른 주기로 돌려서, "움직임"이 주가 되고 반짝임은 거드는 정도로만
+            남긴다. */}
         <pattern id={dotsId} width="9" height="9" patternUnits="userSpaceOnUse">
-          <circle cx="4.5" cy="4.5" r="2.4" fill={dotColor}>
-            <animate attributeName="r" values="1.1;3.3;1.1" dur="1.4s" repeatCount="indefinite" />
+          <circle cx="4.5" cy="4.5" r="2.2" fill={dotColor}>
+            <animate attributeName="r" values="1.6;2.8;1.6" dur="1.7s" repeatCount="indefinite" />
           </circle>
           <animateTransform
             attributeName="patternTransform"
             type="translate"
-            from="0 0"
-            to="9 9"
-            dur="1.2s"
+            values="0 0; 9 0; 9 9; 0 9; 0 0"
+            keyTimes="0; 0.25; 0.5; 0.75; 1"
+            dur="2.4s"
             repeatCount="indefinite"
           />
         </pattern>
@@ -176,14 +181,14 @@ export default function Footer({ theme = "dark", revealDuration }: FooterProps) 
   // 포함되므로 이 문제가 생기지 않는다.
   if (revealDuration != null) {
     return (
-      <Reveal as="footer" duration={revealDuration} className="max-w-[1880px] px-10 mx-auto pb-[100px] max-lg:px-5 max-lg:pb-[70px] max-sm:px-[10px] max-sm:pb-[40px]">
+      <Reveal as="footer" duration={revealDuration} className="max-w-[1880px] px-10 mx-auto pb-0 max-lg:px-5 max-sm:px-[10px]">
         <FooterContent theme={theme} />
       </Reveal>
     );
   }
 
   return (
-    <footer className="max-w-[1880px] px-10 mx-auto pb-[100px] max-lg:px-5 max-lg:pb-[70px] max-sm:px-[10px] max-sm:pb-[40px]">
+    <footer className="max-w-[1880px] px-10 mx-auto pb-0 max-lg:px-5 max-sm:px-[10px]">
       <FooterContent theme={theme} />
     </footer>
   );
