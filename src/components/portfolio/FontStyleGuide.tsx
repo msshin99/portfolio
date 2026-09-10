@@ -1,14 +1,28 @@
 import type { ReactNode } from "react";
 import type { FontGuide, FontInfoBlock } from "../../data/portfolioDetails";
 
+/** 우측 카드에 표시되는 "Font Weight" 라벨(예: Bold/Medium/Regular)을 실제 굵기 클래스로
+ *  변환한다 — guide.variant는 색상 위계(진하기)만 나타낼 뿐 굵기와 무관한 선택 값이라,
+ *  variant가 비어 있는 관리자 입력 폰트 블록은 라벨과 무관하게 전부 굵게 보이는 문제가
+ *  있었다. 라벨 텍스트 자체에서 굵기를 읽어오면 어떤 값을 입력하든 항상 정확히 반영된다. */
+function resolveWeightClass(weight: string): string {
+  const w = weight.trim().toLowerCase();
+  if (w.includes("thin")) return "font-thin";
+  if (w.includes("extralight")) return "font-extralight";
+  if (w.includes("light")) return "font-light";
+  if (w.includes("regular") || w.includes("normal")) return "font-normal";
+  if (w.includes("medium")) return "font-medium";
+  if (w.includes("semibold")) return "font-semibold";
+  if (w.includes("extrabold") || w.includes("black") || w.includes("heavy")) return "font-extrabold";
+  if (w.includes("bold")) return "font-bold";
+  return "font-normal";
+}
+
 function GuideLeft({ guide }: { guide: FontGuide }) {
   const isPrata = guide.variant === "prmr";
-  const weightClass =
-    guide.variant === "two"
-      ? "font-medium text-[#767676]"
-      : guide.variant === "three"
-        ? "font-normal text-[#999]"
-        : "font-bold text-sub-primary-txt";
+  const weightClass = resolveWeightClass(guide.weight);
+  const colorClass =
+    guide.variant === "two" ? "text-[#767676]" : guide.variant === "three" ? "text-[#999]" : "text-sub-primary-txt";
 
   return (
     <div className="left">
@@ -17,13 +31,14 @@ function GuideLeft({ guide }: { guide: FontGuide }) {
           "tit text-[20px] leading-7 mb-0.5",
           isPrata ? "font-prata" : "font-en",
           weightClass,
+          colorClass,
           "max-lg:text-lg max-lg:leading-[26px] max-sm:text-base max-sm:leading-6",
         ].join(" ")}
       >
         {guide.title}
       </p>
       <span
-        className={["sub text-sm leading-[22px]", isPrata ? "font-prata" : "font-en", weightClass].join(" ")}
+        className={["sub text-sm leading-[22px]", isPrata ? "font-prata" : "font-en", weightClass, colorClass].join(" ")}
       >
         {guide.sample}
       </span>
@@ -33,19 +48,19 @@ function GuideLeft({ guide }: { guide: FontGuide }) {
 
 function GuideRight({ guide }: { guide: FontGuide }) {
   const cards: { tit: ReactNode; sub: string }[] = [
-    { tit: <b>{guide.weight}</b>, sub: "Font Weight" },
+    { tit: <b className="font-medium">{guide.weight}</b>, sub: "Font Weight" },
     {
       tit: guide.sizes.map((size, i) => (
-        <b key={i} className="mr-6 last:mr-0">
+        <b key={i} className="mr-6 last:mr-0 font-medium">
           {size}
         </b>
       )),
       sub: "Font Size",
     },
-    { tit: <b>{guide.letterSpacing}</b>, sub: "Letter Spacing" },
+    { tit: <b className="font-medium">{guide.letterSpacing}</b>, sub: "Letter Spacing" },
     {
       tit: guide.tags.map((tag, i) => (
-        <b key={i} className="mr-6 last:mr-0">
+        <b key={i} className="mr-6 last:mr-0 font-medium">
           {tag}
         </b>
       )),
@@ -59,7 +74,7 @@ function GuideRight({ guide }: { guide: FontGuide }) {
         <li
           key={i}
           className={[
-            "bg-[#f4f5f9] rounded-md w-full max-w-[445px] p-[16px_18px] max-lg:rounded-sm max-lg:p-[12px_14px] max-lg:max-w-full max-sm:max-w-full",
+            "bg-[#f4f5f9] rounded-[4px] w-full max-w-[445px] p-[16px_18px] max-lg:p-[12px_14px] max-lg:max-w-full max-sm:max-w-full",
             "transition-transform duration-300 ease-[ease] will-change-transform",
             "hover:-translate-y-1.5 hover:shadow-[0_16px_32px_rgba(0,0,0,0.12)]",
           ].join(" ")}

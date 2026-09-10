@@ -184,17 +184,21 @@ export async function generateUniqueGraphicWorkSlug(title: string): Promise<stri
 
 /** PortfolioForm이 다루는 "고정 섹션" 편집 상태를 content_blocks 배열로 조립한다.
  *  렌더링 쪽(mapRowToPortfolioDetail)이 기대하는 순서: box_container -> font_info(들) ->
- *  color_info -> main_image. */
+ *  color_info -> button_info(들) -> input_info -> main_image. */
 export function assembleContentBlocks(sections: {
   boxContainer: Extract<ContentBlock, { type: "box_container" }> | null;
   fontInfoBlocks: Extract<ContentBlock, { type: "font_info" }>[];
   colorInfo: Extract<ContentBlock, { type: "color_info" }> | null;
+  buttonInfoBlocks: Extract<ContentBlock, { type: "button_info" }>[];
+  hasInputGuide: boolean;
   mainImage: Extract<ContentBlock, { type: "main_image" }> | null;
 }): ContentBlock[] {
   const blocks: ContentBlock[] = [];
   if (sections.boxContainer) blocks.push(sections.boxContainer);
   blocks.push(...sections.fontInfoBlocks);
   if (sections.colorInfo) blocks.push(sections.colorInfo);
+  blocks.push(...sections.buttonInfoBlocks);
+  if (sections.hasInputGuide) blocks.push({ type: "input_info" });
   if (sections.mainImage) blocks.push(sections.mainImage);
   return blocks;
 }

@@ -21,12 +21,15 @@ const TOC_ITEMS = [
   { id: "section-box", label: "화면 미리보기" },
   { id: "section-font", label: "폰트 가이드" },
   { id: "section-color", label: "컬러 팔레트" },
+  { id: "section-button", label: "버튼 가이드" },
+  { id: "section-input", label: "인풋 가이드" },
   { id: "section-main-image", label: "쇼케이스 이미지" },
 ];
 
 type BoxContainer = Extract<ContentBlock, { type: "box_container" }>;
 type FontInfo = Extract<ContentBlock, { type: "font_info" }>;
 type ColorInfo = Extract<ContentBlock, { type: "color_info" }>;
+type ButtonInfo = Extract<ContentBlock, { type: "button_info" }>;
 type MainImageBlock = Extract<ContentBlock, { type: "main_image" }>;
 
 const emptyBoxContainer = (): BoxContainer => ({
@@ -74,7 +77,14 @@ const emptyFontInfo = (): FontInfo => ({
   tight: false,
   guides: structuredClone(NORDUNE_FONT_GUIDES_TEMPLATE),
 });
-const emptyColorInfo = (): ColorInfo => ({ type: "color_info", description: "", cards: [] });
+const emptyColorInfo = (): ColorInfo => ({ type: "color_info", title: "", description: "", cards: [] });
+const emptyButtonInfo = (): ButtonInfo => ({
+  type: "button_info",
+  radius: "4px",
+  font_label: "Pretendard / Medium / 14 / -2.5%",
+  button_width: 242,
+  button_height: 46,
+});
 const emptyMainImage = (): MainImageBlock => ({ type: "main_image", main_image_url: "" });
 
 /** <input type="color">는 반드시 6자리 hex(#rrggbb) 값만 받는다 — card.background/text_color에
@@ -166,6 +176,14 @@ export default function AdminPortfolioForm() {
   const [boxContainer, setBoxContainer] = useState<BoxContainer>(emptyBoxContainer());
   const [fontInfoBlocks, setFontInfoBlocks] = useState<FontInfo[]>([emptyFontInfo()]);
   const [colorInfo, setColorInfo] = useState<ColorInfo>(emptyColorInfo());
+  // 버튼 가이드는 모든 프로젝트에 있는 섹션이 아니므로(예: elfbar처럼 자체 버튼 컴포넌트
+  // 스펙을 케이스 스터디로 소개하는 프로젝트에만 필요), colorInfo/mainImage와 달리 기본값을
+  // 깔아두지 않고 빈 배열(미포함)에서 시작해 "가이드 추가" 버튼으로만 생성한다. 예시 버튼의
+  // 가로/세로 크기가 다른 가이드를 여러 개 등록할 수 있어 fontInfoBlocks처럼 배열로 둔다.
+  const [buttonInfoBlocks, setButtonInfoBlocks] = useState<ButtonInfo[]>([]);
+  // "기본 인풋" 가이드(select/date/text 3종 예시)는 내용이 고정된 문서라 켜고 끄는 값 하나만
+  // 둔다 — button_info처럼 값을 입력받는 필드가 없다.
+  const [hasInputGuide, setHasInputGuide] = useState(false);
   const [mainImage, setMainImage] = useState<MainImageBlock>(emptyMainImage());
 
   useEffect(() => {
@@ -195,6 +213,9 @@ export default function AdminPortfolioForm() {
         if (fonts.length) setFontInfoBlocks(fonts);
         const ci = row.content_blocks.find((b): b is ColorInfo => b.type === "color_info");
         if (ci) setColorInfo(ci);
+        const buttons = row.content_blocks.filter((b): b is ButtonInfo => b.type === "button_info");
+        if (buttons.length) setButtonInfoBlocks(buttons);
+        setHasInputGuide(row.content_blocks.some((b) => b.type === "input_info"));
         const mi = row.content_blocks.find((b): b is MainImageBlock => b.type === "main_image");
         if (mi) setMainImage(mi);
       } catch (err) {
@@ -228,7 +249,14 @@ export default function AdminPortfolioForm() {
           .map((m) => ({ label: m.label, value: m.value, ...(m.note ? { note: m.note } : {}) })),
         website_url: websiteUrl || null,
         hero_image_url: heroImageUrl || null,
-        content_blocks: assembleContentBlocks({ boxContainer, fontInfoBlocks, colorInfo, mainImage }),
+        content_blocks: assembleContentBlocks({
+          boxContainer,
+          fontInfoBlocks,
+          colorInfo,
+          buttonInfoBlocks,
+          hasInputGuide,
+          mainImage,
+        }),
         is_featured_on_main: featuredState.is_featured_on_main,
         main_display_order: featuredState.main_display_order,
         list_display_order: resolvedListDisplayOrder,
@@ -616,6 +644,14 @@ export default function AdminPortfolioForm() {
           description="프로젝트에 사용된 색상을 카드 형태로 소개하는 섹션입니다. 배경색이 실제 카드에 칠해지는 색이고, hex 텍스트는 카드에 보이는 글자입니다."
         />
         <div>
+          <Label>타이틀</Label>
+          <Input
+            value={colorInfo.title ?? ""}
+            onChange={(e) => setColorInfo((prev) => ({ ...prev, title: e.target.value }))}
+            placeholder="예: 밝음 속에서 더 또렷해지는"
+          />
+        </div>
+        <div>
           <Label>설명</Label>
           <Textarea
             value={colorInfo.description}
@@ -729,6 +765,94 @@ export default function AdminPortfolioForm() {
           <PlusIcon className="w-3.5 h-3.5" />
           색상 카드 추가
         </Button>
+      </Card>
+
+      {/* Button Info */}
+      <Card id="section-button" className="p-8 flex flex-col gap-5 scroll-mt-20">
+        <SectionTitle
+          icon={<TypeIcon className="w-[18px] h-[18px]" />}
+          title="버튼 가이드"
+          description="컬러 팔레트 바로 아래에 순서대로 배치되는 버튼 컴포넌트 스펙 섹션입니다. elfbar처럼 자체 버튼 디자인 시스템을 소개하는 프로젝트에만 필요하며, 예시 버튼 크기가 다른 가이드를 여러 개 추가할 수 있습니다."
+        />
+        {buttonInfoBlocks.map((block, blockIndex) => {
+          const updateBlock = (patch: Partial<ButtonInfo>) =>
+            setButtonInfoBlocks((prev) => prev.map((b, idx) => (idx === blockIndex ? { ...b, ...patch } : b)));
+
+          return (
+            <div key={blockIndex} className="rounded-xl bg-[#f9f9fb] p-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[15px] font-semibold text-[#18181b]">가이드 {blockIndex + 1}</span>
+                <RemoveButton onClick={() => setButtonInfoBlocks((prev) => prev.filter((_, idx) => idx !== blockIndex))}>
+                  가이드 삭제
+                </RemoveButton>
+              </div>
+              <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
+                <div>
+                  <Label>예시 버튼 가로(px)</Label>
+                  <Input
+                    type="number"
+                    value={block.button_width ?? 242}
+                    onChange={(e) => updateBlock({ button_width: Number(e.target.value) || 0 })}
+                    placeholder="예: 242"
+                  />
+                </div>
+                <div>
+                  <Label>예시 버튼 높이(px)</Label>
+                  <Input
+                    type="number"
+                    value={block.button_height ?? 46}
+                    onChange={(e) => updateBlock({ button_height: Number(e.target.value) || 0 })}
+                    placeholder="예: 46"
+                  />
+                </div>
+                <div>
+                  <Label>라운드 값</Label>
+                  <Input
+                    value={block.radius}
+                    onChange={(e) => updateBlock({ radius: e.target.value })}
+                    placeholder="예: 4px"
+                  />
+                </div>
+                <div>
+                  <Label>폰트 표기</Label>
+                  <Input
+                    value={block.font_label}
+                    onChange={(e) => updateBlock({ font_label: e.target.value })}
+                    placeholder="예: Pretendard / Medium / 14 / -2.5%"
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="self-start"
+          onClick={() => setButtonInfoBlocks((prev) => [...prev, emptyButtonInfo()])}
+        >
+          <PlusIcon className="w-3.5 h-3.5" />
+          버튼 가이드 추가
+        </Button>
+      </Card>
+
+      {/* Input Info */}
+      <Card id="section-input" className="p-8 flex flex-col gap-4 scroll-mt-20">
+        <SectionTitle
+          icon={<TypeIcon className="w-[18px] h-[18px]" />}
+          title="인풋 가이드"
+          description="버튼 가이드 아래에 배치되는 '기본 인풋' 섹션입니다. 셀렉트(140px)·날짜(220px)·텍스트(480px) 3가지 예시가 고정된 형태로 노출되며, elfbar처럼 인풋 스펙을 소개하는 프로젝트에만 켜면 됩니다."
+        />
+        <label className="flex items-center gap-2 text-sm text-[#3f3f46]">
+          <input
+            type="checkbox"
+            checked={hasInputGuide}
+            onChange={(e) => setHasInputGuide(e.target.checked)}
+            className="h-4 w-4 rounded border-black/20 accent-[#4f46e5]"
+          />
+          기본 인풋 가이드 섹션 포함
+        </label>
       </Card>
 
       {/* Main Image */}

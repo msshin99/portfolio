@@ -29,6 +29,7 @@ export type ContentBlock =
     }
   | {
       type: "color_info";
+      title?: string;
       description: string;
       cards: {
         name: string;
@@ -38,6 +39,17 @@ export type ContentBlock =
         border?: boolean;
       }[];
     }
+  | {
+      type: "button_info";
+      radius: string;
+      font_label: string;
+      /** 예시 버튼의 가로 폭/높이(px). 이 필드가 생기기 전에 만들어진 기존 button_info
+       *  블록에는 없을 수 있으므로, 읽는 쪽(mapRowToPortfolioDetail)에서 최초 가이드 값
+       *  (242 / 46)으로 대체한다. */
+      button_width?: number;
+      button_height?: number;
+    }
+  | { type: "input_info" }
   | { type: "main_image"; main_image_url: string };
 
 export interface PortfolioRow {
@@ -65,6 +77,8 @@ export function mapRowToPortfolioDetail(row: PortfolioRow): PortfolioDetail {
   const boxContainer = row.content_blocks.find((b) => b.type === "box_container");
   const fontBlocks = row.content_blocks.filter((b) => b.type === "font_info");
   const colorInfo = row.content_blocks.find((b) => b.type === "color_info");
+  const buttonBlocks = row.content_blocks.filter((b) => b.type === "button_info");
+  const hasInputGuide = row.content_blocks.some((b) => b.type === "input_info");
   const mainImage = row.content_blocks.find((b) => b.type === "main_image");
 
   const fontInfoBlocks: FontInfoBlock[] = fontBlocks.map((b) => ({
@@ -80,6 +94,13 @@ export function mapRowToPortfolioDetail(row: PortfolioRow): PortfolioDetail {
       letterSpacing: g.letter_spacing,
       tags: g.tags,
     })),
+  }));
+
+  const buttonInfoBlocks: PortfolioDetail["buttonInfoBlocks"] = buttonBlocks.map((b) => ({
+    radius: b.radius,
+    fontLabel: b.font_label,
+    buttonWidth: b.button_width ?? 242,
+    buttonHeight: b.button_height ?? 46,
   }));
 
   const colorCards: ColorCard[] =
@@ -106,7 +127,9 @@ export function mapRowToPortfolioDetail(row: PortfolioRow): PortfolioDetail {
       device: boxContainer?.device_slides.map((d) => ({ label: d.label, image: d.image_url })) ?? [],
     },
     fontInfoBlocks,
-    colorInfo: { description: colorInfo?.description ?? "", cards: colorCards },
+    colorInfo: { title: colorInfo?.title ?? "", description: colorInfo?.description ?? "", cards: colorCards },
+    buttonInfoBlocks,
+    hasInputGuide,
   };
 }
 

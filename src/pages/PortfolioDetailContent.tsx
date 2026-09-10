@@ -4,6 +4,8 @@ import WorkCard from "../components/common/WorkCard";
 import DeviceSwiper from "../components/portfolio/DeviceSwiper";
 import FontStyleGuide from "../components/portfolio/FontStyleGuide";
 import ColorCard from "../components/portfolio/ColorCard";
+import ButtonStyleGuide from "../components/portfolio/ButtonStyleGuide";
+import InputStyleGuide from "../components/portfolio/InputStyleGuide";
 import Reveal from "../components/common/Reveal";
 import StaggerReveal from "../components/common/StaggerReveal";
 import type { PortfolioDetail as PortfolioDetailData } from "../data/portfolioDetails";
@@ -33,6 +35,17 @@ interface PortfolioDetailContentProps {
  *  전체 구간에 고르게 퍼지도록 했다. */
 const HERO_MORPH_TRANSITION = { type: "tween" as const, duration: 1.4, ease: [0.65, 0, 0.35, 1] as const };
 
+/** 컬러 시스템 타이틀("OO 속에서 더 또렷해지는" 형태)을 "속에서" 기준으로 앞/뒤 두 구간으로
+ *  나눈다 — 앞쪽은 얇게(Thin), 강조되는 뒤쪽은 굵게(ExtraBold) 렌더링해서 Component 섹션
+ *  타이틀과 같은 2단 굵기 스타일을 준다. "속에서"가 없는 타이틀은 전체를 뒤쪽(굵게)으로 취급한다. */
+function splitTitleEmphasis(title: string): [string, string] {
+  const marker = "속에서";
+  const idx = title.indexOf(marker);
+  if (idx === -1) return ["", title];
+  const cut = idx + marker.length + 1; // "속에서" 뒤 공백 한 칸까지 앞쪽에 포함
+  return [title.slice(0, cut), title.slice(cut)];
+}
+
 /**
  * PortfolioDetail 페이지의 본문. Header/Footer를 감싸는 껍데기(PortfolioDetail.tsx, 풀 페이지용)와
  * 모달 오버레이 껍데기(PortfolioDetailModal.tsx) 양쪽에서 그대로 재사용한다.
@@ -52,6 +65,12 @@ export default function PortfolioDetailContent({
     .map(mapRowToWorkItem);
   const isDark = detail.slug === "goldenpine";
   const [hoveredColorIndex, setHoveredColorIndex] = useState<number | null>(null);
+  // 형광펜 배지의 샤인 스윕은 -160%의 initial x를 갖는데, 배지 자체가 overflow-hidden이라
+  // 그 위치에서는 IntersectionObserver 상 뷰포트 교차 영역이 0이 되어 whileInView가 절대
+  // 트리거되지 않는다(스윕을 담당하는 span 자신은 화면에 보이지 않게 숨겨둔 상태이므로).
+  // 그래서 위치가 바뀌지 않는 배지 wrapper의 등장을 별도로 감지해 state로 넘기고,
+  // 샤인 span은 그 state를 animate로 그대로 반영한다.
+  const [taskBadgeInView, setTaskBadgeInView] = useState(false);
 
   return (
     <>
@@ -105,16 +124,58 @@ export default function PortfolioDetailContent({
               ))}
             </div>
             <ul className="right max-w-[480px] w-full max-lg:max-w-full">
-              {detail.meta.map((row) => (
-                <li key={row.label} className="mb-6 flex last:mb-0 max-lg:mb-[18px] max-sm:mb-[14px]">
-                  <span className="font-en text-sm leading-[22px] font-medium text-sub-primary-txt inline-block w-full max-w-[180px]">
-                    {row.label}
-                  </span>
-                  <span className="font-ko text-sm leading-[22px] font-light text-sub-tertiary-txt">
-                    {row.value} {row.note ? <b className="text-sub-primary-txt font-medium">{row.note}</b> : null}
-                  </span>
-                </li>
-              ))}
+              {detail.meta.map((row) => {
+                const isMyTask = row.label === "My Task";
+                return (
+                  <li key={row.label} className="mb-6 flex last:mb-0 max-lg:mb-[18px] max-sm:mb-[14px]">
+                    <span className="font-en text-sm leading-[22px] font-medium text-sub-primary-txt inline-block w-full max-w-[180px]">
+                      {row.label}
+                    </span>
+                    <span className="font-ko text-[15px] leading-[22px] max-sm:text-sm">
+                      {isMyTask ? (
+                        <motion.span
+                          onViewportEnter={() => setTaskBadgeInView(true)}
+                          viewport={{ once: true }}
+                          className="relative inline-block overflow-hidden rounded-md px-2 py-1"
+                        >
+                          <motion.span
+                            initial={{ scaleX: 0 }}
+                            animate={taskBadgeInView ? { scaleX: 1 } : undefined}
+                            transition={{ duration: 0.5, ease: [0.65, 0, 0.35, 1] }}
+                            className="absolute inset-0 origin-left bg-sub-primary-txt/10"
+                          />
+                          <motion.span
+                            initial={{ scale: 0.85, opacity: 0 }}
+                            animate={taskBadgeInView ? { scale: 1, opacity: 1 } : undefined}
+                            transition={{ type: "spring", stiffness: 320, damping: 14, delay: 0.35 }}
+                            className="relative inline-block font-semibold text-sub-primary-txt"
+                          >
+                            {row.value}
+                          </motion.span>
+                          {taskBadgeInView ? (
+                            <motion.span
+                              aria-hidden
+                              initial={{ x: "-160%" }}
+                              animate={{ x: "260%" }}
+                              transition={{
+                                duration: 1.1,
+                                ease: "easeInOut",
+                                delay: 1.1,
+                                repeat: Infinity,
+                                repeatDelay: 2.2,
+                              }}
+                              className="pointer-events-none absolute inset-y-0 left-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/90 to-transparent"
+                            />
+                          ) : null}
+                        </motion.span>
+                      ) : (
+                        <span className="font-normal text-sub-primary-txt">{row.value}</span>
+                      )}{" "}
+                      {row.note ? <b className="text-sub-primary-txt font-medium">{row.note}</b> : null}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
 
@@ -190,12 +251,33 @@ export default function PortfolioDetailContent({
 
         <div className="color-info mb-[140px] max-lg:mb-[100px] max-sm:mb-[60px]">
           <Reveal duration={1500} className="sub-txt max-w-[1530px] mx-auto mb-10">
-            <h5 className="tit font-en text-[26px] leading-[34px] font-medium text-sub-primary-txt mb-5 max-lg:text-[22px] max-lg:leading-[32px] max-lg:mb-3.5 max-sm:text-xl max-sm:leading-7 max-sm:mb-2">
-              Color Concept
+            <h5 className="tit mb-5 max-lg:mb-3.5 max-sm:mb-2">
+              <span className="inline-flex w-fit items-center justify-center rounded-full border border-sub-primary-txt px-8 py-[18px] font-ko text-lg font-semibold uppercase leading-4 text-sub-primary-txt max-lg:px-6 max-lg:py-3.5 max-lg:text-base max-sm:px-5 max-sm:py-3 max-sm:text-sm">
+                Color Style
+              </span>
             </h5>
-            <p className="sub font-ko text-base leading-6 font-light text-sub-secondary-txt [word-break:keep-all] max-sm:text-sm max-sm:leading-5">
-              {detail.colorInfo.description}
-            </p>
+            {detail.colorInfo.title ? (
+              <div className="flex items-start justify-between gap-[60px] max-lg:flex-col max-lg:gap-4">
+                <p className="font-ko text-[46px] leading-[46px] font-thin text-sub-primary-txt max-w-[600px] [word-break:keep-all] max-lg:text-[34px] max-lg:leading-[42px] max-sm:text-[24px] max-sm:leading-[32px]">
+                  {(() => {
+                    const [lead, emphasis] = splitTitleEmphasis(detail.colorInfo.title);
+                    return (
+                      <>
+                        {lead}
+                        <b className="font-extrabold">{emphasis}</b>
+                      </>
+                    );
+                  })()}
+                </p>
+                <p className="sub font-ko text-base leading-6 font-light tracking-[-0.4px] text-sub-tertiary-txt max-w-[663px] [word-break:keep-all] max-sm:text-sm max-sm:leading-5">
+                  {detail.colorInfo.description}
+                </p>
+              </div>
+            ) : (
+              <p className="sub font-ko text-base leading-6 font-light text-sub-secondary-txt [word-break:keep-all] max-sm:text-sm max-sm:leading-5">
+                {detail.colorInfo.description}
+              </p>
+            )}
           </Reveal>
 
           <StaggerReveal
@@ -216,9 +298,45 @@ export default function PortfolioDetailContent({
             ))}
           </StaggerReveal>
         </div>
+
+        {detail.buttonInfoBlocks.length > 0 || detail.hasInputGuide ? (
+          <Reveal duration={1500} className="max-w-[1530px] mx-auto mb-20 max-lg:mb-14 max-sm:mb-8">
+            <h5 className="tit mb-5 max-lg:mb-3.5 max-sm:mb-2">
+              <span className="inline-flex w-fit items-center justify-center rounded-full border border-sub-primary-txt px-8 py-[18px] font-ko text-lg font-semibold uppercase leading-4 text-sub-primary-txt max-lg:px-6 max-lg:py-3.5 max-lg:text-base max-sm:px-5 max-sm:py-3 max-sm:text-sm">
+                Component
+              </span>
+            </h5>
+            <div className="flex items-start justify-between gap-[60px] max-lg:flex-col max-lg:gap-4">
+              <p className="font-ko text-[46px] leading-[46px] font-thin text-sub-primary-txt shrink-0 whitespace-nowrap max-lg:text-[34px] max-lg:leading-[42px] max-sm:whitespace-normal max-sm:text-[24px] max-sm:leading-[32px]">
+                일관된 사용성에 집중한, <b className="font-extrabold">컴포넌트</b>
+              </p>
+              <p className="font-ko text-sm leading-[22px] font-light text-sub-tertiary-txt max-w-[500px] [word-break:keep-all] max-sm:text-xs">
+                버튼과 인풋의 크기·여백·상태 값을 하나의 기준으로 통일해, 어떤 화면에서도 예측 가능하고 일관된 사용자 경험을 제공합니다.
+                사소한 차이도 하나의 규칙 안에서 정의했습니다.
+              </p>
+            </div>
+          </Reveal>
+        ) : null}
+
+        {detail.buttonInfoBlocks.map((block, i) => (
+          <Reveal key={i} duration={1500}>
+            <ButtonStyleGuide
+              radius={block.radius}
+              fontLabel={block.fontLabel}
+              buttonWidth={block.buttonWidth}
+              buttonHeight={block.buttonHeight}
+            />
+          </Reveal>
+        ))}
+
+        {detail.hasInputGuide ? (
+          <Reveal duration={1500}>
+            <InputStyleGuide />
+          </Reveal>
+        ) : null}
       </div>
 
-      <Reveal duration={1500} className="web overflow-hidden">
+      <Reveal duration={1500} className="web overflow-hidden mt-40 max-lg:mt-28 max-sm:mt-16">
         <div className={`cont ${detail.slug} relative w-full max-w-full mx-auto`}>
           <a href="" className="block w-full max-w-[1320px] mx-auto">
             <img src={detail.mainImage} alt="" className="w-full" />
