@@ -72,17 +72,25 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
         <filter id={crispBlurId} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="10" />
         </filter>
+        {/* 타일(9px) 안에서만 오가면 "제자리 꼼지락"으로 보이고, 그렇다고 도트를 아예
+            고정해두면 그 위를 스치는 빛줄기 하나만 움직여서 "역동적"이라기엔 밋밋하다 —
+            패턴 격자 자체를 타일 크기의 큰 배수(900 = 9의 100배)만큼 가로로 계속
+            흘려보내서, 부모 폭 전체를 가로지르는 도트의 흐름이 뚜렷하게 보이도록 한다.
+            900은 9의 배수라 한 바퀴 돌아도 이음매 없이 반복된다. */}
         <pattern id={dotsId} width="9" height="9" patternUnits="userSpaceOnUse">
           <circle cx="4.5" cy="4.5" r="2.4" fill={dotColor} />
+          <animateTransform
+            attributeName="patternTransform"
+            type="translate"
+            from="0 0"
+            to="900 0"
+            dur="3.2s"
+            repeatCount="indefinite"
+          />
         </pattern>
-        {/* 도트 하나하나를 움직이면 반경(9px 타일) 안에서만 꼼지락거리는 걸로 보여서
-            "제자리에서만 움직인다"는 인상을 준다 — 폭 전체(100%)를 가로지르는 움직임을
-            만들려면 도트는 가만히 두고, 그 위에 넓은 빛줄기(하이라이트 그라디언트) 하나가
-            캔버스 밖 왼쪽에서 오른쪽 끝까지 부드럽게 쓸고 지나가게 한다. 지나가는 동안
-            닿는 도트만 밝아졌다 사라지는 방식이라 실제로 화면 전체 폭을 가로지르는
-            움직임이 눈에 분명히 보이고, 은은한 빛이 스치는 느낌이라 화려하지 않고
-            고급스럽다. 양 끝에서 이미 투명해진 채로 화면 밖에 있다가 다시 시작하므로
-            반복 지점이 튀지 않는다. */}
+        {/* 도트 흐름 위에 넓은 빛줄기 하나가 캔버스 밖 왼쪽에서 오른쪽 끝까지 스치듯
+            지나가며 역동성을 한 겹 더한다. 양 끝에서 이미 투명해진 채로 화면 밖에 있다가
+            다시 시작하므로 반복 지점이 튀지 않는다. */}
         <linearGradient
           id={sweepId}
           gradientUnits="userSpaceOnUse"
@@ -99,7 +107,7 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
             type="translate"
             from="0 0"
             to="3100 0"
-            dur="4.5s"
+            dur="2.6s"
             repeatCount="indefinite"
           />
         </linearGradient>
