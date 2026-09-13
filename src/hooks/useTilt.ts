@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { gsap, prefersReducedMotion } from "../lib/gsap";
+import { gsap, prefersReducedMotion, supportsHover } from "../lib/gsap";
 
 interface TiltOptions {
   /** 최대 기울기 각도(deg) */
@@ -19,7 +19,11 @@ export function useTilt<T extends HTMLElement>({ max = 10, scale = 1.03, perspec
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || prefersReducedMotion()) return;
+    // 터치 기기(호버 불가능/포인터가 정밀하지 않은 기기)에서는 애초에 리스너를
+    // 걸지 않는다 — 탭 한 번으로 mousemove가 흉내내어 발생해 카드가 확대·
+    // 기울어진 채로 그대로 남아버리는 문제(모바일 "My Works" 카드 썸네일이
+    // 확대되어 보이는 것처럼 보였던 원인)를 막는다.
+    if (!el || prefersReducedMotion() || !supportsHover()) return;
 
     gsap.set(el, { transformPerspective: perspective, transformStyle: "preserve-3d" });
 

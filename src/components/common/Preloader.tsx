@@ -112,9 +112,9 @@ function isLowEndDevice() {
 }
 
 function getParticleCount(width: number) {
-  if (width <= 600) return 80;
-  if (width <= 1024) return 140;
-  return 320;
+  if (width <= 600) return 130;
+  if (width <= 1024) return 220;
+  return 460;
 }
 
 interface Point {
@@ -433,8 +433,11 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           gridX: gp.x,
           gridY: gp.y,
           // 글자를 이루는 점 하나하나가 눈에 잘 띄어야 "MSSHIN"이 읽힌다 — 기존
-          // 1.4~2.4px는 촘촘한 화면에서 너무 옅어 보였다.
-          radius: 1.9 + Math.random() * 1.3,
+          // 1.4~2.4px는 촘촘한 화면에서 너무 옅어 보였고, 이후 1.9~3.2px로도
+          // 획이 굵은 곳(가로/세로 스트로크)에서 점 사이 간격이 도드라져 윤곽이
+          // 끊겨 보였다. 파티클 개수(getParticleCount)를 늘려 윤곽선 밀도를
+          // 높이고, 반지름도 한 단계 더 키워 점 하나하나가 더 진하게 보이도록 했다.
+          radius: 2.1 + Math.random() * 1.4,
         };
       });
 

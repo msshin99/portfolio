@@ -40,4 +40,13 @@ export const prefersReducedMotion = () =>
 export const isMobileViewport = () =>
   typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
 
+/** 실제 마우스 호버가 가능한 기기(포인터가 정밀하고, 손을 떼도 위치가 유지되는
+ *  기기)인지 판단한다. useTilt처럼 mousemove/mouseleave에 의존하는 인터랙션에
+ *  쓴다 — 터치 기기는 탭 한 번에 브라우저가 호환용 mousemove를 한 번만 흉내
+ *  내고 그에 대응하는 mouseleave는 오지 않는 경우가 많아서, 이 체크 없이
+ *  mousemove만으로 확대/기울기를 걸면 사용자가 카드를 탭한 뒤 손가락을 떼도
+ *  이미지가 확대·기울어진 채로 되돌아오지 않는 것처럼 보인다. */
+export const supportsHover = () =>
+  typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
 export { gsap, ScrollTrigger, CustomEase };
