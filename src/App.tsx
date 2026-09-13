@@ -1,20 +1,33 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route, useLocation, matchPath, type Location } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import ScrollToTop from "./components/common/ScrollToTop";
 import { pendingOpenScrollY } from "./lib/scrollLock";
 import Home from "./pages/Home";
-import PortfolioList from "./pages/PortfolioList";
-import PortfolioSlug from "./pages/PortfolioSlug";
-import PortfolioDetailModal from "./pages/PortfolioDetailModal";
-import About from "./pages/About";
-import AdminLogin from "./admin/AdminLogin";
-import AdminDashboard from "./admin/AdminDashboard";
-import AdminPortfolioForm from "./admin/AdminPortfolioForm";
-import AdminSiteContent from "./admin/AdminSiteContent";
-import AdminGraphicWorks from "./admin/AdminGraphicWorks";
 import RequireAuth from "./admin/RequireAuth";
 import AdminLayout from "./admin/AdminLayout";
+
+// Home(진입 빈도가 가장 높은 루트 경로)만 즉시 로드하고, 나머지 페이지는
+// React.lazy로 쪼갠다 — 지금까지는 이 전부가 Three.js/GSAP까지 포함된 하나의
+// 번들(2MB+)에 같이 묶여 있어서, 예를 들어 /about이나 /admin/* 방문자도
+// Home에서만 쓰는 3D 로고 관련 코드까지 통째로 내려받고 있었다. 실제로
+// 보여주는 화면(시각적 품질)은 전혀 바뀌지 않고, 경로별로 필요한 코드만
+// 그때그때 받아오게 해서 페이지별 초기 로드 부담만 줄인다.
+const PortfolioList = lazy(() => import("./pages/PortfolioList"));
+const PortfolioSlug = lazy(() => import("./pages/PortfolioSlug"));
+const PortfolioDetailModal = lazy(() => import("./pages/PortfolioDetailModal"));
+const About = lazy(() => import("./pages/About"));
+const AdminLogin = lazy(() => import("./admin/AdminLogin"));
+const AdminDashboard = lazy(() => import("./admin/AdminDashboard"));
+const AdminPortfolioForm = lazy(() => import("./admin/AdminPortfolioForm"));
+const AdminSiteContent = lazy(() => import("./admin/AdminSiteContent"));
+const AdminGraphicWorks = lazy(() => import("./admin/AdminGraphicWorks"));
+
+/** lazy 청크가 내려받히는 아주 짧은 순간에만 보이는 자리표시자 — 흰 화면이
+ *  번쩍이지 않도록 사이트의 기본 배경색(검정)만 깔아둔다. */
+function RouteFallback() {
+  return <div className="min-h-screen bg-black" />;
+}
 
 interface NavState {
   /** WorkCard 등에서 모달로 진입할 때 navigate(to, { state: { backgroundLocation } })로 넘긴,
@@ -66,70 +79,72 @@ export default function App() {
           렌더링해서, 상세 콘텐츠가 그 위에 오버레이로 뜨는 동안 리스트가 아래에 유지되게 한다.
           새로고침/직접 URL 접속처럼 backgroundLocation이 없을 땐 location을 그대로 써서
           /portfolio/:slug가 진짜 풀 페이지로 정상 렌더된다. */}
-      <Routes location={backgroundLocation ?? location}>
-        <Route path="/" element={<Home />} />
-        <Route path="/portfolio" element={<PortfolioList />} />
-        <Route path="/portfolio/:slug" element={<PortfolioSlug />} />
-        <Route path="/about" element={<About />} />
+      <Suspense fallback={<RouteFallback />}>
+        <Routes location={backgroundLocation ?? location}>
+          <Route path="/" element={<Home />} />
+          <Route path="/portfolio" element={<PortfolioList />} />
+          <Route path="/portfolio/:slug" element={<PortfolioSlug />} />
+          <Route path="/about" element={<About />} />
 
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route
-          path="/admin"
-          element={
-            <RequireAuth>
-              <AdminLayout>
-                <AdminDashboard />
-              </AdminLayout>
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/admin/portfolios/new"
-          element={
-            <RequireAuth>
-              <AdminLayout>
-                <AdminPortfolioForm />
-              </AdminLayout>
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/admin/portfolios/:id/edit"
-          element={
-            <RequireAuth>
-              <AdminLayout>
-                <AdminPortfolioForm />
-              </AdminLayout>
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/admin/site-content"
-          element={
-            <RequireAuth>
-              <AdminLayout>
-                <AdminSiteContent />
-              </AdminLayout>
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/admin/graphic-works"
-          element={
-            <RequireAuth>
-              <AdminLayout>
-                <AdminGraphicWorks />
-              </AdminLayout>
-            </RequireAuth>
-          }
-        />
-      </Routes>
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route
+            path="/admin"
+            element={
+              <RequireAuth>
+                <AdminLayout>
+                  <AdminDashboard />
+                </AdminLayout>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/portfolios/new"
+            element={
+              <RequireAuth>
+                <AdminLayout>
+                  <AdminPortfolioForm />
+                </AdminLayout>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/portfolios/:id/edit"
+            element={
+              <RequireAuth>
+                <AdminLayout>
+                  <AdminPortfolioForm />
+                </AdminLayout>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/site-content"
+            element={
+              <RequireAuth>
+                <AdminLayout>
+                  <AdminSiteContent />
+                </AdminLayout>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/graphic-works"
+            element={
+              <RequireAuth>
+                <AdminLayout>
+                  <AdminGraphicWorks />
+                </AdminLayout>
+              </RequireAuth>
+            }
+          />
+        </Routes>
 
-      <AnimatePresence>
-        {modalMatch?.params.slug && (
-          <PortfolioDetailModal key={modalMatch.params.slug} slug={modalMatch.params.slug} />
-        )}
-      </AnimatePresence>
+        <AnimatePresence>
+          {modalMatch?.params.slug && (
+            <PortfolioDetailModal key={modalMatch.params.slug} slug={modalMatch.params.slug} />
+          )}
+        </AnimatePresence>
+      </Suspense>
     </>
   );
 }
