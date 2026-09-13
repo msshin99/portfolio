@@ -1,5 +1,5 @@
 import { createElement, useEffect, useRef, type ReactNode } from "react";
-import { gsap, prefersReducedMotion } from "../../lib/gsap";
+import { gsap, isMobileViewport, prefersReducedMotion } from "../../lib/gsap";
 
 type RevealTag = "div" | "section" | "footer";
 
@@ -59,6 +59,10 @@ export default function Reveal({ as = "div", duration = 3000, className, childre
           // 지우지 않으면 자식/자신에 걸린 hover transform 효과가 막힐 수 있다.
           clearProps: "transform,filter",
         });
+
+        // 모바일에서는 한 번 나타난 뒤로는 다시 숨기지 않는다 — 옵저버를 아예
+        // 끊어서, 스크롤을 내렸다가 다시 올릴 때 재생 대기 없이 항상 보이게 한다.
+        if (isMobileViewport()) observer.disconnect();
       },
       { rootMargin: "0px 0px -120px 0px", threshold: 0 }
     );

@@ -31,4 +31,13 @@ CustomEase.create("revealSpring", "0.34, 1.56, 0.64, 1");
 export const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/** Tailwind의 `max-sm:`과 같은 기준(640px 미만)으로 모바일 뷰포트인지 판단한다.
+ *  스크롤로 화면을 벗어날 때마다 리빌 애니메이션을 처음부터 다시 재생하는
+ *  컴포넌트들(Reveal/StaggerReveal/IntroTop/WorkCard)이, 모바일에서는 한 번
+ *  나타난 뒤로는 다시 숨기지 않도록(재생 1회로 제한) 분기하는 데 쓴다 — 화면이
+ *  작아 스크롤을 자주 오르내리는 모바일에서, 다시 사라졌다 나타나길 반복하는
+ *  동안 빈 화면만 보게 되는 체감 시간이 길다는 피드백에 따른 것이다. */
+export const isMobileViewport = () =>
+  typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
+
 export { gsap, ScrollTrigger, CustomEase };

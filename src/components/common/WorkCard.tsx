@@ -5,7 +5,7 @@ import type { WorkItem } from "../../data/works";
 import { heroLayoutId, isDetailSlug, slugFromHref } from "../../lib/portfolioNav";
 import { lockBackgroundScroll } from "../../lib/scrollLock";
 import { usePortfolios } from "../../lib/portfolioApi";
-import { gsap, prefersReducedMotion } from "../../lib/gsap";
+import { gsap, isMobileViewport, prefersReducedMotion } from "../../lib/gsap";
 import { useTilt } from "../../hooks/useTilt";
 
 interface WorkCardProps {
@@ -97,6 +97,10 @@ export default function WorkCard({
           return;
         }
         gsap.to(el, { yPercent: 0, scale: 1, filter: "blur(0px)", duration: 0.9, ease: "revealSpring" });
+
+        // 모바일에서는 한 번 나타난 뒤로는 다시 숨기지 않는다 — 옵저버를 아예
+        // 끊어서, 스크롤을 내렸다가 다시 올릴 때 재생 대기 없이 항상 보이게 한다.
+        if (isMobileViewport()) observer.disconnect();
       },
       { rootMargin: "0px 0px -120px 0px", threshold: 0 },
     );
