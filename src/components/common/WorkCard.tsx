@@ -102,7 +102,11 @@ export default function WorkCard({
         // 끊어서, 스크롤을 내렸다가 다시 올릴 때 재생 대기 없이 항상 보이게 한다.
         if (isMobileViewport()) observer.disconnect();
       },
-      { rootMargin: "0px 0px -120px 0px", threshold: 0 },
+      // 이 카드를 감싼 Reveal/StaggerReveal(Home.tsx)도 같은 이유로 rootMargin을
+      // 양수로 당겨뒀다 — 세 겹의 리빌(섹션 전체 + 카드 행 + 썸네일 각각)이 전부
+      // 화면에 실제로 보이기 전에 미리 끝나야, 사용자가 스크롤을 멈추고 바라보는
+      // 시점엔 이미 다 자리잡은 상태로 보인다.
+      { rootMargin: "0px 0px 400px 0px", threshold: 0 },
     );
     observer.observe(el);
 

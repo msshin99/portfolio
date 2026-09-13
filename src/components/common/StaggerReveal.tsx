@@ -22,6 +22,10 @@ interface StaggerRevealProps {
   rotateZ?: number;
   /** true면 짝/홀 인덱스에 따라 좌/우에서 번갈아 슬라이드인 */
   alternateX?: number;
+  /** IntersectionObserver의 rootMargin. Reveal.tsx와 같은 이유로 기본값(-120px)
+   *  대신 양수 값을 넘기면, 카드 그리드가 화면에 실제로 보이기 전에 미리
+   *  리빌이 끝나도록 당길 수 있다. */
+  rootMargin?: string;
 }
 
 /**
@@ -51,6 +55,7 @@ export default function StaggerReveal({
   rotateX = 0,
   rotateZ = 0,
   alternateX,
+  rootMargin = "0px 0px -120px 0px",
 }: StaggerRevealProps) {
   const ref = useRef<HTMLElement | null>(null);
 
@@ -101,12 +106,12 @@ export default function StaggerReveal({
         // 끊어서, 스크롤을 내렸다가 다시 올릴 때 재생 대기 없이 항상 보이게 한다.
         if (isMobileViewport()) observer.disconnect();
       },
-      { rootMargin: "0px 0px -120px 0px", threshold: 0 }
+      { rootMargin, threshold: 0 }
     );
     observer.observe(el);
 
     return () => observer.disconnect();
-  }, [y, stagger, delay, fromScale, rotateX, rotateZ, alternateX]);
+  }, [y, stagger, delay, fromScale, rotateX, rotateZ, alternateX, rootMargin]);
 
   const Tag = as as "div";
 

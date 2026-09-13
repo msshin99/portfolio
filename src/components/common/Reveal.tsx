@@ -8,6 +8,14 @@ interface RevealProps {
   duration?: number;
   className?: string;
   children: ReactNode;
+  /** IntersectionObserver의 rootMargin. 기본값(아래쪽 -120px)은 섹션이 실제로
+   *  화면에 상당히 들어온 뒤에야 리빌을 시작한다 — 대부분의 섹션은 이 정도가
+   *  자연스럽지만, 안에 무거운 콘텐츠(이미지 카드 그리드 등)가 있어 리빌+내부
+   *  애니메이션이 겹치는 섹션은 사용자가 스크롤을 멈추고 바라볼 때 이미 흐릿한
+   *  채로 눈에 띄어 "늦게 나온다"는 인상을 준다. 이런 곳엔 양수 값(예: 아래쪽
+   *  +300px)을 넘겨서, 섹션이 실제로 화면에 보이기 전에 미리 리빌이 끝나도록
+   *  당겨줄 수 있다. */
+  rootMargin?: string;
 }
 
 /**
@@ -20,7 +28,13 @@ interface RevealProps {
  * 들어옴) 때마다 처음부터 다시 재생되는 동작은 기존 AOS(once:false)와
  * 동일하게 유지한다.
  */
-export default function Reveal({ as = "div", duration = 3000, className, children }: RevealProps) {
+export default function Reveal({
+  as = "div",
+  duration = 3000,
+  className,
+  children,
+  rootMargin = "0px 0px -120px 0px",
+}: RevealProps) {
   const ref = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -78,12 +92,12 @@ export default function Reveal({ as = "div", duration = 3000, className, childre
         // 끊어서, 스크롤을 내렸다가 다시 올릴 때 재생 대기 없이 항상 보이게 한다.
         if (mobile) observer.disconnect();
       },
-      { rootMargin: "0px 0px -120px 0px", threshold: 0 }
+      { rootMargin, threshold: 0 }
     );
     observer.observe(el);
 
     return () => observer.disconnect();
-  }, [duration]);
+  }, [duration, rootMargin]);
 
   return createElement(as, { ref, className }, children);
 }

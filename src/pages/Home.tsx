@@ -259,8 +259,18 @@ export default function Home() {
             안에 WorkCard 각각이 자기 자신의 등장 애니메이션(StaggerReveal 1초 + tilt)을
             또 갖고 있어서, 바깥 섹션까지 3초짜리 blur/scale/tilt 리빌이 겹치면 스크롤
             진입 후 한참 동안 카드 이미지가 흐리고 눌린 채로 보여 "포트폴리오만 늦게
-            나온다"거나 "이미지가 잘려 보인다"는 인상으로 이어졌다. */}
-        <Reveal as="section" duration={1000} className={`work ${workSectionClass}`}>
+            나온다"거나 "이미지가 잘려 보인다"는 인상으로 이어졌다.
+            rootMargin도 기본(-120px, 화면에 상당히 들어온 뒤에야 시작)이 아니라
+            양수(+400px)로 넘겨서, 섹션이 화면 아래쪽으로 아직 400px 남았을 때부터
+            미리 리빌을 시작한다 — 실제로 눈에 보이는 시점엔 이미 애니메이션이 끝나
+            있어서, 스크롤을 멈추고 바라볼 때 흐릿하거나 눌린 상태를 보게 되는 일이
+            없어진다. */}
+        <Reveal
+          as="section"
+          duration={1000}
+          rootMargin="0px 0px 400px 0px"
+          className={`work ${workSectionClass}`}
+        >
           <SectionTitle subTxt={worksSubTxt} title={worksTitle} description={worksDescription} />
 
           {/* Supabase에서 포트폴리오 목록을 받아오는 동안(특히 네트워크가 느리거나
@@ -291,6 +301,7 @@ export default function Home() {
               className="work-list flex justify-between gap-5 mb-[240px] max-lg:gap-4 max-lg:mb-[60px] max-sm:flex-col max-sm:gap-7 max-sm:mb-10 [perspective:1400px]"
               rotateX={-28}
               y={70}
+              rootMargin="0px 0px 400px 0px"
             >
               {rowItems.map((item, i) => (
                 <WorkCard
