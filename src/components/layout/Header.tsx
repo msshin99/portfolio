@@ -59,7 +59,14 @@ export default function Header({ variant = "default" }: HeaderProps) {
     <header
       id="header"
       className={[
-        "w-full flex items-center justify-between gap-12 font-en z-10",
+        // Hero.tsx의 라벨/태그라인·스테이트먼트/바이오 줄도 각각 relative z-10을
+        // 쓰는데, 그 줄들은 pt/pb로 텍스트만 아래로 띄워놨을 뿐 패딩을 포함한
+        // 박스 자체는 섹션 맨 위(y:0)부터 시작한다 — 페이지 최상단(스크롤 0)
+        // 에서 이 투명한 패딩 영역이 같은 z-10인 헤더와 겹치면, DOM에서 나중에
+        // 오는 Hero 쪽이 같은 z-index 규칙상 위에 그려져 헤더 메뉴 클릭을
+        // 가로챈다. 헤더는 페이지 전역 내비게이션이라 항상 섹션 콘텐츠보다
+        // 위에 있어야 하므로 z-index를 명확히 더 높게 준다.
+        "w-full flex items-center justify-between gap-12 font-en z-30",
         "px-10 py-[18px] max-lg:p-10 max-sm:px-5 max-sm:py-[18px]",
         "transition-[background] duration-300 ease-[ease]",
         isSub
