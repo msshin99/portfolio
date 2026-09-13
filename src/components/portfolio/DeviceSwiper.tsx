@@ -23,7 +23,7 @@ export default function DeviceSwiper({ slides }: DeviceSwiperProps) {
       >
         {slides.map((slide) => (
           <SwiperSlide key={slide.label}>
-            <p className="tit">{slide.label}</p>
+            <p className="tit font-en">{slide.label}</p>
             <img src={slide.image} alt="" className="max-w-full h-auto rounded-md" />
           </SwiperSlide>
         ))}

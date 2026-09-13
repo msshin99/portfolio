@@ -11,6 +11,9 @@ interface StaggerRevealProps {
   y?: number;
   /** 항목 간 딜레이(초) */
   stagger?: number;
+  /** 전체 등장 시퀀스가 시작되기 전 대기 시간(초) — 예를 들어 위쪽 타이틀
+   *  애니메이션이 다 끝난 뒤에 이 리빌이 시작되게 하고 싶을 때 쓴다. */
+  delay?: number;
   /** 시작 스케일 */
   fromScale?: number;
   /** 시작 3D rotateX(deg) — 카드가 살짝 뒤로 젖혀진 상태에서 세워짐 */
@@ -32,6 +35,10 @@ interface StaggerRevealProps {
  * 이 컨테이너가 화면에 들어와도 전혀 감지되지 않아 opacity:0에 영구히 멈춰버리는 문제가
  * 있었다(컬러 카드, Related Projects 카드가 안 보이던 원인). IntersectionObserver는 어떤
  * 조상이 스크롤되든 상관없이 뷰포트와의 교차 여부만 보므로 이 문제가 없다.
+ *
+ * Reveal.tsx(AOS once:false)와 마찬가지로 한 번 재생되고 끝이 아니라, 뷰포트를
+ * 벗어날 때마다 애니메이션 없이 즉시 숨김 상태로 되돌려서 — 스크롤을 내렸다가
+ * 다시 올려 재진입할 때마다 처음부터 다시 재생된다.
  */
 export default function StaggerReveal({
   as = "div",
@@ -39,6 +46,7 @@ export default function StaggerReveal({
   children,
   y = 48,
   stagger = 0.08,
+  delay = 0,
   fromScale = 0.94,
   rotateX = 0,
   rotateZ = 0,
@@ -55,14 +63,22 @@ export default function StaggerReveal({
 
     if (rotateX) gsap.set(el, { perspective: 1200 });
 
-    items.forEach((item, i) => {
+    const hiddenVars = (i: number) => {
       const x = alternateX ? (i % 2 === 0 ? -alternateX : alternateX) : 0;
-      gsap.set(item, { opacity: 0, y, x, scale: fromScale, rotateX, rotateZ, transformOrigin: "50% 100%" });
-    });
+      return { opacity: 0, y, x, scale: fromScale, rotateX, rotateZ, transformOrigin: "50% 100%" };
+    };
+    const hideAll = () => items.forEach((item, i) => gsap.set(item, hiddenVars(i)));
+
+    hideAll();
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!entry.isIntersecting) return;
+        if (!entry.isIntersecting) {
+          // 재진입 시 처음부터 다시 재생되도록, 화면을 벗어나는 즉시(애니메이션
+          // 없이) 숨김 상태로 되돌려둔다.
+          hideAll();
+          return;
+        }
         gsap.to(items, {
           opacity: 1,
           y: 0,
@@ -71,6 +87,7 @@ export default function StaggerReveal({
           rotateX: 0,
           rotateZ: 0,
           duration: 1,
+          delay,
           stagger,
           ease: "power3.out",
           // 등장 애니메이션이 끝나면 GSAP가 남겨둔 인라인 transform을 지운다 — 인라인
@@ -79,14 +96,13 @@ export default function StaggerReveal({
           // 절대 적용되지 않는다.
           clearProps: "transform",
         });
-        observer.disconnect();
       },
       { rootMargin: "0px 0px -120px 0px", threshold: 0 }
     );
     observer.observe(el);
 
     return () => observer.disconnect();
-  }, [y, stagger, fromScale, rotateX, rotateZ, alternateX]);
+  }, [y, stagger, delay, fromScale, rotateX, rotateZ, alternateX]);
 
   const Tag = as as "div";
 

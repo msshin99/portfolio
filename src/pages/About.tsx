@@ -177,8 +177,13 @@ function InfoAccordionRow({ row, index, isOpen, onToggle }: InfoAccordionRowProp
 
 export default function About() {
   const { rows: siteContent } = useSiteContent();
+  const heading = getSiteText(siteContent, "about_heading", DEFAULT_ABOUT_HEADING);
+  const headingEn = getSiteText(siteContent, "about_heading_en", DEFAULT_ABOUT_HEADING_EN);
   const description = getSiteText(siteContent, "about_description", DEFAULT_ABOUT_DESCRIPTION);
   const profilePhoto = getSiteImage(siteContent, "about_profile_image", profileImg);
+  const infoSubTxt = getSiteText(siteContent, "about_info_subtxt", "(Profile)");
+  const infoTitle = getSiteText(siteContent, "about_info_title", "Info");
+  const infoDescription = getSiteText(siteContent, "about_info_description", "항목을 눌러 자세한 내용을 펼쳐보세요.");
 
   // 다른 비주얼 요소(키워드 카드, 섹션 타이틀)와 같은 톤의 인터랙션을 프로필 사진에도 준다 —
   // 다만 실사 인물 사진이라 아이콘만큼 과감하진 않게 각도/확대를 절제했다.
@@ -193,11 +198,11 @@ export default function About() {
       <main>
         <div className="about-page max-w-[1400px] mx-auto px-10 pt-[180px] pb-[160px] max-lg:px-10 max-lg:pt-[140px] max-lg:pb-[100px] max-sm:px-5 max-sm:pt-[100px] max-sm:pb-[60px]">
           <Reveal duration={3000} className="about-hero mb-[140px] max-lg:mb-20 max-sm:mb-14">
-            <IntroTop heading={DEFAULT_ABOUT_HEADING} hoverHeading={DEFAULT_ABOUT_HEADING_EN} description={description} />
+            <IntroTop heading={heading} hoverHeading={headingEn} description={description} />
           </Reveal>
 
           <Reveal duration={3000}>
-            <SectionTitle subTxt="(Profile)" title="Info" description="항목을 눌러 자세한 내용을 펼쳐보세요." />
+            <SectionTitle subTxt={infoSubTxt} title={infoTitle} description={infoDescription} />
 
             <div className="profile flex gap-[80px] max-lg:flex-col max-lg:gap-10">
               <figure

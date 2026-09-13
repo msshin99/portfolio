@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import type { WorkItem } from "../../data/works";
 import { heroLayoutId, isDetailSlug, slugFromHref } from "../../lib/portfolioNav";
 import { lockBackgroundScroll } from "../../lib/scrollLock";
 import { usePortfolios } from "../../lib/portfolioApi";
+import { gsap, prefersReducedMotion } from "../../lib/gsap";
+import { useTilt } from "../../hooks/useTilt";
 
 interface WorkCardProps {
   item: WorkItem;
@@ -31,6 +33,18 @@ interface WorkCardProps {
    *  PortfolioList/Related Projects처럼 grid로 배치되는 곳에서는 grid가 너비를
    *  결정하므로 이 값 자체가 무의미하다(전달하지 않으면 됨). */
   widthClassName?: string;
+  /** 제목 <p>의 font-size/line-height 클래스. 비워두면 기존 크기(text-xl) 그대로 쓰고,
+   *  Home의 "My Works"처럼 이 카드가 쓰이는 화면마다 제목 크기를 다르게 주고 싶을 때만
+   *  넘긴다. */
+  titleClassName?: string;
+  /** 날짜(item.date)의 font-size/line-height 클래스. 비워두면 기존 크기(text-base) 그대로. */
+  dateClassName?: string;
+  /** 부제(item.sub)의 font-size/line-height 클래스. 비워두면 기존 크기(text-sm) 그대로. */
+  subClassName?: string;
+  /** true면 썸네일(figure)이 높이 0에서 시작해, 스크롤로 화면에 들어올 때마다
+   *  실제 높이까지 자연스럽게 자라나며 열리는 리빌 효과가 붙는다(Home의
+   *  "My Works" 6개 썸네일 전용 — 다른 화면의 카드에는 영향 없음). */
+  thumbnailReveal?: boolean;
 }
 
 export default function WorkCard({
@@ -39,9 +53,57 @@ export default function WorkCard({
   shared = false,
   layoutKey,
   widthClassName = "",
+  titleClassName = "text-xl leading-7 max-lg:text-xl max-lg:leading-7 max-sm:text-lg max-sm:leading-[26px]",
+  dateClassName = "text-base leading-6 max-lg:text-[13px]",
+  subClassName = "text-sm leading-[22px] max-lg:text-[13px]",
+  thumbnailReveal = false,
 }: WorkCardProps) {
   const subTextClass = subPage ? "text-[#767676]" : "text-secondary-txt";
   const location = useLocation();
+  const revealRef = useRef<HTMLDivElement | null>(null);
+  // hover 시 커서 위치를 따라가는 3D 기울기 — 이 사이트의 다른 카드형
+  // 요소(SectionTitle 등)에 이미 쓰는 useTilt를 재사용해 톤을 맞춘다.
+  // thumbnailReveal이 아닌 카드에는 ref를 연결하지 않아(아래) 기존
+  // hover-scale(tailwind)만 그대로 남는다.
+  const tiltRef = useTilt<HTMLImageElement>({ max: 6, scale: 1.1, perspective: 800 });
+
+  // 썸네일이 아래(translateY 100%, 안 보이는 상태) + 살짝 확대(scale 1.08) +
+  // 흐림(blur 8px)에서 시작해, 화면에 들어올 때마다(재진입 포함) 위로
+  // 차오르며 제 크기·선명도로 돌아오는 동시에 도착 직전 살짝 오버슈트하는
+  // spring 느낌(revealSpring)으로 자리를 잡는다. height 같은 레이아웃 유발
+  // 속성 대신 transform/filter만 움직이므로 매 프레임 리플로우가 없고,
+  // figure 자체 크기(aspect-[3/2])는 항상 고정이라 문서 높이도 안 바뀐다 —
+  // 예전 height:0<->auto 방식은 문서 높이가 계속 바뀌어서 다른 ScrollTrigger의
+  // 좌표 캐시를 매번 무효화시켜야 했는데, 그 부작용 자체가 사라진다.
+  // hover 확대(group-hover:scale-110 또는 tilt)는 안쪽 이미지에 걸려 있으므로,
+  // 리빌용 transform은 그걸 감싸는 이 wrapper에 걸어 서로 덮어쓰지 않게 분리한다.
+  useEffect(() => {
+    if (!thumbnailReveal) return;
+    const el = revealRef.current;
+    if (!el) return;
+
+    if (prefersReducedMotion()) {
+      gsap.set(el, { yPercent: 0, scale: 1, filter: "blur(0px)" });
+      return;
+    }
+
+    const hiddenState = { yPercent: 100, scale: 1.08, filter: "blur(8px)" };
+    gsap.set(el, hiddenState);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          gsap.set(el, hiddenState);
+          return;
+        }
+        gsap.to(el, { yPercent: 0, scale: 1, filter: "blur(0px)", duration: 0.9, ease: "revealSpring" });
+      },
+      { rootMargin: "0px 0px -120px 0px", threshold: 0 },
+    );
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, [thumbnailReveal]);
 
   // 클릭한 순간 이 카드는 layoutId 공유 그룹에서 스스로 "이탈"한다 — 배경 리스트는 모달이 뜬
   // 뒤에도 계속 마운트된 채로 남아있는데, framer-motion은 같은 layoutId를 가진 엘리먼트가
@@ -89,35 +151,51 @@ export default function WorkCard({
         "group [box-shadow:0_0_0_rgba(0,0,0,0)] hover:shadow-2xl transition-shadow duration-300",
       ].join(" ")}
     >
-      {useSharedImage ? (
-        // layoutId는 이미지가 아니라 "빈" wrapper div에 건다. 3:2 썸네일 <-> 풀스크린 히어로처럼
-        // 가로세로 비율이 달라지는 layoutId 전환에서, <motion.img>에 직접 layoutId를 걸면
-        // framer-motion이 이미지 픽셀이 비율에 안 맞게 늘어나 보이는 걸 막으려고 두 인스턴스
-        // 사이에 opacity crossfade를 자동으로 걸어버린다 — 전환 후반부(두 박스 크기가 비슷해지는
-        // 순간) 두 이미지가 동시에 부분 투명도로 겹쳐 보이는 "잔상"으로 나타났다. 콘텐츠가 없는
-        // div가 대신 layoutId를 지므로 크로스페이드가 필요 없다.
-        //
-        // 안쪽 <img>는 반드시 일반 img여야 한다 — framer-motion의 `layout` prop을 주면 부모
-        // div가 시각적으로 작아지는 것과 정확히 반대 방향의 역보정(counter-scale) transform을
-        // 자동으로 걸어버려서, 사진 자체는 항상 원래(풀스크린) 크기 그대로 있고 부모 박스가
-        // 커지는 만큼만 "구멍"으로 더 보이는 것처럼 되어버린다 — 즉 "사진이 커지는" 게 아니라
-        // "이미 꽉 찬 사진을 보는 창이 넓어지는" 것처럼 보여서 핵심 전환 모션 자체가 깨진다.
-        // object-cover로 채우는 것만으로 충분하고 별도 framer 추적은 필요 없다.
-        <motion.div
-          layoutId={handedOff ? undefined : layoutId}
-          animate={{ opacity: handedOff ? 0 : 1 }}
-          transition={{ duration: 0 }}
-          className="w-full aspect-[3/2] max-w-full"
-        >
-          <img src={item.image} alt={item.title} className="w-full h-full object-cover block" />
-        </motion.div>
-      ) : (
-        <img
-          src={item.image}
-          alt={item.title}
-          className="rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-cover max-w-full"
-        />
-      )}
+      <div ref={thumbnailReveal ? revealRef : undefined} className={thumbnailReveal ? "will-change-[transform,filter]" : undefined}>
+        {useSharedImage ? (
+          // layoutId는 이미지가 아니라 "빈" wrapper div에 건다. 3:2 썸네일 <-> 풀스크린 히어로처럼
+          // 가로세로 비율이 달라지는 layoutId 전환에서, <motion.img>에 직접 layoutId를 걸면
+          // framer-motion이 이미지 픽셀이 비율에 안 맞게 늘어나 보이는 걸 막으려고 두 인스턴스
+          // 사이에 opacity crossfade를 자동으로 걸어버린다 — 전환 후반부(두 박스 크기가 비슷해지는
+          // 순간) 두 이미지가 동시에 부분 투명도로 겹쳐 보이는 "잔상"으로 나타났다. 콘텐츠가 없는
+          // div가 대신 layoutId를 지므로 크로스페이드가 필요 없다.
+          //
+          // 안쪽 <img>는 반드시 일반 img여야 한다 — framer-motion의 `layout` prop을 주면 부모
+          // div가 시각적으로 작아지는 것과 정확히 반대 방향의 역보정(counter-scale) transform을
+          // 자동으로 걸어버려서, 사진 자체는 항상 원래(풀스크린) 크기 그대로 있고 부모 박스가
+          // 커지는 만큼만 "구멍"으로 더 보이는 것처럼 되어버린다 — 즉 "사진이 커지는" 게 아니라
+          // "이미 꽉 찬 사진을 보는 창이 넓어지는" 것처럼 보여서 핵심 전환 모션 자체가 깨진다.
+          // object-cover로 채우는 것만으로 충분하고 별도 framer 추적은 필요 없다.
+          <motion.div
+            layoutId={handedOff ? undefined : layoutId}
+            animate={{ opacity: handedOff ? 0 : 1 }}
+            transition={{ duration: 0 }}
+            className="w-full aspect-[3/2] max-w-full"
+          >
+            <img
+              ref={thumbnailReveal ? tiltRef : undefined}
+              src={item.image}
+              alt={item.title}
+              className={
+                thumbnailReveal
+                  ? "w-full h-full object-cover block will-change-transform"
+                  : "w-full h-full object-cover block transition-transform duration-500 ease-out group-hover:scale-110"
+              }
+            />
+          </motion.div>
+        ) : (
+          <img
+            ref={thumbnailReveal ? tiltRef : undefined}
+            src={item.image}
+            alt={item.title}
+            className={
+              thumbnailReveal
+                ? "rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-cover max-w-full will-change-transform"
+                : "rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-cover max-w-full transition-transform duration-500 ease-out group-hover:scale-110"
+            }
+          />
+        )}
+      </div>
       <span
         className={[
           "pointer-events-none absolute inset-0 rounded-md max-lg:rounded-sm max-sm:rounded-sm",
@@ -142,16 +220,10 @@ export default function WorkCard({
   const textContent = (
     <>
       <div className="txt-top flex justify-between mb-1 max-lg:mb-0.5 max-sm:mb-0">
-        <p className="font-en text-xl leading-7 font-medium max-lg:text-xl max-lg:leading-7 max-sm:text-lg max-sm:leading-[26px]">
-          {item.title}
-        </p>
-        <span className={`font-ko text-base leading-6 font-light ${subTextClass} max-lg:text-[13px]`}>
-          {item.date}
-        </span>
+        <p className={`font-en font-medium ${titleClassName}`}>{item.title}</p>
+        <span className={`font-ko font-light ${subTextClass} ${dateClassName}`}>{item.date}</span>
       </div>
-      <span className={`font-en text-sm leading-[22px] font-light ${subTextClass} max-lg:text-[13px]`}>
-        {item.sub}
-      </span>
+      <span className={`font-en font-light ${subTextClass} ${subClassName}`}>{item.sub}</span>
     </>
   );
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { gsap, ScrollTrigger, prefersReducedMotion } from "../../lib/gsap";
+import { gsap, prefersReducedMotion } from "../../lib/gsap";
 
 function splitWords(text: string) {
   return text.split(" ");
@@ -35,18 +35,24 @@ export default function IntroTop({ heading, hoverHeading, description }: IntroTo
 
     const words = headingRef.current?.querySelectorAll<HTMLElement>(".split-word");
 
-    gsap.set(labelRef.current, { opacity: 0, x: -24 });
-    gsap.set(words ?? [], { yPercent: 115, scale: 0.88, filter: "blur(10px)" });
-    gsap.set(paraRef.current, { opacity: 0, y: 20 });
+    const hide = () => {
+      gsap.set(labelRef.current, { opacity: 0, x: -24 });
+      gsap.set(words ?? [], { yPercent: 115, scale: 0.88, filter: "blur(10px)" });
+      gsap.set(paraRef.current, { opacity: 0, y: 20 });
+    };
+    hide();
 
-    // 이 섹션이 화면에 들어오는(=로딩되는) 순간 한 번 재생되는 GSAP 진입 연출. 단어가 아래에서
-    // 올라오면서 동시에 블러가 걷히고 살짝 확대되며 또렷해진다 — 색은 항상 흰색 그대로 유지하고,
-    // 움직임/블러/스케일만으로 인터랙티브한 느낌을 준다.
-    const trigger = ScrollTrigger.create({
-      trigger: container,
-      start: "top 80%",
-      once: true,
-      onEnter: () => {
+    // 이 섹션이 화면에 들어올 때마다 재생되는 GSAP 진입 연출(Reveal/StaggerReveal과 같은
+    // IntersectionObserver 방식 — 한 번만 재생되던 이전과 달리, 스크롤을 내렸다가 다시
+    // 올려 재진입하면 처음부터 다시 재생된다). 단어가 아래에서 올라오면서 동시에 블러가
+    // 걷히고 살짝 확대되며 또렷해진다 — 색은 항상 흰색 그대로 유지하고, 움직임/블러/스케일
+    // 만으로 인터랙티브한 느낌을 준다.
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          hide();
+          return;
+        }
         const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
         tl.to(labelRef.current, { opacity: 1, x: 0, duration: 0.6 })
           .to(
@@ -56,9 +62,11 @@ export default function IntroTop({ heading, hoverHeading, description }: IntroTo
           )
           .to(paraRef.current, { opacity: 1, y: 0, duration: 0.7 }, "-=0.35");
       },
-    });
+      { rootMargin: "0px 0px -120px 0px", threshold: 0 }
+    );
+    observer.observe(container);
 
-    return () => trigger.kill();
+    return () => observer.disconnect();
     // heading이 사이트 콘텐츠 fetch 완료 후 기본값에서 실제 값으로 바뀌면 단어 span 구성이
     // 달라질 수 있어, 그때마다 애니메이션 셋업을 다시 캡처한다.
   }, [heading]);

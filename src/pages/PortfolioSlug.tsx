@@ -24,7 +24,7 @@ export default function PortfolioSlug() {
 
   if (loading || graphicLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white text-sub-secondary-txt">
+      <div className="font-ko min-h-screen flex items-center justify-center bg-white text-sub-secondary-txt">
         불러오는 중...
       </div>
     );
@@ -32,7 +32,7 @@ export default function PortfolioSlug() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white text-sub-secondary-txt">
+      <div className="font-ko min-h-screen flex items-center justify-center bg-white text-sub-secondary-txt">
         데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
       </div>
     );

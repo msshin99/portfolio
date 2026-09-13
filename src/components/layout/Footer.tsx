@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Reveal from "../common/Reveal";
 
 interface FooterProps {
@@ -71,6 +71,7 @@ const WAVE_SHAPES = [
 ];
 
 function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
+  const svgRef = useRef<SVGSVGElement>(null);
   const maskId = "footer-wave-mask";
   const softBlurId = "footer-wave-soft";
   const crispBlurId = "footer-wave-crisp";
@@ -80,8 +81,26 @@ function HalftoneWave({ dotColor = "#e9e6dd" }: { dotColor?: string }) {
   // 마지막에 첫 모양으로 다시 돌아오게 해서, 한 바퀴 돌아도 끊김 없이 반복되게 한다.
   const morphValues = [...WAVE_SHAPES, WAVE_SHAPES[0]].join(";");
 
+  // path의 d 속성을 모핑하는 SMIL 애니메이션(+가우시안 블러+마스크)은 SVG에서
+  // 가장 무거운 축에 속한다 — 매 프레임 지오메트리를 다시 계산해야 해서 GPU
+  // 가속이 안 되고, 이 모양을 마스크로 쓰는 다른 두 레이어까지 같이
+  // 다시 그려야 한다. Footer는 페이지 맨 아래라 대부분의 스크롤 구간에서
+  // 화면 밖에 있는데도 SMIL 애니메이션은 자동으로 멈추지 않으므로,
+  // pauseAnimations()/unpauseAnimations()로 화면에 보일 때만 계산하게 한다.
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) svg.unpauseAnimations();
+      else svg.pauseAnimations();
+    });
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <svg
+      ref={svgRef}
       viewBox="0 0 1900 460"
       preserveAspectRatio="xMidYMid slice"
       className="absolute inset-0 h-full w-full"
@@ -207,17 +226,6 @@ function FooterContent({ theme }: { theme: "dark" | "sub" }) {
           몰라도 항상 뷰포트 기준으로 중앙 정렬되어 양 끝이 정확히 화면 가장자리에 맞는다. */}
       <div className="graphic relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-black aspect-[1900/460] max-lg:aspect-[3/2] max-sm:aspect-[4/5]">
         <HalftoneWave />
-        <span className="absolute left-6 bottom-6 font-en text-2xl font-bold uppercase tracking-[0.06em] text-white max-lg:text-xl max-sm:left-4 max-sm:bottom-4 max-sm:text-base">
-          Shin Min Seok
-        </span>
-        <span className="absolute right-6 bottom-6 max-w-[70%] text-right font-en text-2xl italic font-medium text-white max-lg:text-lg max-sm:right-4 max-sm:bottom-4 max-sm:max-w-[80%] max-sm:text-sm">
-          『 Design quietly. Impact loudly. 』
-        </span>
-        {/* 태블릿 이하에서 3열 유틸리티 바가 세로로 쌓이면서 숨긴 copyright을 그래픽 안에도
-            한 줄 남겨 둔다 — 화면이 좁아도 저작권 표기가 사라지지 않도록. */}
-        <p className="absolute left-6 top-6 font-en text-sm text-white/60 hidden max-lg:block max-sm:left-4 max-sm:top-4">
-          ©{year} SHIN MIN SEOK
-        </p>
       </div>
     </div>
   );

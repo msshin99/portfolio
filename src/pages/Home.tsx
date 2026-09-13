@@ -1,7 +1,14 @@
+import { useState } from "react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import Preloader from "../components/common/Preloader";
-import Hero from "../components/home/Hero";
+import Hero, {
+  DEFAULT_LABEL,
+  DEFAULT_TAGLINE,
+  DEFAULT_STATEMENT,
+  DEFAULT_BIO,
+  DEFAULT_BIO_KO,
+} from "../components/home/Hero";
 import IntroTop from "../components/home/IntroTop";
 import Reveal from "../components/common/Reveal";
 import StaggerReveal from "../components/common/StaggerReveal";
@@ -10,6 +17,8 @@ import SeeAllWorkLink from "../components/common/SeeAllWorkLink";
 import KeywordCard from "../components/common/KeywordCard";
 import SkillSwiper from "../components/common/SkillSwiper";
 import SectionTitle from "../components/common/SectionTitle";
+import ClientMarqueeList, { DEFAULT_CLIENT_ROWS, type ClientRowItem } from "../components/home/ClientMarqueeList";
+import WorkTogether, { DEFAULT_WORK_TOGETHER_TEXT } from "../components/home/WorkTogether";
 import HeroDiagram, {
   HERO_DIAGRAM_HEADING,
   HERO_DIAGRAM_SUBTEXT,
@@ -23,14 +32,10 @@ import HeroDiagram, {
   type DiagramPillItem,
   type FeatureCardItem,
 } from "../components/home/HeroDiagram";
-import visualImg from "../assets/visual-img.jpg";
 import { keywords as defaultKeywords, type KeywordItem } from "../data/keywords";
-import { skillGroups } from "../data/skills";
+import { skillGroups, type SkillSlide } from "../data/skills";
 import { usePortfolios, mapRowToWorkItem } from "../lib/portfolioApi";
 import { useSiteContent, getSiteText, getSiteImage } from "../lib/siteContentApi";
-
-const DEFAULT_HERO_HEADING = "The Web Designer\nfor Bold Visual Experiences";
-const DEFAULT_HERO_SUBTEXT = "Where creativity meets functionality for effortless user engagement";
 
 const DEFAULT_INTRO_HEADING =
   "Design moves people. And people move the world. Design is not just what we see it’s how we feel, remember, and connect.";
@@ -98,6 +103,37 @@ function resolveHeroFeatures(siteContent: Parameters<typeof getSiteText>[0]): Fe
   });
 }
 
+/** 관리자가 site_content에 skill_{key}_image/skill_{key}_hover_image를 채우면 그
+ *  값으로, 비워두면 data/skills.ts의 기본 아이콘 이미지를 그대로 쓴다. */
+function resolveSkillGroups(siteContent: Parameters<typeof getSiteText>[0]): [SkillSlide, SkillSlide][] {
+  return skillGroups.map(
+    (pair) =>
+      pair.map((slide) => ({
+        ...slide,
+        image: getSiteImage(siteContent, `skill_${slide.key}_image`, slide.image),
+        imageHover: getSiteImage(siteContent, `skill_${slide.key}_hover_image`, slide.imageHover),
+      })) as [SkillSlide, SkillSlide]
+  );
+}
+
+/** 관리자가 site_content에 client_row_{n}_*를 채우면 그 값으로, 비워두면
+ *  ClientMarqueeList.tsx의 기본 서비스 라인업 4개를 그대로 쓴다. */
+function resolveClientRows(siteContent: Parameters<typeof getSiteText>[0]): ClientRowItem[] {
+  return DEFAULT_CLIENT_ROWS.map((row, i) => {
+    const n = i + 1;
+    return {
+      category: getSiteText(siteContent, `client_row_${n}_category`, row.category),
+      title: getSiteText(siteContent, `client_row_${n}_title`, row.title),
+      meta: getSiteText(siteContent, `client_row_${n}_meta`, row.meta),
+      image: getSiteImage(siteContent, `client_row_${n}_image`, row.image),
+      marqueeParts: [
+        getSiteText(siteContent, `client_row_${n}_marquee1`, row.marqueeParts[0]),
+        getSiteText(siteContent, `client_row_${n}_marquee2`, row.marqueeParts[1]),
+      ],
+    };
+  });
+}
+
 const sectionClass = "max-w-[1880px] mx-auto px-10 mb-[280px] max-lg:px-10 max-lg:mb-[240px] max-sm:px-5 max-sm:mb-[180px]";
 
 /**
@@ -121,11 +157,13 @@ function chunk<T>(items: T[], size: number): T[][] {
 }
 
 export default function Home() {
+  // Preloader가 화면을 가리고 있는 동안 흘러버린 시간은 사용자 눈엔 없었던
+  // 셈이라, Hero의 등장 애니메이션이나 "몇 초 후 전환" 같은 연출은 이 값이
+  // true가 된 뒤(=인트로가 실제로 콘텐츠를 드러내기 시작한 뒤)부터
+  // 시작해야 한다.
+  const [introDone, setIntroDone] = useState(false);
   const { rows } = usePortfolios();
   const { rows: siteContent } = useSiteContent();
-  const heroHeading = getSiteText(siteContent, "hero_heading", DEFAULT_HERO_HEADING);
-  const heroSubtext = getSiteText(siteContent, "hero_subtext", DEFAULT_HERO_SUBTEXT);
-  const heroImage = getSiteImage(siteContent, "hero_image", visualImg);
   const introHeading = getSiteText(siteContent, "intro_heading", DEFAULT_INTRO_HEADING);
   const introDescription = getSiteText(siteContent, "intro_description", DEFAULT_INTRO_DESCRIPTION);
   const resolvedKeywords = resolveKeywords(siteContent);
@@ -145,6 +183,23 @@ export default function Home() {
   const resolvedHeroPillsLeft = resolveHeroPills(siteContent, "left", HERO_DIAGRAM_LEFT_ITEMS);
   const resolvedHeroPillsRight = resolveHeroPills(siteContent, "right", HERO_DIAGRAM_RIGHT_ITEMS);
   const resolvedHeroFeatures = resolveHeroFeatures(siteContent);
+  const heroLabel = getSiteText(siteContent, "hero_label", DEFAULT_LABEL);
+  const heroTagline = getSiteText(siteContent, "hero_tagline", DEFAULT_TAGLINE);
+  const heroStatement = getSiteText(siteContent, "hero_statement", DEFAULT_STATEMENT);
+  const heroBio = getSiteText(siteContent, "hero_bio", DEFAULT_BIO);
+  const heroBioKo = getSiteText(siteContent, "hero_bio_ko", DEFAULT_BIO_KO);
+  const worksSubTxt = getSiteText(siteContent, "works_subtxt", "(Professional)");
+  const worksTitle = getSiteText(siteContent, "works_title", "My Works");
+  const worksDescription = getSiteText(
+    siteContent,
+    "works_description",
+    "제가 경험한 과정, 고민의 흔적, 그리고 디자인을 통해 사람들과 나눈 감정의 이야기들입니다. 각 프로젝트는 서로 다른 목적과 문제를 가지고 있었지만, 그 안에서 저는 항상 사람과의 연결, 공감, 그리고 의미 있는 변화를 찾고자 했습니다"
+  );
+  const skillsSubTxt = getSiteText(siteContent, "skills_subtxt", "(Capabilities)");
+  const skillsTitle = getSiteText(siteContent, "skills_title", "Skills");
+  const workTogetherText = getSiteText(siteContent, "work_together_text", DEFAULT_WORK_TOGETHER_TEXT);
+  const resolvedSkillGroups = resolveSkillGroups(siteContent);
+  const resolvedClientRows = resolveClientRows(siteContent);
   const featuredRows = chunk(
     (rows ?? [])
       .filter((r) => r.is_featured_on_main && r.main_display_order != null)
@@ -156,10 +211,17 @@ export default function Home() {
 
   return (
     <div className="wrap relative bg-black text-white min-h-screen">
-      <Preloader />
+      <Preloader onFinish={() => setIntroDone(true)} />
       <Header variant="default" />
       <main>
-        <Hero image={heroImage} heading={heroHeading} subtext={heroSubtext} />
+        <Hero
+          readyToReveal={introDone}
+          label={heroLabel}
+          tagline={heroTagline}
+          statement={heroStatement}
+          bio={heroBio}
+          bioKo={heroBioKo}
+        />
 
         <section className={`intro ${sectionClass}`}>
           <IntroTop
@@ -168,25 +230,27 @@ export default function Home() {
             description={introDescription}
           />
           <div className="bottom">
+            {/* delay=1.6은 위 IntroTop 타이틀 진입 타임라인(라벨 0.6s + 단어
+                stagger 약 0.9s + 문단 페이드 0.7s, 서로 겹치며 총 약 1.55s)이
+                다 끝난 뒤에야 키워드가 나타나기 시작하도록 맞춘 값이다 —
+                타이틀과 키워드가 동시에 뜨는 대신, 타이틀이 완전히 자리잡은
+                다음 01→02→03→04 순서로 하나씩 나타난다. */}
             <StaggerReveal
               as="ul"
               className="keyword grid grid-cols-4 max-lg:grid-cols-2 max-sm:grid-cols-1"
               y={40}
-              stagger={0.1}
+              delay={1.6}
+              stagger={0.15}
             >
-              {resolvedKeywords.map((item, index) => (
-                <KeywordCard key={item.num} item={item} index={index} />
+              {resolvedKeywords.map((item, i) => (
+                <KeywordCard key={item.num} item={item} index={i} />
               ))}
             </StaggerReveal>
           </div>
         </section>
 
         <Reveal as="section" duration={3000} className={`work ${sectionClass}`}>
-          <SectionTitle
-            subTxt="(Professional)"
-            title="My Works"
-            description="제가 경험한 과정, 고민의 흔적, 그리고 디자인을 통해 사람들과 나눈 감정의 이야기들입니다. 각 프로젝트는 서로 다른 목적과 문제를 가지고 있었지만, 그 안에서 저는 항상 사람과의 연결, 공감, 그리고 의미 있는 변화를 찾고자 했습니다"
-          />
+          <SectionTitle subTxt={worksSubTxt} title={worksTitle} description={worksDescription} />
 
           {featuredRows.map((rowItems, rowIndex) => (
             <StaggerReveal
@@ -201,6 +265,7 @@ export default function Home() {
                   key={item.href}
                   item={item}
                   shared
+                  thumbnailReveal
                   widthClassName={HOME_SLOT_WIDTHS[rowIndex * 2 + i]}
                   titleClassName="text-[18px] leading-7 max-lg:text-[18px] max-lg:leading-7 max-sm:text-[16px] max-sm:leading-[26px]"
                   dateClassName="text-[14px] leading-6 max-lg:text-[14px]"
@@ -212,6 +277,15 @@ export default function Home() {
 
           <SeeAllWorkLink />
         </Reveal>
+
+        <WorkTogether text={workTogetherText} />
+
+        {/* 검은/흰 밴드가 화면 끝까지 이어지는 디자인이라, 다른 섹션들처럼
+            max-width 컨테이너 안에 가두지 않고 화면 전체 폭으로 둔다 —
+            위아래 여백만 다른 섹션과 같은 리듬(mb-[280px] 계열)을 맞춘다. */}
+        <section className="client-marquee mb-[280px] max-lg:mb-[240px] max-sm:mb-[180px]">
+          <ClientMarqueeList rows={resolvedClientRows} />
+        </section>
 
         <Reveal as="section" duration={3000} className={`hero-diagram ${sectionClass}`}>
           <HeroDiagram
@@ -226,7 +300,7 @@ export default function Home() {
         </Reveal>
 
         <Reveal as="section" duration={3000} className={`skills ${sectionClass}`}>
-          <SectionTitle subTxt="(Capabilities)" title="Skills" />
+          <SectionTitle subTxt={skillsSubTxt} title={skillsTitle} />
           <StaggerReveal
             as="ul"
             className="skill-list grid grid-cols-4 gap-5 max-lg:grid-cols-2 max-lg:gap-4 max-sm:gap-3"
@@ -235,7 +309,7 @@ export default function Home() {
             stagger={0.1}
             rotateZ={10}
           >
-            {skillGroups.map((slides, i) => (
+            {resolvedSkillGroups.map((slides, i) => (
               <SkillSwiper key={i} slides={slides} />
             ))}
           </StaggerReveal>

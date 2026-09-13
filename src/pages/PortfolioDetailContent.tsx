@@ -348,7 +348,7 @@ export default function PortfolioDetailContent({
         <div className="portfolio-list pt-[180px] pb-20 max-lg:pt-[140px] max-lg:pb-[60px] max-[767px]:pt-[100px] max-[767px]:pb-10">
           <div className="mb-[140px] max-lg:mb-[100px] max-[767px]:mb-20">
             <Reveal duration={1500}>
-              <h2 className="font-en text-[68px] leading-[76px] font-medium mb-[30px] max-lg:text-[56px] max-lg:leading-[66px] max-lg:mb-6 max-sm:text-[40px] max-sm:leading-[48px] max-sm:mb-[18px]">
+              <h2 className="font-en text-[68px] leading-[76px] font-bold mb-[30px] max-lg:text-[56px] max-lg:leading-[66px] max-lg:mb-6 max-sm:text-[40px] max-sm:leading-[48px] max-sm:mb-[18px]">
                 Related Projects
               </h2>
             </Reveal>

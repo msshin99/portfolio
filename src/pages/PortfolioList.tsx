@@ -7,7 +7,7 @@ import { usePortfolios, mapRowToWorkItem } from "../lib/portfolioApi";
 import { useGraphicWorks, mapGraphicWorkRowToWorkItem } from "../lib/graphicWorksApi";
 
 const h2Class =
-  "font-en text-[68px] leading-[76px] font-medium max-lg:text-[56px] max-lg:leading-[66px] max-sm:text-[40px] max-sm:leading-[48px] mb-[30px] max-lg:mb-6 max-sm:mb-[18px]";
+  "font-en text-[68px] leading-[76px] font-bold max-lg:text-[56px] max-lg:leading-[66px] max-sm:text-[40px] max-sm:leading-[48px] mb-[30px] max-lg:mb-6 max-sm:mb-[18px]";
 
 export default function PortfolioList() {
   // nordune/goalcheck/prmr는 Supabase portfolios에서, chairpdp/cosmeticpdp/memory-in-frame

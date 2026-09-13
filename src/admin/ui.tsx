@@ -1,4 +1,12 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, LabelHTMLAttributes, MouseEvent, ReactNode, TextareaHTMLAttributes } from "react";
+import type {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  LabelHTMLAttributes,
+  MouseEvent,
+  ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 import { InfoIcon } from "./icons";
 
 /** 관리자 페이지 전역 디자인 토큰 & 기본 컴포넌트.
@@ -72,6 +80,10 @@ export function Input({ className = "", ...rest }: InputHTMLAttributes<HTMLInput
 
 export function Textarea({ className = "", ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea className={`${fieldBase} resize-y ${className}`} {...rest} />;
+}
+
+export function Select({ className = "", ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return <select className={`${fieldBase} ${className}`} {...rest} />;
 }
 
 /** 페이지 안에서 여러 카드를 의미 단위로 묶을 때 카드들 위에 붙이는 구획 제목.

@@ -52,10 +52,18 @@
      있다. 그 여분을 페이지 레벨에서 항상 잘라내 방지한다. */
   html {
     overflow-x: hidden;
+    background-color: #000;
   }
 
+  /* 영문은 font-en(Inter), 한글은 font-ko(Pretendard) 클래스로 대부분의 요소에
+     명시적으로 지정해두지만, 혹시 그 클래스가 안 붙은 요소가 있어도 브라우저
+     기본 시스템 폰트로 떨어지지 않도록 안전망을 깐다. Pretendard를 먼저 두면
+     한글은 물론 라틴 문자도 자체적으로 깔끔하게 그려주므로, 실수로 클래스를
+     빠뜨린 곳도 최소한 사이트 톤에서 크게 벗어나지 않는다. */
   body {
     line-height: 1;
+    background-color: #000;
+    font-family: var(--font-ko), var(--font-en), sans-serif;
   }
 
   button {
@@ -105,6 +113,37 @@
   }
   100% {
     transform: translateY(0);
+  }
+}
+
+/* 히어로 다이어그램의 Lucien/LLMs 박스가 은은하게 숨쉬듯 발광하는 효과 */
+@keyframes hero-diagram-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 22px rgba(245, 98, 20, 0.22);
+  }
+  50% {
+    box-shadow: 0 0 42px rgba(245, 98, 20, 0.5);
+  }
+}
+
+/* 같은 박스 테두리를 따라 도는 얇은 conic-gradient 링 — 고정 보더 대신 이 링이
+   천천히 회전하면서 "고급 SaaS 랜딩페이지" 느낌의 은은한 금속성 하이라이트를 만든다. */
+@keyframes hero-diagram-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* 히어로 배경의 앰버 빛줄기가 위스키 잔 속 빛 반사처럼 아주 느리게 밝아졌다
+   어두워지는 오실레이션. */
+@keyframes hero-ray-oscillate {
+  0%,
+  100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.24;
   }
 }
 
@@ -407,6 +446,270 @@
     top: 10px;
     left: -12px;
   }
+}
+
+/* 히어로 배경 베이스: 딥 블랙에서 시작해 하단 왼쪽에서 버번 위스키 톤(앰버/구리)이
+   은은하게 번지듯 스며든다. radial-gradient를 먼저 그려야(리스트 앞쪽) 아래 깔리는
+   linear-gradient 블랙 베이스 위로 앰버가 겹쳐 보인다. */
+.hero-backdrop-base {
+  background:
+    radial-gradient(75% 55% at 6% 110%, rgba(201, 122, 58, 0.07) 0%, rgba(138, 74, 31, 0.03) 24%, rgba(0, 0, 0, 0) 42%),
+    linear-gradient(160deg, #050403 0%, #020201 45%, #000000 100%);
+}
+
+/* 위스키 잔 속 빛 반사 같은 흐릿한 앰버 빛줄기 한 겹 — 갈색으로 뜨지 않도록
+   彩도를 아주 낮게, 존재감은 거의 안 보일 정도로만 준다. 실제 각도/위치/딜레이는
+   HeroBackdrop 컴포넌트에서 인스턴스마다 다르게 준다. */
+.hero-light-ray {
+  background: linear-gradient(90deg, transparent, rgba(201, 122, 58, 0.16) 45%, transparent);
+  filter: blur(40px);
+  animation: hero-ray-oscillate 9s ease-in-out infinite;
+}
+
+/* ---- 그리드 드로인 인트로 ----
+   페이지가 뜨는 순간, 그리드가 히어로 정중앙(로고가 자리잡을 지점)에서
+   반경 0인 원으로 시작해 화면 전체를 덮을 만큼 커지는 clip-path로 "퍼져
+   나오듯" 등장한다. circle()의 반지름은 px든 vmax든 브라우저가 실제 길이로
+   해석해 보간하므로, 서로 다른 단위를 시작/끝 값으로 써도 매끄럽게 이어진다.
+   1회성 등장 연출이라 `both`로 앞뒤 상태를 고정해, 애니메이션 전엔 완전히
+   숨겨두고 끝난 뒤엔 굳이 clip-path를 유지할 필요 없이 화면보다 훨씬 큰
+   반지름 값 그대로 남겨 사실상 클리핑이 없는 상태로 둔다. */
+.hero-grid-reveal {
+  animation: hero-grid-reveal-in 1.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes hero-grid-reveal-in {
+  from {
+    clip-path: circle(0px at 50% 50%);
+  }
+  to {
+    clip-path: circle(150vmax at 50% 50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-grid-reveal {
+    animation: none;
+  }
+}
+
+
+/* ---- 커서 스포트라이트 ----
+   좌표(--hero-spot-x/y)와 점등 세기(--hero-spot-on)는 HeroBackdrop이 rAF로
+   감쇠시켜 써 넣는다. 여기서는 그 값을 transform과 opacity로만 소비해서,
+   커서를 아무리 빨리 흔들어도 합성 단계만 다시 돌게 한다. */
+.hero-spot-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: var(--hero-spot-on, 0);
+  mix-blend-mode: screen;
+}
+
+/* ---- 셀 하이라이트 ----
+   커서가 들어있는 그리드 셀(56×56, --hero-grid-size)의 좌상단에 스냅되는
+   코너 브라켓. 꽉 찬 사각형 대신 카메라 포커스처럼 네 귀퉁이만 짧게
+   표시해서, 칸을 "채운다"기보다 "포커스를 맞춘다"는 인상을 준다. SVG를
+   0~100 정규화 좌표로 그려 background-size로 늘려 쓰므로 --hero-grid-size가
+   바뀌어도 브라켓 비율이 그대로 유지된다. 좌표(--hero-cell-x/y) 자체는
+   HeroBackdrop이 감쇠 없이 즉시 스냅해서 써 넣고, 칸에서 칸으로 옮겨갈 때의
+   미끄러지는 움직임은 여기 transition이 만든다. */
+.hero-cell-highlight {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--hero-grid-size, 56px);
+  height: var(--hero-grid-size, 56px);
+  transform: translate3d(var(--hero-cell-x, 0px), var(--hero-cell-y, 0px), 0);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M3 24 L3 3 L24 3 M76 3 L97 3 L97 24 M97 76 L97 97 L76 97 M24 97 L3 97 L3 76' fill='none' stroke='%23ffd9a6' stroke-width='5' stroke-linecap='square'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  box-shadow: 0 0 18px rgba(255, 214, 156, 0.22);
+  transition: transform 140ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-cell-highlight {
+    transition: none;
+  }
+}
+
+/* ---- 셀 트레일 ----
+   커서가 지나간 칸들이 잔상처럼 옅어지며 사라진다. 위치(.hero-cell-trail-slot)
+   와 페이드 애니메이션(.hero-cell-trail-fade)을 부모/자식으로 분리해둔 이유는
+   —  자식의 opacity/scale 키프레임이 transform도 함께 건드리는데, 만약 같은
+   요소에 위치용 translate3d까지 얹으면 애니메이션이 재생되는 동안 그 위치
+   값이 키프레임에 덮여 사라져 버리기 때문이다. 부모는 위치만, 자식은 페이드만
+   맡아 서로 간섭하지 않는다. */
+.hero-cell-trail-slot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--hero-grid-size, 56px);
+  height: var(--hero-grid-size, 56px);
+}
+
+.hero-cell-trail-fade {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 214, 156, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 214, 156, 0.28);
+  opacity: 0;
+  animation: hero-cell-trail-fade 700ms ease-out forwards;
+}
+
+@keyframes hero-cell-trail-fade {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-cell-trail-fade {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* 광원 자체 — 고정 크기 원을 음수 마진으로 중심 정렬해두고 transform으로만
+   옮기므로, translate 안에서 calc를 쓸 필요가 없다. */
+.hero-spot-glow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 760px;
+  height: 760px;
+  margin-left: -380px;
+  margin-top: -380px;
+  transform: translate3d(var(--hero-spot-x, 0px), var(--hero-spot-y, 0px), 0);
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 214, 156, 0.11) 0%,
+    rgba(201, 122, 58, 0.06) 42%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* 점등된 그리드를 드러내는 창. 마스크는 요소 한가운데 고정해두고 창만 커서를
+   따라 움직인다 — 마스크 좌표가 매 프레임 바뀌면 그때마다 리페인트가 난다. */
+.hero-spot-grid-clip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 560px;
+  height: 560px;
+  margin-left: -280px;
+  margin-top: -280px;
+  overflow: hidden;
+  transform: translate3d(var(--hero-spot-x, 0px), var(--hero-spot-y, 0px), 0);
+  -webkit-mask-image: radial-gradient(closest-side, #000 0%, rgba(0, 0, 0, 0.6) 46%, rgba(0, 0, 0, 0) 78%);
+  mask-image: radial-gradient(closest-side, #000 0%, rgba(0, 0, 0, 0.6) 46%, rgba(0, 0, 0, 0) 78%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* 창이 움직인 만큼 그리드를 정확히 반대로 밀어, 격자는 히어로 좌상단에 붙박아
+   둔다. 이게 없으면 점등된 선이 창을 따라다니며 아래 깔린 기본 그리드와
+   어긋난다. 세로로는 히어로가 화면보다 조금 길어져도 비지 않게 여유를 준다. */
+.hero-spot-grid-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: calc(100vh + 240px);
+  transform: translate3d(calc(280px - var(--hero-spot-x, 0px)), calc(280px - var(--hero-spot-y, 0px)), 0);
+  /* GridOverlay의 SVG 선은 strokeWidth 1이 타일 경계(-0.5~0.5)에 걸치도록
+     그려지므로, 0부터 1px을 칠하는 CSS 그리드를 0.5px 당겨 정확히 포갠다. */
+  background-image:
+    linear-gradient(to right, rgba(255, 206, 150, 0.55) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 206, 150, 0.55) 1px, transparent 1px);
+  background-size: var(--hero-grid-size, 56px) var(--hero-grid-size, 56px);
+  background-position: -0.5px -0.5px;
+}
+
+/* ---- 그리드 교차점 노드 ----
+   스포트라이트 반경 안의 교차점마다 점을 두 겹으로 점등한다. 둘 다 "타일
+   모서리에 원의 1/4씩 걸쳐 그리고 반복시켜 완성한다"는 같은 radial-gradient
+   트릭이라 JS 계산 없이 커서 위치(--hero-spot-x/y)만으로 자연스럽게 따라온다.
+
+   - far: .hero-spot-grid-clip과 같은 560px 상자/감쇠 곡선을 그대로 공유해
+     라인과 나란히 옅게 켜진다(그래서 별도 clip 없이 그 상자 안에 형제로
+     들어간다).
+   - near: 훨씬 좁은(240px) 전용 상자 안에서만 노출되므로, 커서에 바짝 붙은
+     교차점만 더 크고 밝은 점으로 보인다 — 두 반경의 차이가 "가까울수록
+     커지고 밝아지는" 2단 발광처럼 읽힌다. */
+.hero-spot-nodes-inner--far {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: calc(100vh + 240px);
+  transform: translate3d(calc(280px - var(--hero-spot-x, 0px)), calc(280px - var(--hero-spot-y, 0px)), 0);
+  background-image: radial-gradient(
+    circle at 0 0,
+    rgba(255, 214, 156, 0.5) 0,
+    rgba(255, 214, 156, 0.5) 1.1px,
+    transparent 1.6px
+  );
+  background-size: var(--hero-grid-size, 56px) var(--hero-grid-size, 56px);
+  background-position: -0.5px -0.5px;
+}
+
+.hero-spot-nodes-clip--near {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 240px;
+  height: 240px;
+  margin-left: -120px;
+  margin-top: -120px;
+  overflow: hidden;
+  transform: translate3d(var(--hero-spot-x, 0px), var(--hero-spot-y, 0px), 0);
+  -webkit-mask-image: radial-gradient(closest-side, #000 0%, rgba(0, 0, 0, 0.65) 55%, rgba(0, 0, 0, 0) 100%);
+  mask-image: radial-gradient(closest-side, #000 0%, rgba(0, 0, 0, 0.65) 55%, rgba(0, 0, 0, 0) 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.hero-spot-nodes-inner--near {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: calc(100vh + 240px);
+  transform: translate3d(calc(120px - var(--hero-spot-x, 0px)), calc(120px - var(--hero-spot-y, 0px)), 0);
+  background-image: radial-gradient(
+    circle at 0 0,
+    rgba(255, 233, 201, 0.95) 0,
+    rgba(255, 233, 201, 0.95) 2.1px,
+    rgba(255, 233, 201, 0.25) 2.6px,
+    transparent 3.6px
+  );
+  background-size: var(--hero-grid-size, 56px) var(--hero-grid-size, 56px);
+  background-position: -0.5px -0.5px;
+}
+
+/* ---------- 클라이언트 리스트 hover 마퀴 ----------
+   같은 내용을 두 벌 이어붙인 트랙을 정확히 절반(-50%)만큼 왼쪽으로 미는
+   방식 — 첫 벌이 화면 밖으로 다 빠져나가는 순간 두 번째 벌이 그 자리를
+   그대로 이어받아 이음매 없이 반복된다. */
+@keyframes client-marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.client-marquee-track {
+  animation: client-marquee-scroll 18s linear infinite;
 }
 
 } /* end @layer utilities */

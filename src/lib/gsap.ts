@@ -11,6 +11,10 @@ gsap.registerPlugin(ScrollTrigger, CustomEase);
  *  제자리에 안착하는 느낌을 낸다(이 사이트의 다른 reveal 애니메이션에서도 쓰는 커브). */
 CustomEase.create("particleEase", "0.16, 1, 0.3, 1");
 
+/** 포트폴리오 썸네일 등장 등, 살짝 오버슈트(도착 직전 튕겼다가 안착)하는
+ *  spring 느낌이 필요한 리빌 애니메이션에 공용으로 쓰는 이징. */
+CustomEase.create("revealSpring", "0.34, 1.56, 0.64, 1");
+
 export const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 

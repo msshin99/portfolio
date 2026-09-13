@@ -5,6 +5,15 @@ interface PreloaderProps {
   /** 캔버스 애니메이션 중간에 살짝 페이드인/아웃되는 서브 문구. 나중에 바꿀 수 있도록
    *  prop으로 분리해뒀다 — 안 넘기면 아래 기본 문구를 쓴다. */
   subtitle?: string;
+  /** 실제 콘텐츠가 구멍을 통해 처음 드러나기 시작하는 순간(정상 재생 중이든,
+   *  모션 최소화/저사양 기기라 아예 건너뛰었든) 정확히 한 번 호출된다 —
+   *  캔버스가 완전히 사라지는 훨씬 나중 시점이 아니라, 화면이 "보이기
+   *  시작하는" 그 순간이다. 이 아래 깔린 Hero 등이 자신의 등장 애니메이션이나
+   *  지연 타이머를 이 시점 기준으로 시작하고 싶을 때 쓴다 — 그렇게 하지
+   *  않으면 프리로더에 가려진 채로 흘러버린 시간이 사용자 눈엔 아예 없었던
+   *  것처럼 사라지거나, 이미 다 드러난 화면 위에서 애니메이션이 뒤늦게 다시
+   *  재생되는 것처럼 어색하게 겹쳐 보인다. */
+  onFinish?: () => void;
 }
 
 const SESSION_KEY = "introPlayed";
@@ -270,7 +279,7 @@ function setupCanvas(canvas: HTMLCanvasElement, width: number, height: number) {
   return ctx;
 }
 
-export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProps) {
+export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: PreloaderProps) {
   const [visible, setVisible] = useState(() => {
     if (prefersReducedMotion() || isLowEndDevice()) {
       markPlayed();
@@ -289,6 +298,14 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
       document.body.style.overflow = "";
     };
   }, [visible]);
+
+  // 모션 최소화/저사양 기기라 애초에 인트로를 건너뛴 경우, 정상 재생이었다면
+  // finish()가 했을 onFinish 호출을 여기서 대신 한 번 해준다 — 마운트 시점의
+  // visible 값만 확인하면 되므로 의존성 배열은 비워둔다.
+  useEffect(() => {
+    if (!visible) onFinish?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!visible) return;
@@ -451,6 +468,12 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
       master.call(() => {
         holeState.active = true;
       }, [], gridHoldEnd);
+      // 구멍을 통해 실제 콘텐츠가 처음 드러나기 시작하는 바로 이 순간이
+      // "사용자에게 인트로가 끝났다"고 신호를 보내야 할 시점이다 — 캔버스가
+      // 완전히 사라지는 훨씬 나중(finish)까지 기다리면, 그 아래 깔린 Hero의
+      // 등장 애니메이션이 이미 다 드러난 화면 위에서 뒤늦게 다시 재생되는
+      // 것처럼 어색하게 겹쳐 보인다.
+      master.call(() => onFinish?.(), [], gridHoldEnd);
       master.to(
         heroParticle,
         { radius: holeRadiusTarget, duration: timing.holeDuration, ease: "particleEase" },
@@ -504,6 +527,10 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE }: PreloaderProp
       master.kill();
       subtitleTl?.kill();
     };
+    // onFinish는 일부러 deps에서 뺐다 — Home이 넘기는 인라인 함수라 리렌더마다
+    // 참조가 바뀌는데, 여길 deps에 넣으면 애니메이션 도중 부모가 리렌더될 때마다
+    // 파티클 인트로 전체가 처음부터 다시 재생돼버린다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   if (!visible) return null;
