@@ -77,24 +77,25 @@ function MarqueeSet({ marqueeParts, image }: { marqueeParts: [string, string]; i
   );
 }
 
-function ClientRow({ category, title, meta, image, marqueeParts }: ClientRowItem) {
-  // 데스크탑은 마우스 hover(group-hover)로 마퀴가 열리지만, 터치 기기는 :hover가
-  // 애초에 발생하지 않는다. 탭으로도 같은 효과를 열고 닫을 수 있도록 별도 상태를
-  // 두고, 이 상태일 때는 인라인 style로 opacity를 강제해 group-hover 클래스와
-  // 충돌 없이(동일 우선순위 유틸리티 클래스끼리는 나중에 추가한 쪽이 이긴다는
-  // 보장이 없으므로) 확실히 덮어쓴다.
-  const [active, setActive] = useState(false);
-
+function ClientRow({
+  category,
+  title,
+  meta,
+  image,
+  marqueeParts,
+  active,
+  onToggle,
+}: ClientRowItem & { active: boolean; onToggle: () => void }) {
   return (
     <li
       className="group relative cursor-pointer overflow-hidden border-t border-white/10 last:border-b"
       role="button"
       tabIndex={0}
-      onClick={() => setActive((prev) => !prev)}
+      onClick={onToggle}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          setActive((prev) => !prev);
+          onToggle();
         }
       }}
     >
@@ -143,10 +144,23 @@ function ClientRow({ category, title, meta, image, marqueeParts }: ClientRowItem
  *  이어져야 해서(참고 이미지처럼) 다른 섹션과 달리 max-width 컨테이너 밖,
  *  화면 전체 폭에 걸쳐 렌더링한다. */
 export default function ClientMarqueeList({ rows = DEFAULT_CLIENT_ROWS }: { rows?: ClientRowItem[] }) {
+  // 데스크탑은 마우스 hover(group-hover)로 마퀴가 열리지만, 터치 기기는 :hover가
+  // 애초에 발생하지 않는다. 탭으로도 같은 효과를 열고 닫을 수 있도록 별도
+  // 상태를 두되, 각 행이 자기 상태를 따로 들고 있으면 여러 행을 연달아 탭했을
+  // 때 전부 동시에 열린 채로 남아 화면이 지저분해진다 — 이 상태를 부모가 들고
+  // "한 번에 하나만" 열리도록(아코디언처럼, 새로 탭한 행이 이전에 열려있던
+  // 행을 자동으로 닫는다) 관리한다.
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
   return (
     <StaggerReveal as="ul" className="client-marquee-list w-full" y={30} stagger={0.12}>
       {rows.map((row, i) => (
-        <ClientRow key={i} {...row} />
+        <ClientRow
+          key={i}
+          {...row}
+          active={activeIndex === i}
+          onToggle={() => setActiveIndex((prev) => (prev === i ? null : i))}
+        />
       ))}
     </StaggerReveal>
   );
