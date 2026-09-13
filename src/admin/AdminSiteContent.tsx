@@ -151,13 +151,14 @@ const HERO_FEATURE_SLOTS = [1, 2, 3];
  *  한다 — 여기서 고른 문자열이 그대로 site_content에 저장되고, Home.tsx가 그 문자열을
  *  PillIconKey/FeatureIconKey로 검증해서 쓴다. */
 const HERO_PILL_ICON_OPTIONS: { value: string; label: string }[] = [
-  { value: "input", label: "Input (커서)" },
+  { value: "input", label: "Input (체크리스트)" },
   { value: "code", label: "Code (코드 태그)" },
-  { value: "language", label: "Language (번역)" },
-  { value: "agents", label: "Agents (사람 여러 명)" },
-  { value: "datasets", label: "Datasets (데이터베이스)" },
-  { value: "assessments", label: "Assessments (클립보드)" },
-  { value: "api", label: "API (중괄호)" },
+  { value: "language", label: "Language (문서)" },
+  { value: "agents", label: "Agents (펜)" },
+  { value: "datasets", label: "Datasets (지구본)" },
+  { value: "assessments", label: "Assessments (확성기)" },
+  { value: "api", label: "API (성장 그래프)" },
+  { value: "media", label: "Media (갤러리)" },
 ];
 const HERO_FEATURE_ICON_OPTIONS: { value: string; label: string }[] = [
   { value: "cost", label: "Cost (마법봉)" },

@@ -1,16 +1,16 @@
 import {
   Atom,
   Bot,
-  Braces,
-  ClipboardCheck,
+  ClipboardList,
   Code2,
-  Database,
-  Languages,
+  FileText,
+  GalleryHorizontal,
+  Globe,
+  Megaphone,
   PanelTop,
+  PenTool,
   Sparkles,
-  TextCursorInput,
   TrendingUp,
-  Users,
   Wand2,
   Workflow,
   type LucideIcon,
@@ -19,13 +19,22 @@ import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { gsap, prefersReducedMotion } from "../../lib/gsap";
 import StaggerReveal from "../common/StaggerReveal";
 
-export type PillIconKey = "input" | "code" | "language" | "agents" | "datasets" | "assessments" | "api";
+export type PillIconKey = "input" | "code" | "language" | "agents" | "datasets" | "assessments" | "api" | "media";
 export type FeatureIconKey = "cost" | "certainty" | "performance";
 
 /** 관리자 페이지에서 아이콘을 문자열 key로 저장·검증할 때 쓰는 순서 있는 목록. Home.tsx가
  *  site_content에서 읽어온 문자열이 유효한 key인지 확인하는 용도라, PILL_ICONS/FEATURE_ICONS
  *  객체와 항상 같은 key 집합을 유지해야 한다. */
-export const PILL_ICON_KEYS: PillIconKey[] = ["input", "code", "language", "agents", "datasets", "assessments", "api"];
+export const PILL_ICON_KEYS: PillIconKey[] = [
+  "input",
+  "code",
+  "language",
+  "agents",
+  "datasets",
+  "assessments",
+  "api",
+  "media",
+];
 export const FEATURE_ICON_KEYS: FeatureIconKey[] = ["cost", "certainty", "performance"];
 
 export interface DiagramPillItem {
@@ -53,7 +62,7 @@ export const HERO_DIAGRAM_LEFT_ITEMS: DiagramPillItem[] = [
 ];
 export const HERO_DIAGRAM_RIGHT_ITEMS: DiagramPillItem[] = [
   { icon: "datasets", label: "Websites" },
-  { icon: "agents", label: "Detail Pages & Banners" },
+  { icon: "media", label: "Detail Pages & Banners" },
   { icon: "assessments", label: "Marketing Content" },
   { icon: "api", label: "Real Conversions" },
 ];
@@ -85,13 +94,14 @@ const FEATURE_ICONS: Record<FeatureIconKey, LucideIcon> = {
 };
 
 const PILL_ICONS: Record<PillIconKey, LucideIcon> = {
-  input: TextCursorInput,
+  input: ClipboardList,
   code: Code2,
-  language: Languages,
-  agents: Users,
-  datasets: Database,
-  assessments: ClipboardCheck,
-  api: Braces,
+  language: FileText,
+  agents: PenTool,
+  datasets: Globe,
+  assessments: Megaphone,
+  api: TrendingUp,
+  media: GalleryHorizontal,
 };
 
 const LLM_ICONS: LucideIcon[] = [Sparkles, Bot, Atom];
@@ -207,7 +217,7 @@ function Pill({ icon, label }: DiagramPillItem) {
         <Icon
           size={17}
           strokeWidth={1.75}
-          className="text-primary-txt transition-[filter] duration-300 ease-out group-hover:drop-shadow-[0_0_6px_rgba(245,98,20,0.8)]"
+          className="text-white transition-[filter] duration-300 ease-out group-hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.8)]"
         />
       </span>
       {/* 원래는 truncate(한 줄 + ...)를 썼는데, 모바일의 좁은 2열 pill 그리드에서
