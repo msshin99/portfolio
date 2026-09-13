@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
-import { gsap } from "../../lib/gsap";
+import { Fragment, useEffect, useRef } from "react";
+import type { MutableRefObject, RefObject } from "react";
+import { gsap, prefersReducedMotion } from "../../lib/gsap";
 import Hero3DLogo from "./Hero3DLogo";
 import HeroBackdrop from "./HeroBackdrop";
 import {
@@ -65,6 +66,250 @@ const DECODE_SAFETY_MARGIN_MS = 100;
 
 function randomCodeChar() {
   return CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+}
+
+// ---- 좌하단 큰 타이틀(h2) 위 마우스 리플 웨이브 ----
+// Hero3DLogo의 "깃발 웨이브"(마우스가 메시를 스칠 때마다 그 지점에서 링 형태로
+// 퍼져나가다 감쇠하는 정점 오프셋)를 2D 텍스트에 그대로 옮긴 버전이다. 3D
+// 버전처럼 리플을 여러 개 동시에 들고(진폭은 최댓값만 반영), 거리/시간에 따라
+// 가우시안 밴드로 감쇠시키고, 목표 오프셋으로 매 프레임 지수 감쇠(damp)한다.
+const WAVE_RIPPLE_SPEED_PER_EM = 9; // font-size의 몇 배 만큼을 1초에 퍼져나가는지
+const WAVE_BAND_FACTOR = 1.1; // 웨이브 링 자체의 폭(font-size 대비)
+const WAVE_CUTOFF_FACTOR = 5; // 이 거리(font-size의 배수)를 넘는 글자는 계산 생략
+const WAVE_AMPLITUDE_FACTOR = 0.22; // 최대로 밀려 올라가는 높이(font-size 대비)
+const WAVE_DECAY_PER_SEC = 1.6; // 리플 전체 세기가 시간에 따라 옅어지는 속도
+const WAVE_MAX_AGE_SEC = 2.4; // 이보다 오래된 리플은 배열에서 제거
+const WAVE_SPAWN_INTERVAL_MS = 60; // 너무 촘촘하게 생성되지 않도록 하는 스로틀
+const WAVE_MAX_RIPPLES = 3;
+const WAVE_OFFSET_DAMP_LAMBDA = 6;
+const WAVE_SPEED_NORMALIZER_PER_EM = 5; // 이 속도(font-size 배수/초)로 움직이면 진폭 배율이 대략 1
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+/** 지수 감쇠(damp) — Three.js의 MathUtils.damp와 동일한 형태로, 프레임 간격이
+ *  들쭉날쭉해도(탭이 백그라운드에 있다 돌아오는 등) 안정적으로 목표값에
+ *  수렴한다. */
+function damp(current: number, target: number, lambda: number, dt: number) {
+  return current + (target - current) * (1 - Math.exp(-lambda * dt));
+}
+
+/** h2 타이틀 문구를 줄바꿈(\n)/단어 단위로 쪼개 글자 하나하나를 span으로
+ *  렌더링한다. 공백은 단어 span "안쪽"이 아니라 바깥 형제 텍스트 노드로
+ *  둬야 한다 — inline-block 단어 span은 그 자체로 새 라인박스를 만들어서,
+ *  안쪽 끝 공백을 줄바꿈 규칙과 동일하게 트리밍해버려 단어가 옆 단어에
+ *  붙어버리는 버그가 있다(WorkTogether.tsx와 동일한 이유). */
+function WaveStatement({
+  text,
+  charsRef,
+}: {
+  text: string;
+  charsRef: MutableRefObject<(HTMLSpanElement | null)[]>;
+}) {
+  const lines = text.split("\n");
+  let charIndex = -1;
+
+  return (
+    <>
+      {lines.map((line, li) => {
+        const words = line.split(" ");
+        return (
+          <span key={li}>
+            {words.map((word, wi) => (
+              <Fragment key={wi}>
+                <span className="inline-block whitespace-nowrap">
+                  {Array.from(word).map((ch, ci) => {
+                    charIndex += 1;
+                    const idx = charIndex;
+                    return (
+                      <span
+                        key={ci}
+                        ref={(el) => {
+                          charsRef.current[idx] = el;
+                        }}
+                        className="hero-wave-char inline-block will-change-transform"
+                      >
+                        {ch}
+                      </span>
+                    );
+                  })}
+                </span>
+                {wi < words.length - 1 ? " " : ""}
+              </Fragment>
+            ))}
+            {li < lines.length - 1 && <br />}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
+/** WaveStatement가 렌더링한 글자 span들 위에 리플 웨이브 인터랙션을 건다.
+ *  Hero3DLogo의 useFrame 루프와 동일한 원리를, DOM에서는 requestAnimationFrame
+ *  루프 + 직접 style.transform 쓰기로 구현한다(리액트 상태를 거치면 매
+ *  프레임 리렌더가 일어나 비용이 너무 크다). */
+function useHeroWaveTitle(
+  containerRef: RefObject<HTMLElement | null>,
+  charsRef: MutableRefObject<(HTMLSpanElement | null)[]>,
+  active: boolean,
+) {
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !active || prefersReducedMotion()) return;
+
+    interface CharEntry {
+      el: HTMLSpanElement;
+      cx: number;
+      cy: number;
+      offset: number;
+    }
+    interface Ripple {
+      x: number;
+      y: number;
+      startTime: number;
+      amplitude: number;
+    }
+
+    let entries: CharEntry[] = [];
+    const measure = () => {
+      const rect = container.getBoundingClientRect();
+      entries = charsRef.current
+        .filter((el): el is HTMLSpanElement => !!el)
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          const prev = entries.find((e) => e.el === el);
+          return {
+            el,
+            cx: r.left - rect.left + r.width / 2,
+            cy: r.top - rect.top + r.height / 2,
+            offset: prev?.offset ?? 0,
+          };
+        });
+    };
+    measure();
+
+    const resizeObserver = new ResizeObserver(() => measure());
+    resizeObserver.observe(container);
+
+    const fontSize = parseFloat(getComputedStyle(container).fontSize) || 60;
+    const rippleSpeed = fontSize * WAVE_RIPPLE_SPEED_PER_EM;
+    const bandWidth = fontSize * WAVE_BAND_FACTOR;
+    const cutoff = fontSize * WAVE_CUTOFF_FACTOR;
+    const cutoffSq = cutoff * cutoff;
+    const amplitudePx = fontSize * WAVE_AMPLITUDE_FACTOR;
+    const speedNormalizer = fontSize * WAVE_SPEED_NORMALIZER_PER_EM;
+
+    let ripples: Ripple[] = [];
+    let lastSpawnAt = 0;
+    let lastMove: { x: number; y: number; time: number } | null = null;
+    let rafId = 0;
+    let lastFrameTime = performance.now();
+    let settled = true;
+
+    const tick = () => {
+      const now = performance.now();
+      const delta = Math.min((now - lastFrameTime) / 1000, 1 / 30);
+      lastFrameTime = now;
+      const nowSec = now / 1000;
+
+      ripples = ripples.filter((r) => nowSec - r.startTime < WAVE_MAX_AGE_SEC);
+
+      let anyActive = false;
+      for (const entry of entries) {
+        let target = 0;
+        let sourceX = entry.cx;
+        for (const r of ripples) {
+          const dx = entry.cx - r.x;
+          const dy = entry.cy - r.y;
+          const distSq = dx * dx + dy * dy;
+          if (distSq > cutoffSq) continue;
+
+          const dist = Math.sqrt(distSq);
+          const age = nowSec - r.startTime;
+          const amp = r.amplitude * Math.exp(-age * WAVE_DECAY_PER_SEC);
+          const waveRadius = age * rippleSpeed;
+          const band = Math.exp(-((dist - waveRadius) ** 2) / (2 * bandWidth * bandWidth));
+          const value = amp * band;
+          if (value > target) {
+            target = value;
+            sourceX = r.x;
+          }
+        }
+
+        const targetOffset = target * amplitudePx;
+        entry.offset = damp(entry.offset, targetOffset, WAVE_OFFSET_DAMP_LAMBDA, delta);
+
+        if (Math.abs(entry.offset) > 0.05) {
+          anyActive = true;
+          // 리플의 진원(sourceX) 기준 좌/우로 살짝 반대 방향 회전을 줘서,
+          // 단순히 위로 솟는 게 아니라 깃발처럼 결이 비스듬히 휘날리는
+          // 느낌을 더한다.
+          const tilt = clamp((entry.cx - sourceX) / cutoff, -1, 1) * (target * 10);
+          entry.el.style.transform = `translateY(${-entry.offset}px) rotate(${tilt}deg)`;
+        } else if (entry.offset !== 0 || entry.el.style.transform) {
+          entry.el.style.transform = "";
+          entry.offset = 0;
+        }
+      }
+
+      if (!anyActive && ripples.length === 0) {
+        settled = true;
+        rafId = 0;
+        return;
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+
+    const ensureLoop = () => {
+      if (settled) {
+        settled = false;
+        lastFrameTime = performance.now();
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const now = performance.now();
+
+      let speed = 0;
+      if (lastMove) {
+        const dt = (now - lastMove.time) / 1000;
+        if (dt > 0) speed = Math.hypot(x - lastMove.x, y - lastMove.y) / dt;
+      }
+      const hadLast = !!lastMove;
+      lastMove = { x, y, time: now };
+
+      if (now - lastSpawnAt < WAVE_SPAWN_INTERVAL_MS) return;
+      lastSpawnAt = now;
+
+      const speedFactor = hadLast ? clamp(speed / speedNormalizer, 0.4, 2.6) : 0.5;
+      ripples.push({ x, y, startTime: now / 1000, amplitude: speedFactor });
+      if (ripples.length > WAVE_MAX_RIPPLES) ripples.shift();
+      ensureLoop();
+    };
+
+    const handlePointerLeave = () => {
+      lastMove = null;
+    };
+
+    container.addEventListener("pointermove", handlePointerMove);
+    container.addEventListener("pointerleave", handlePointerLeave);
+
+    return () => {
+      container.removeEventListener("pointermove", handlePointerMove);
+      container.removeEventListener("pointerleave", handlePointerLeave);
+      resizeObserver.disconnect();
+      if (rafId) cancelAnimationFrame(rafId);
+      entries.forEach((entry) => {
+        entry.el.style.transform = "";
+      });
+    };
+  }, [containerRef, charsRef, active]);
 }
 
 function TwoLines({ text, className }: { text: string; className?: string }) {
@@ -135,6 +380,11 @@ export default function Hero({
   const bioEnRef = useRef<HTMLParagraphElement | null>(null);
   const bioKoRef = useRef<HTMLParagraphElement | null>(null);
   const bioKoLettersRef = useRef<(HTMLSpanElement | null)[]>([]);
+  const statementCharsRef = useRef<(HTMLSpanElement | null)[]>([]);
+
+  // 좌하단 큰 타이틀(h2)에 마우스를 올리고 움직이면, Hero3DLogo의 깃발 웨이브와
+  // 같은 원리로 그 지점에서 글자들이 물결치며 리플이 퍼져나간다.
+  useHeroWaveTitle(statementRef, statementCharsRef, readyToReveal);
 
   useEffect(() => {
     // Preloader처럼 화면을 한동안 가리는 것과 같이 쓰일 때, 그게 실제로
@@ -371,7 +621,7 @@ export default function Hero({
           ref={statementRef}
           className="font-en font-black uppercase leading-[1.05] tracking-tight text-white text-[110px] max-lg:text-[64px] max-sm:text-[40px]"
         >
-          <TwoLines text={statement} />
+          <WaveStatement text={statement} charsRef={statementCharsRef} />
         </h2>
         <div
           ref={bioRef}
