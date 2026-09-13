@@ -709,7 +709,7 @@
 }
 
 .client-marquee-track {
-  animation: client-marquee-scroll 18s linear infinite;
+  animation: client-marquee-scroll 40s linear infinite;
 }
 
 /* ---------- "Let's work together" 무한 마퀴 ----------

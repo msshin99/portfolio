@@ -50,37 +50,38 @@ interface IntroTiming {
 }
 
 /** 첫 방문(first)과 같은 세션 안에서의 재방문/새로고침(returning)의 타이밍을 하나의
- *  설정 객체로 분리해서 관리한다 — returning은 대략 절반 속도로 재생된다.
- *  처음엔 전체적으로 지속시간이 짧아서(특히 holdDuration) "MSSHIN" 글자가 채 눈에
- *  들어오기도 전에 그리드로 흩어져버리고, 각 단계 전환도 급하게 느껴졌다 — gather/
- *  rearrange/hole 지속시간을 늘리고, 특히 글자 모양을 유지하는 holdDuration을 크게
- *  늘려 실제로 "MSSHIN"을 읽을 시간을 준다. */
+ *  설정 객체로 분리해서 관리한다 — returning은 first의 절반 정도 속도로 재생된다.
+ *  예전엔 first 전체가(gather+hold+rearrange+hole+fade 합산) 약 11초나 걸려서,
+ *  포트폴리오 데이터는 이미 2초 만에 준비돼 있는데도 화면 전체가 그 뒤에 11초+
+ *  가려진 채라 "포트폴리오가 늦게 나온다"는 인상을 줬다 — "MSSHIN"을 읽을 시간
+ *  (holdDuration)은 최대한 보존하면서 나머지 단계를 줄여 전체를 첫 방문 기준
+ *  6초대로, 재방문은 3초대로 낮췄다. */
 const TIMINGS: Record<"first" | "returning", IntroTiming> = {
   first: {
-    gatherDuration: 1.95,
-    gatherStaggerMax: 1.15,
-    holdDuration: 2.3,
-    rearrangeDuration: 1.75,
-    rearrangeStaggerMax: 1.05,
-    gridHoldDuration: 0.75,
-    holeDuration: 2.1,
-    fadeOutDuration: 1.2,
-    subtitleDelay: 2.4,
-    subtitleFadeDuration: 0.7,
-    subtitleHold: 1.6,
+    gatherDuration: 1.1,
+    gatherStaggerMax: 0.65,
+    holdDuration: 1.4,
+    rearrangeDuration: 1.0,
+    rearrangeStaggerMax: 0.6,
+    gridHoldDuration: 0.4,
+    holeDuration: 1.2,
+    fadeOutDuration: 0.7,
+    subtitleDelay: 1.6,
+    subtitleFadeDuration: 0.45,
+    subtitleHold: 0.9,
   },
   returning: {
-    gatherDuration: 0.98,
-    gatherStaggerMax: 0.58,
-    holdDuration: 1.15,
-    rearrangeDuration: 0.88,
-    rearrangeStaggerMax: 0.53,
-    gridHoldDuration: 0.38,
-    holeDuration: 1.05,
-    fadeOutDuration: 0.6,
-    subtitleDelay: 1.2,
-    subtitleFadeDuration: 0.35,
-    subtitleHold: 0.8,
+    gatherDuration: 0.55,
+    gatherStaggerMax: 0.33,
+    holdDuration: 0.7,
+    rearrangeDuration: 0.5,
+    rearrangeStaggerMax: 0.3,
+    gridHoldDuration: 0.2,
+    holeDuration: 0.6,
+    fadeOutDuration: 0.35,
+    subtitleDelay: 0.8,
+    subtitleFadeDuration: 0.23,
+    subtitleHold: 0.45,
   },
 };
 
@@ -268,8 +269,13 @@ interface Particle extends Point {
   radius: number;
 }
 
+/** Hero3DLogo/HeroEmbers의 캔버스와 같은 이유로 dpr 상한을 둔다 — Retina 등
+ *  고해상도 디스플레이(dpr 2~3)에서 상한 없이 그리면 캔버스 실제 픽셀 수가
+ *  4~9배로 뛰어서, 매 프레임 수백 개 파티클을 그리는 비용이 그만큼 커진다. */
+const MAX_DPR = 1.5;
+
 function setupCanvas(canvas: HTMLCanvasElement, width: number, height: number) {
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
   canvas.width = Math.floor(width * dpr);
   canvas.height = Math.floor(height * dpr);
   canvas.style.width = `${width}px`;
@@ -513,10 +519,14 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
     };
 
     if (document.fonts) {
-      document.fonts
-        .load(`800 100px Inter`)
-        .catch(() => undefined)
-        .then(setupAndPlay);
+      // Inter 800이 아직 캐시에 없어 네트워크로 받아와야 하는 경우, 그 응답을
+      // 무제한 기다리면(특히 느린 회선에서) 인트로 시작 자체가 한참 지연되어
+      // "포트폴리오가 늦게 뜬다"는 체감을 더 키운다 — 800ms 안에 못 받으면
+      // 그냥 폴백 폭으로 진행한다(실제 폰트가 늦게 도착해도 화면엔 이미
+      // 그려진 파티클 좌표만 쓰이므로 크게 어긋나 보이지 않는다).
+      const fontReady = document.fonts.load(`800 100px Inter`).catch(() => undefined);
+      const timeout = new Promise<void>((resolve) => setTimeout(resolve, 800));
+      Promise.race([fontReady, timeout]).then(setupAndPlay);
     } else {
       setupAndPlay();
     }

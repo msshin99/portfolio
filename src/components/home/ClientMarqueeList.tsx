@@ -92,7 +92,7 @@ function ClientRow({ category, title, meta, image, marqueeParts }: ClientRowItem
         ].join(" ")}
       >
         <span className="font-en text-base text-white/45 max-sm:hidden">{category}</span>
-        <h3 className="font-en justify-self-center text-[76px] font-medium text-white max-lg:text-[46px] max-sm:text-[30px]">
+        <h3 className="font-en justify-self-center text-[76px] font-bold text-white max-lg:text-[46px] max-sm:text-[30px]">
           {title}
         </h3>
         <span className="font-en justify-self-end text-base text-white/45 max-sm:hidden">{meta}</span>

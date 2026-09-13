@@ -8,9 +8,11 @@ export const DEFAULT_WORK_TOGETHER_TEXT = "Let's work together";
 const REPEAT = 8;
 /** 트랙이 자기 폭의 절반(=한 벌)만큼 흘러가는 데 걸리는 시간(초) — 이 값이
  *  체감 흐르는 속도를 결정한다. */
-const SCROLL_DURATION = 22;
+const SCROLL_DURATION = 50;
 /** 글자 하나하나마다 물결(위아래 통통 튐)이 순서대로 번지는 간격(초). */
-const WAVE_STEP = 0.045;
+const WAVE_STEP = 0.06;
+/** 글자가 위아래로 튀는 폭 — 값이 클수록(음수로 더 큼) 물결이 눈에 확 띈다. */
+const WAVE_AMPLITUDE = "-0.5em";
 /** 반복되는 문구 하나하나마다 네온 글로우가 밝아지는 시점을 살짝씩 늦춰서,
  *  빛이 문구를 타고 흘러가는(chase) 느낌을 만드는 간격(초). */
 const GLOW_STEP = 0.35;
@@ -52,8 +54,8 @@ export default function WorkTogether({ text = DEFAULT_WORK_TOGETHER_TEXT }: { te
     // 영원히 왕복하는 "웨이브"가 만들어진다 — 리플로우 없는 transform(y)/
     // CSS 변수(--glow)만 움직이므로 저비용이다.
     const waveTween = gsap.to(chars, {
-      y: "-0.16em",
-      duration: 0.8,
+      y: WAVE_AMPLITUDE,
+      duration: 1,
       ease: "sine.inOut",
       stagger: { each: WAVE_STEP, yoyo: true, repeat: -1 },
     });
