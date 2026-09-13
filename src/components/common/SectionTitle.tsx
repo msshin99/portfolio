@@ -29,16 +29,26 @@ export default function SectionTitle({ subTxt, title, description }: SectionTitl
     const desc = descRef.current;
     const wordEls = Array.from(heading.querySelectorAll<HTMLElement>(".title-word"));
 
-    gsap.set([sub, ...wordEls, desc].filter(Boolean), { opacity: 0, y: 30 });
+    gsap.set([sub, desc].filter(Boolean), { opacity: 0, y: 30, filter: "blur(6px)" });
+    // 단어마다 살짝 다른 방향으로 비뚤어진 채(짝/홀 번갈아) 작게 시작해서,
+    // 자리 잡을 때 뒤에 거는 back.out 이징과 맞물려 통통 튀며 돌아오는
+    // 느낌을 준다 — 라벨/설명의 담백한 페이드업과 대비되는 포인트.
+    wordEls.forEach((el, i) => {
+      gsap.set(el, { opacity: 0, y: 44, scale: 0.7, rotateZ: i % 2 === 0 ? -7 : 7 });
+    });
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
 
         const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.8 } });
-        tl.to(sub, { opacity: 1, y: 0 })
-          .to(wordEls, { opacity: 1, y: 0, stagger: 0.08 }, "-=0.55")
-          .to(desc, { opacity: 1, y: 0 }, "-=0.5");
+        tl.to(sub, { opacity: 1, y: 0, filter: "blur(0px)" })
+          .to(
+            wordEls,
+            { opacity: 1, y: 0, scale: 1, rotateZ: 0, duration: 0.95, ease: "back.out(1.6)", stagger: 0.08 },
+            "-=0.55"
+          )
+          .to(desc, { opacity: 1, y: 0, filter: "blur(0px)" }, "-=0.5");
 
         observer.unobserve(container);
       },

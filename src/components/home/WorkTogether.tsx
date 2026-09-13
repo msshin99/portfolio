@@ -1,96 +1,126 @@
-import { useEffect, useMemo, useRef } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "../../lib/gsap";
 
 export const DEFAULT_WORK_TOGETHER_TEXT = "Let's work together";
 
-/** 포트폴리오(My Works) 섹션 바로 다음에 오는 섹션 — "Let's work together"
- *  문구 전체가 화면 오른쪽 밖에 있다가, 스크롤한 만큼씩 비례해서(scrub)
- *  왼쪽 제자리로 미끄러져 들어온다. 그 안에서 글자 하나하나는 각자 다른
- *  y축 오프셋(사인파 웨이브)에서 시작해 서로 다른 타이밍(stagger)에
- *  제자리로 튀어 오르며 자리를 잡아, 문구 전체가 한 덩어리로 밋밋하게
- *  들어오는 대신 리듬감 있게 등장한다. 섹션이 화면 중앙쯤 오면 완전히
- *  자리를 잡고, 그 뒤로는 더 움직이지 않고 고정된다. */
-export default function WorkTogether({ text: TEXT = DEFAULT_WORK_TOGETHER_TEXT }: { text?: string }) {
+/** 화면 폭이 아주 넓어도(4K 모니터 등) 줄 끝에 빈 공간이 보이지 않도록 한
+ *  바퀴 안에 문구를 넉넉히 반복해둔다. */
+const REPEAT = 8;
+/** 트랙이 자기 폭의 절반(=한 벌)만큼 흘러가는 데 걸리는 시간(초) — 이 값이
+ *  체감 흐르는 속도를 결정한다. */
+const SCROLL_DURATION = 22;
+/** 글자 하나하나마다 물결(위아래 통통 튐)이 순서대로 번지는 간격(초). */
+const WAVE_STEP = 0.045;
+/** 반복되는 문구 하나하나마다 네온 글로우가 밝아지는 시점을 살짝씩 늦춰서,
+ *  빛이 문구를 타고 흘러가는(chase) 느낌을 만드는 간격(초). */
+const GLOW_STEP = 0.35;
+
+/** 포트폴리오(My Works) 섹션 바로 다음에 오는 섹션 — "Let's work together"가
+ *  스크롤과 무관하게 화면을 가로질러 끊임없이 오른쪽에서 왼쪽으로 흘러가는
+ *  대형 마퀴. GSAP 3개 트윈이 함께 만든다: ①트랙 전체를 xPercent -50까지
+ *  등속으로 무한 반복 이동시켜 흐르게 하고(같은 내용을 두 벌 이어붙여서 첫
+ *  벌이 화면 밖으로 다 빠져나가는 순간 두 번째 벌이 그 자리를 이어받아
+ *  이음매 없이 반복된다), ②글자 하나하나를 stagger로 물결처럼 순서대로
+ *  위아래로 통통 튀게 하고, ③반복 문구마다 브랜드 컬러 네온 글로우가 시차를
+ *  두고 밝아졌다 사라지게 한다. */
+export default function WorkTogether({ text = DEFAULT_WORK_TOGETHER_TEXT }: { text?: string }) {
   const sectionRef = useRef<HTMLElement | null>(null);
-  const textRef = useRef<HTMLHeadingElement | null>(null);
-  const words = useMemo(() => TEXT.split(" "), [TEXT]);
+  const trackRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
-    const text = textRef.current;
-    if (!section || !text) return;
-
-    const chars = Array.from(text.querySelectorAll<HTMLElement>(".wt-char"));
+    const track = trackRef.current;
+    if (!section || !track) return;
 
     if (prefersReducedMotion()) {
-      gsap.set(text, { x: 0 });
-      gsap.set(chars, { y: 0, opacity: 1 });
+      gsap.set(track, { xPercent: 0 });
       return;
     }
 
-    // xPercent(자기 폭 기준)는 텍스트 폭이 뷰포트보다 좁을 때 화면 밖으로
-    // 완전히 벗어나지 못한다 — 왼쪽 시작 위치(pl-10) + 자기 폭만큼만
-    // 이동해서는 뷰포트 오른쪽 경계에 못 미칠 수 있기 때문. 뷰포트 폭
-    // 기준의 절대값(100vw)으로 이동해야 모바일 포함 어떤 화면 폭에서도
-    // 확실히 화면 밖에서 시작한다 — 모바일의 "이동 거리 축소"는 대신
-    // 폰트 크기를 줄이는 쪽으로 반영했다(체감 이동 거리가 줄어든다).
-    gsap.set(text, { x: "100vw" });
+    const chars = track.querySelectorAll<HTMLElement>(".wt-char");
+    const repeats = track.querySelectorAll<HTMLElement>(".work-together-text");
 
-    // 글자마다 시작 y오프셋을 사인파로 흩어놔서, 등장할 때 위아래로
-    // 들쭉날쭉한 웨이브를 그리며 자리를 잡게 한다(짝/홀 교대보다 더
-    // 자연스러운 리듬을 만든다). y/opacity만 움직이므로 리플로우 없이
-    // transform+opacity(둘 다 컴포지터 처리)만으로 애니메이션된다.
-    const WAVE_AMPLITUDE = 30;
-    chars.forEach((el, i) => {
-      gsap.set(el, { y: Math.sin(i * 0.9) * WAVE_AMPLITUDE, opacity: 0 });
+    const scrollTween = gsap.to(track, {
+      xPercent: -50,
+      ease: "none",
+      duration: SCROLL_DURATION,
+      repeat: -1,
     });
 
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: section,
-        start: "top bottom",
-        end: "center center",
-        scrub: 0.6,
-      },
+    // stagger 객체 자체에 repeat/yoyo를 주면, 전체 트윈을 반복하는 대신
+    // 타깃(글자/문구) 하나하나가 stagger 간격만큼 시차를 두고 각자 독립적으로
+    // 영원히 왕복하는 "웨이브"가 만들어진다 — 리플로우 없는 transform(y)/
+    // CSS 변수(--glow)만 움직이므로 저비용이다.
+    const waveTween = gsap.to(chars, {
+      y: "-0.16em",
+      duration: 0.8,
+      ease: "sine.inOut",
+      stagger: { each: WAVE_STEP, yoyo: true, repeat: -1 },
     });
-    tl.to(text, { x: 0, ease: "none" }, 0);
-    tl.to(
-      chars,
-      {
-        y: 0,
-        opacity: 1,
-        ease: "back.out(1.4)",
-        stagger: { each: 0.03, from: "start" },
-      },
-      0
-    );
+
+    const glowTween = gsap.to(repeats, {
+      "--glow": 1,
+      duration: 1.6,
+      ease: "sine.inOut",
+      stagger: { each: GLOW_STEP, yoyo: true, repeat: -1 },
+    });
+
+    const tweens = [scrollTween, waveTween, glowTween];
+
+    // 스크롤로 화면 밖에 나가 있는 동안엔 세 트윈을 전부 멈춰서 불필요한
+    // 리소스 소모를 막는다(Hero3DLogo/HeroEmbers/Footer와 같은 원칙).
+    const observer = new IntersectionObserver(([entry]) => {
+      tweens.forEach((t) => (entry.isIntersecting ? t.play() : t.pause()));
+    });
+    observer.observe(section);
 
     return () => {
-      tl.scrollTrigger?.kill();
-      tl.kill();
+      observer.disconnect();
+      tweens.forEach((t) => t.kill());
     };
-  }, [TEXT]);
+  }, [text]);
 
   return (
     <section
       ref={sectionRef}
-      className="work-together overflow-hidden w-full py-[120px] pl-10 max-lg:pl-10 max-sm:pl-5 max-lg:py-[90px] max-sm:py-[60px]"
+      className="work-together overflow-hidden w-full py-[120px] max-lg:py-[90px] max-sm:py-[60px]"
     >
-      <h2
-        ref={textRef}
-        className="work-together-text inline-block whitespace-nowrap font-en font-bold leading-[1.05] text-white text-[clamp(212px,calc(8vw+180px),320px)] max-sm:text-[clamp(204px,calc(10vw+180px),244px)]"
-      >
-        {words.map((word, wi) => (
-          <span key={wi} className="inline-block whitespace-nowrap">
-            {Array.from(word).map((ch, ci) => (
-              <span key={ci} className="wt-char inline-block">
-                {ch}
-              </span>
-            ))}
-            {wi < words.length - 1 ? " " : ""}
-          </span>
-        ))}
-      </h2>
+      <div ref={trackRef} className="flex w-max shrink-0 items-center">
+        <WorkTogetherSet text={text} />
+        <WorkTogetherSet text={text} ariaHidden />
+      </div>
     </section>
+  );
+}
+
+function WorkTogetherSet({ text, ariaHidden }: { text: string; ariaHidden?: boolean }) {
+  const words = text.split(" ");
+
+  return (
+    <div className="flex shrink-0 items-center" aria-hidden={ariaHidden ? "true" : undefined}>
+      {Array.from({ length: REPEAT }).map((_, r) => (
+        <span
+          key={r}
+          className="work-together-text inline-block whitespace-nowrap font-en font-bold leading-[1.05] text-white text-[clamp(80px,10vw,180px)] pr-[0.6em] max-sm:text-[clamp(48px,14vw,96px)]"
+        >
+          {words.map((word, wi) => (
+            // 공백을 word-span "안쪽" 마지막 글자로 두면, inline-block은 그 자체로
+            // 새 라인박스를 만들어서 CSS가 라인 끝 공백을 트리밍해버려(줄바꿈
+            // 규칙과 동일) 단어가 옆 단어에 붙어버린다. word-span 바깥의 형제
+            // 텍스트 노드로 빼야 트리밍 대상이 아닌 "라인 중간" 공백이 된다.
+            <Fragment key={wi}>
+              <span className="inline-block whitespace-nowrap">
+                {Array.from(word).map((ch, ci) => (
+                  <span key={ci} className="wt-char inline-block">
+                    {ch}
+                  </span>
+                ))}
+              </span>
+              {wi < words.length - 1 ? " " : ""}
+            </Fragment>
+          ))}
+        </span>
+      ))}
+    </div>
   );
 }

@@ -712,4 +712,17 @@
   animation: client-marquee-scroll 18s linear infinite;
 }
 
+/* ---------- "Let's work together" 무한 마퀴 ----------
+   흐름(트랙 xPercent)과 글자별 물결(y)은 WorkTogether.tsx의 GSAP 트윈이 직접
+   움직인다 — 여기서는 GSAP가 숫자만 넣어주는 --glow 변수를 받아서 실제
+   네온 글로우 모양(drop-shadow)으로 풀어내는 부분만 CSS가 맡는다. filter는
+   GSAP가 문자열째로 부드럽게 보간하지 못하는 대표적인 속성이라, "숫자 하나
+   (--glow: 0→1)를 GSAP로 움직이고 그 값을 CSS calc()가 읽어 그림으로
+   바꾸는" 방식으로 나눴다. */
+.work-together-text {
+  --glow: 0;
+  filter: drop-shadow(0 0 calc(var(--glow) * 24px) rgb(245 98 20 / calc(var(--glow) * 0.85)))
+    drop-shadow(0 0 calc(var(--glow) * 56px) rgb(245 98 20 / calc(var(--glow) * 0.35)));
+}
+
 } /* end @layer utilities */
