@@ -34,8 +34,22 @@ export default function Reveal({ as = "div", duration = 3000, className, childre
 
     gsap.set(el, { transformPerspective: 1000, transformOrigin: "50% 100%" });
 
+    // 데스크탑의 느긋한 3초짜리 시네마틱 리빌을 모바일에도 그대로 쓰면,
+    // 스크롤을 내리는 동안 섹션이 한참 블러/축소된 채로 머물러 있어서
+    // "화면이 이상하게 비어 보인다"는 체감으로 이어진다 — 화면이 작아
+    // 스크롤 자체가 빠른 모바일에서는 훨씬 짧게 잡아, 뷰포트에 들어오면
+    // 거의 즉시 또렷하게 자리잡도록 한다.
+    const mobile = isMobileViewport();
+    const effectiveDuration = mobile ? Math.min(duration, 500) : duration;
+
     const hide = () =>
-      gsap.set(el, { opacity: 0, y: 90, scale: 0.92, rotateX: 6, filter: "blur(14px)" });
+      gsap.set(el, {
+        opacity: 0,
+        y: mobile ? 30 : 90,
+        scale: mobile ? 0.97 : 0.92,
+        rotateX: mobile ? 0 : 6,
+        filter: mobile ? "blur(4px)" : "blur(14px)",
+      });
     hide();
 
     const observer = new IntersectionObserver(
@@ -52,7 +66,7 @@ export default function Reveal({ as = "div", duration = 3000, className, childre
           scale: 1,
           rotateX: 0,
           filter: "blur(0px)",
-          duration: duration / 1000,
+          duration: effectiveDuration / 1000,
           ease: "power4.out",
           // 애니메이션이 끝나면 GSAP가 남겨둔 인라인 transform/filter를 지운다 —
           // 인라인 style은 hover 등 클래스 기반 CSS보다 항상 우선하므로, 이걸
@@ -62,7 +76,7 @@ export default function Reveal({ as = "div", duration = 3000, className, childre
 
         // 모바일에서는 한 번 나타난 뒤로는 다시 숨기지 않는다 — 옵저버를 아예
         // 끊어서, 스크롤을 내렸다가 다시 올릴 때 재생 대기 없이 항상 보이게 한다.
-        if (isMobileViewport()) observer.disconnect();
+        if (mobile) observer.disconnect();
       },
       { rootMargin: "0px 0px -120px 0px", threshold: 0 }
     );

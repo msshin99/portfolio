@@ -387,12 +387,23 @@ export default function Hero3DLogo({ className = "" }: { className?: string }) {
   // useFrame이 매 프레임 이 값을 읽기만 하면 되므로, state로 만들어 굳이
   // React 리렌더를 유발할 필요가 없다.
   const visibleRef = useRef(true);
+  // frameloop="demand"인 Canvas가 R3F 스토어를 만들면 onCreated로 그
+  // invalidate 함수를 받아둔다 — 아래 IntersectionObserver(Canvas 바깥,
+  // R3F 컨텍스트 밖)에서도 새 프레임을 요청할 수 있어야 하기 때문이다.
+  const invalidateRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(([entry]) => {
+      const wasVisible = visibleRef.current;
       visibleRef.current = entry.isIntersecting;
+      // 화면 밖에 오래 있으면(특히 모바일 브라우저) 캔버스의 GPU 백킹
+      // 버퍼가 메모리 절약을 위해 비워질 수 있어, 스크롤로 다시 들어와도
+      // demand 모드에선 아무도 다시 그려달라고 요청하지 않는 한 그 빈
+      // 화면이 그대로 남는다 — 다시 보이기 시작하는 순간 명시적으로 한
+      // 프레임을 요청해 이 문제를 막는다.
+      if (!wasVisible && entry.isIntersecting) invalidateRef.current?.();
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -409,6 +420,9 @@ export default function Hero3DLogo({ className = "" }: { className?: string }) {
         // 게 체감 렉의 큰 원인이었다. 스핀/틸트 보간과 웨이브가 진행 중일
         // 때만 LogoModel이 invalidate()로 다음 프레임을 요청한다.
         frameloop="demand"
+        onCreated={(state) => {
+          invalidateRef.current = state.invalidate;
+        }}
       >
         <Lighting />
         <Suspense fallback={null}>
