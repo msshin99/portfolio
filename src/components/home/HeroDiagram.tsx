@@ -5,14 +5,14 @@ import {
   ClipboardCheck,
   Code2,
   Database,
-  DollarSign,
-  Gauge,
   Languages,
   PanelTop,
-  Sigma,
   Sparkles,
   TextCursorInput,
+  TrendingUp,
   Users,
+  Wand2,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
@@ -79,9 +79,9 @@ export const HERO_FEATURE_CARDS: FeatureCardItem[] = [
 ];
 
 const FEATURE_ICONS: Record<FeatureIconKey, LucideIcon> = {
-  cost: DollarSign,
-  certainty: Sigma,
-  performance: Gauge,
+  cost: Wand2,
+  certainty: Workflow,
+  performance: TrendingUp,
 };
 
 const PILL_ICONS: Record<PillIconKey, LucideIcon> = {
@@ -633,7 +633,7 @@ function FeatureCard({ icon, heading, body }: FeatureCardItem) {
         <Icon
           size={38}
           strokeWidth={1.5}
-          className="text-primary-txt transition-[transform,filter] duration-500 ease-out group-hover:scale-110 group-hover:drop-shadow-[0_0_10px_rgba(245,98,20,0.7)]"
+          className="text-white transition-[transform,filter] duration-500 ease-out group-hover:scale-110 group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.7)]"
         />
         {/* heading은 여전히 [줄1, 줄2] 배열로 받지만(다른 곳에서 2줄로 쓸 수도
             있으니 데이터 구조는 그대로 둔다), 여기서는 <br/> 없이 한 줄로

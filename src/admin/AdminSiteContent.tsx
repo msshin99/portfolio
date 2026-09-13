@@ -3,6 +3,39 @@ import ImageUploadField from "./ImageUploadField";
 import { fetchAllSiteContent, upsertSiteContent, deleteSiteContent } from "../lib/adminApi";
 import { refreshSiteContent, type SiteContentRow } from "../lib/siteContentApi";
 import { skillGroups } from "../data/skills";
+import { keywords as defaultKeywords } from "../data/keywords";
+import profileImg from "../assets/portfolio/profile.jpg";
+import {
+  DEFAULT_HERO_LABEL,
+  DEFAULT_HERO_TAGLINE,
+  DEFAULT_HERO_STATEMENT,
+  DEFAULT_HERO_BIO,
+  DEFAULT_HERO_BIO_KO,
+  DEFAULT_INTRO_HEADING,
+  DEFAULT_INTRO_DESCRIPTION,
+  DEFAULT_WORKS_SUBTXT,
+  DEFAULT_WORKS_TITLE,
+  DEFAULT_WORKS_DESCRIPTION,
+  DEFAULT_SKILLS_SUBTXT,
+  DEFAULT_SKILLS_TITLE,
+  DEFAULT_ABOUT_HEADING,
+  DEFAULT_ABOUT_HEADING_EN,
+  DEFAULT_ABOUT_DESCRIPTION,
+  DEFAULT_ABOUT_INFO_SUBTXT,
+  DEFAULT_ABOUT_INFO_TITLE,
+  DEFAULT_ABOUT_INFO_DESCRIPTION,
+} from "../data/siteDefaults";
+import { DEFAULT_WORK_TOGETHER_TEXT } from "../components/home/WorkTogether";
+import { DEFAULT_CLIENT_ROWS } from "../components/home/ClientMarqueeList";
+import {
+  HERO_DIAGRAM_HEADING,
+  HERO_DIAGRAM_SUBTEXT,
+  HERO_DIAGRAM_CENTER_LABEL,
+  HERO_DIAGRAM_LLM_LABEL,
+  HERO_DIAGRAM_LEFT_ITEMS,
+  HERO_DIAGRAM_RIGHT_ITEMS,
+  HERO_FEATURE_CARDS,
+} from "../components/home/HeroDiagram";
 import {
   CheckCircleIcon,
   HomeIcon,
@@ -18,34 +51,47 @@ import { Button, Card, GroupHeading, Hint, Input, InfoBanner, Label, PageHeader,
 
 /** 실제로 사이트에 연결된 전역 문구/이미지 키. Home.tsx/Hero.tsx, About.tsx가 이 key들을
  *  읽어서 값이 있으면 그걸, 없으면 코드에 있는 기본값을 그대로 보여준다. group은 아래
- *  화면에서 카드들을 사이트의 실제 섹션 단위로 묶어 보여주기 위한 표시용 값이다. */
-const KNOWN_FIELDS: { key: string; label: string; type: "text" | "textarea" | "image"; hint: string; group: string }[] = [
-  { key: "hero_label", label: "좌상단 라벨", hint: "홈 화면 맨 위 왼쪽에 표시되는 짧은 문구입니다. 줄바꿈하면 두 줄로 나눠 표시됩니다.", type: "textarea", group: "home" },
-  { key: "hero_tagline", label: "우상단 태그라인", hint: "홈 화면 맨 위 오른쪽에 표시되는 짧은 문구입니다. 줄바꿈하면 두 줄로 나눠 표시됩니다.", type: "textarea", group: "home" },
-  { key: "hero_statement", label: "좌하단 큰 문구", hint: "홈 화면 하단 왼쪽에 크게 표시되는 문구입니다. 줄바꿈하면 두 줄로 나눠 표시됩니다.", type: "textarea", group: "home" },
-  { key: "hero_bio", label: "우하단 소개(영문)", hint: "홈 화면 하단 오른쪽에 표시되는 짧은 소개 문단(영문)입니다. 한글 버전과 번갈아 표시됩니다.", type: "textarea", group: "home" },
-  { key: "hero_bio_ko", label: "우하단 소개(한글)", hint: "위 영문 소개의 한글 버전입니다. 영문과 번갈아 표시됩니다.", type: "textarea", group: "home" },
-  { key: "intro_heading", label: "소개 제목", hint: "홈 화면 히어로 아래, '(About)' 라벨과 함께 크게 표시되는 소개 문구입니다.", type: "textarea", group: "intro" },
-  { key: "intro_description", label: "소개 설명글", hint: "소개 제목 아래에 작게 표시되는 설명 문단입니다.", type: "textarea", group: "intro" },
-  { key: "works_subtxt", label: "작은 라벨", hint: "'My Works' 제목 위에 작게 표시되는 라벨입니다 (기본값: (Professional)).", type: "text", group: "works" },
-  { key: "works_title", label: "큰 제목", hint: "포트폴리오 섹션의 큰 제목입니다 (기본값: My Works).", type: "text", group: "works" },
-  { key: "works_description", label: "설명글", hint: "큰 제목 옆에 표시되는 설명 문단입니다.", type: "textarea", group: "works" },
-  { key: "work_together_text", label: "큰 문구", hint: "포트폴리오 섹션 바로 아래, 스크롤하면 오른쪽에서 미끄러져 들어오는 큰 문구입니다 (기본값: Let's work together).", type: "text", group: "workTogether" },
-  { key: "skills_subtxt", label: "작은 라벨", hint: "'Skills' 제목 위에 작게 표시되는 라벨입니다 (기본값: (Capabilities)).", type: "text", group: "skills" },
-  { key: "skills_title", label: "큰 제목", hint: "기술 스택 섹션의 큰 제목입니다 (기본값: Skills).", type: "text", group: "skills" },
-  { key: "about_heading", label: "큰 제목(한글)", hint: "About 페이지 맨 위에 크게 표시되는 문구입니다.", type: "textarea", group: "about" },
-  { key: "about_heading_en", label: "큰 제목(영문, 마우스 올렸을 때)", hint: "위 큰 제목에 마우스를 올리면 대신 표시되는 영문 버전입니다.", type: "textarea", group: "about" },
-  { key: "about_description", label: "소개 페이지 글", hint: "About 페이지에 표시되는 자기소개 문단입니다.", type: "textarea", group: "about" },
-  { key: "about_profile_image", label: "프로필 사진", hint: "About 페이지에 표시되는 프로필 사진입니다.", type: "image", group: "about" },
-  { key: "about_info_subtxt", label: "Info 섹션 작은 라벨", hint: "'Info' 제목 위에 작게 표시되는 라벨입니다 (기본값: (Profile)).", type: "text", group: "about" },
-  { key: "about_info_title", label: "Info 섹션 큰 제목", hint: "이력 아코디언 섹션의 큰 제목입니다 (기본값: Info).", type: "text", group: "about" },
-  { key: "about_info_description", label: "Info 섹션 설명", hint: "Info 제목 옆에 표시되는 안내 문구입니다.", type: "text", group: "about" },
+ *  화면에서 카드들을 사이트의 실제 섹션 단위로 묶어 보여주기 위한 표시용 값이다.
+ *  defaultValue(text 계열) / defaultImage(image 계열)는 DB에 아직 값이 없을 때 실제로
+ *  사이트에 보이는 값 그대로 입력창에 미리 채워 넣는 데 쓴다 — 이게 없으면 관리자가
+ *  처음 이 페이지를 열었을 때 모든 칸이 텅 비어 있어서 "아무것도 설정된 게 없나?"로
+ *  오인하기 쉽다(실제로는 코드 기본값이 정상적으로 보이고 있는데도). */
+const KNOWN_FIELDS: {
+  key: string;
+  label: string;
+  type: "text" | "textarea" | "image";
+  hint: string;
+  group: string;
+  defaultValue?: string;
+  defaultImage?: string;
+}[] = [
+  { key: "hero_label", label: "좌상단 라벨", hint: "홈 화면 맨 위 왼쪽에 표시되는 짧은 문구입니다. 줄바꿈하면 두 줄로 나눠 표시됩니다.", type: "textarea", group: "home", defaultValue: DEFAULT_HERO_LABEL },
+  { key: "hero_tagline", label: "우상단 태그라인", hint: "홈 화면 맨 위 오른쪽에 표시되는 짧은 문구입니다. 줄바꿈하면 두 줄로 나눠 표시됩니다.", type: "textarea", group: "home", defaultValue: DEFAULT_HERO_TAGLINE },
+  { key: "hero_statement", label: "좌하단 큰 문구", hint: "홈 화면 하단 왼쪽에 크게 표시되는 문구입니다. 줄바꿈하면 두 줄로 나눠 표시됩니다.", type: "textarea", group: "home", defaultValue: DEFAULT_HERO_STATEMENT },
+  { key: "hero_bio", label: "우하단 소개(영문)", hint: "홈 화면 하단 오른쪽에 표시되는 짧은 소개 문단(영문)입니다. 한글 버전과 번갈아 표시됩니다.", type: "textarea", group: "home", defaultValue: DEFAULT_HERO_BIO },
+  { key: "hero_bio_ko", label: "우하단 소개(한글)", hint: "위 영문 소개의 한글 버전입니다. 영문과 번갈아 표시됩니다.", type: "textarea", group: "home", defaultValue: DEFAULT_HERO_BIO_KO },
+  { key: "intro_heading", label: "소개 제목", hint: "홈 화면 히어로 아래, '(About)' 라벨과 함께 크게 표시되는 소개 문구입니다.", type: "textarea", group: "intro", defaultValue: DEFAULT_INTRO_HEADING },
+  { key: "intro_description", label: "소개 설명글", hint: "소개 제목 아래에 작게 표시되는 설명 문단입니다.", type: "textarea", group: "intro", defaultValue: DEFAULT_INTRO_DESCRIPTION },
+  { key: "works_subtxt", label: "작은 라벨", hint: "'My Works' 제목 위에 작게 표시되는 라벨입니다.", type: "text", group: "works", defaultValue: DEFAULT_WORKS_SUBTXT },
+  { key: "works_title", label: "큰 제목", hint: "포트폴리오 섹션의 큰 제목입니다.", type: "text", group: "works", defaultValue: DEFAULT_WORKS_TITLE },
+  { key: "works_description", label: "설명글", hint: "큰 제목 옆에 표시되는 설명 문단입니다.", type: "textarea", group: "works", defaultValue: DEFAULT_WORKS_DESCRIPTION },
+  { key: "work_together_text", label: "큰 문구", hint: "포트폴리오 섹션 바로 아래, 화면을 가로질러 흐르는 큰 문구입니다.", type: "text", group: "workTogether", defaultValue: DEFAULT_WORK_TOGETHER_TEXT },
+  { key: "skills_subtxt", label: "작은 라벨", hint: "'Skills' 제목 위에 작게 표시되는 라벨입니다.", type: "text", group: "skills", defaultValue: DEFAULT_SKILLS_SUBTXT },
+  { key: "skills_title", label: "큰 제목", hint: "기술 스택 섹션의 큰 제목입니다.", type: "text", group: "skills", defaultValue: DEFAULT_SKILLS_TITLE },
+  { key: "about_heading", label: "큰 제목(한글)", hint: "About 페이지 맨 위에 크게 표시되는 문구입니다.", type: "textarea", group: "about", defaultValue: DEFAULT_ABOUT_HEADING },
+  { key: "about_heading_en", label: "큰 제목(영문, 마우스 올렸을 때)", hint: "위 큰 제목에 마우스를 올리면 대신 표시되는 영문 버전입니다.", type: "textarea", group: "about", defaultValue: DEFAULT_ABOUT_HEADING_EN },
+  { key: "about_description", label: "소개 페이지 글", hint: "About 페이지에 표시되는 자기소개 문단입니다.", type: "textarea", group: "about", defaultValue: DEFAULT_ABOUT_DESCRIPTION },
+  { key: "about_profile_image", label: "프로필 사진", hint: "About 페이지에 표시되는 프로필 사진입니다.", type: "image", group: "about", defaultImage: profileImg },
+  { key: "about_info_subtxt", label: "Info 섹션 작은 라벨", hint: "'Info' 제목 위에 작게 표시되는 라벨입니다.", type: "text", group: "about", defaultValue: DEFAULT_ABOUT_INFO_SUBTXT },
+  { key: "about_info_title", label: "Info 섹션 큰 제목", hint: "이력 아코디언 섹션의 큰 제목입니다.", type: "text", group: "about", defaultValue: DEFAULT_ABOUT_INFO_TITLE },
+  { key: "about_info_description", label: "Info 섹션 설명", hint: "Info 제목 옆에 표시되는 안내 문구입니다.", type: "text", group: "about", defaultValue: DEFAULT_ABOUT_INFO_DESCRIPTION },
   {
     key: "hero_diagram_heading",
     label: "다이어그램 제목",
     hint: "My Works 아래 다이어그램 섹션 맨 위 큰 제목입니다. 줄바꿈하면 두 줄로 나눠 표시됩니다.",
     type: "textarea",
     group: "heroDiagram",
+    defaultValue: HERO_DIAGRAM_HEADING.join("\n"),
   },
   {
     key: "hero_diagram_subtext",
@@ -53,20 +99,23 @@ const KNOWN_FIELDS: { key: string; label: string; type: "text" | "textarea" | "i
     hint: "다이어그램 제목 아래에 표시되는 설명 문단입니다.",
     type: "textarea",
     group: "heroDiagram",
+    defaultValue: HERO_DIAGRAM_SUBTEXT,
   },
   {
     key: "hero_diagram_center_label",
     label: "중앙 박스 이름",
-    hint: "다이어그램 가운데 양쪽 사각형 박스 아래에 표시되는 이름입니다 (기본값: Lucien).",
+    hint: "다이어그램 가운데 양쪽 사각형 박스 아래에 표시되는 이름입니다.",
     type: "text",
     group: "heroDiagram",
+    defaultValue: HERO_DIAGRAM_CENTER_LABEL,
   },
   {
     key: "hero_diagram_llm_label",
     label: "중앙 그룹 이름",
-    hint: "다이어그램 정중앙 3개 아이콘 그룹 아래에 표시되는 이름입니다 (기본값: LLMs).",
+    hint: "다이어그램 정중앙 3개 아이콘 그룹 아래에 표시되는 이름입니다.",
     type: "text",
     group: "heroDiagram",
+    defaultValue: HERO_DIAGRAM_LLM_LABEL,
   },
 ];
 
@@ -111,9 +160,9 @@ const HERO_PILL_ICON_OPTIONS: { value: string; label: string }[] = [
   { value: "api", label: "API (중괄호)" },
 ];
 const HERO_FEATURE_ICON_OPTIONS: { value: string; label: string }[] = [
-  { value: "cost", label: "Cost ($)" },
-  { value: "certainty", label: "Certainty (시그마)" },
-  { value: "performance", label: "Performance (계기판)" },
+  { value: "cost", label: "Cost (마법봉)" },
+  { value: "certainty", label: "Certainty (워크플로우)" },
+  { value: "performance", label: "Performance (성장 그래프)" },
 ];
 
 const TOC_ITEMS = [
@@ -130,14 +179,15 @@ function KnownFieldEditor({
   row: SiteContentRow | undefined;
   onSaved: () => void;
 }) {
-  const [text, setText] = useState(row?.value_text ?? "");
-  const [imageUrl, setImageUrl] = useState(row?.value_image_url ?? "");
+  const [text, setText] = useState(row?.value_text ?? field.defaultValue ?? "");
+  const [imageUrl, setImageUrl] = useState(row?.value_image_url ?? field.defaultImage ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setText(row?.value_text ?? "");
-    setImageUrl(row?.value_image_url ?? "");
+    setText(row?.value_text ?? field.defaultValue ?? "");
+    setImageUrl(row?.value_image_url ?? field.defaultImage ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [row]);
 
   async function handleSave() {
@@ -210,23 +260,25 @@ function ClientRowEditor({
   const marquee1Row = rows.find((r) => r.key === marquee1Key);
   const marquee2Row = rows.find((r) => r.key === marquee2Key);
   const imageRow = rows.find((r) => r.key === imageKey);
+  const fallback = DEFAULT_CLIENT_ROWS[index - 1];
 
-  const [category, setCategory] = useState("");
-  const [title, setTitle] = useState("");
-  const [meta, setMeta] = useState("");
-  const [marquee1, setMarquee1] = useState("");
-  const [marquee2, setMarquee2] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [category, setCategory] = useState(fallback?.category ?? "");
+  const [title, setTitle] = useState(fallback?.title ?? "");
+  const [meta, setMeta] = useState(fallback?.meta ?? "");
+  const [marquee1, setMarquee1] = useState(fallback?.marqueeParts[0] ?? "");
+  const [marquee2, setMarquee2] = useState(fallback?.marqueeParts[1] ?? "");
+  const [imageUrl, setImageUrl] = useState(fallback?.image ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setCategory(categoryRow?.value_text ?? "");
-    setTitle(titleRow?.value_text ?? "");
-    setMeta(metaRow?.value_text ?? "");
-    setMarquee1(marquee1Row?.value_text ?? "");
-    setMarquee2(marquee2Row?.value_text ?? "");
-    setImageUrl(imageRow?.value_image_url ?? "");
+    setCategory(categoryRow?.value_text ?? fallback?.category ?? "");
+    setTitle(titleRow?.value_text ?? fallback?.title ?? "");
+    setMeta(metaRow?.value_text ?? fallback?.meta ?? "");
+    setMarquee1(marquee1Row?.value_text ?? fallback?.marqueeParts[0] ?? "");
+    setMarquee2(marquee2Row?.value_text ?? fallback?.marqueeParts[1] ?? "");
+    setImageUrl(imageRow?.value_image_url ?? fallback?.image ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryRow, titleRow, metaRow, marquee1Row, marquee2Row, imageRow]);
 
   async function handleSave() {
@@ -314,15 +366,17 @@ function SkillIconEditor({
   const hoverKey = `skill_${slotKey}_hover_image`;
   const imageRow = rows.find((r) => r.key === imageKey);
   const hoverRow = rows.find((r) => r.key === hoverKey);
+  const fallback = skillGroups.flat().find((s) => s.key === slotKey);
 
-  const [imageUrl, setImageUrl] = useState(imageRow?.value_image_url ?? "");
-  const [hoverUrl, setHoverUrl] = useState(hoverRow?.value_image_url ?? "");
+  const [imageUrl, setImageUrl] = useState(imageRow?.value_image_url ?? fallback?.image ?? "");
+  const [hoverUrl, setHoverUrl] = useState(hoverRow?.value_image_url ?? fallback?.imageHover ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setImageUrl(imageRow?.value_image_url ?? "");
-    setHoverUrl(hoverRow?.value_image_url ?? "");
+    setImageUrl(imageRow?.value_image_url ?? fallback?.image ?? "");
+    setHoverUrl(hoverRow?.value_image_url ?? fallback?.imageHover ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageRow, hoverRow]);
 
   async function handleSave() {
@@ -388,17 +442,19 @@ function KeywordCardEditor({
   const titleRow = rows.find((r) => r.key === titleKey);
   const subRow = rows.find((r) => r.key === subKey);
   const imageRow = rows.find((r) => r.key === imageKey);
+  const fallback = defaultKeywords[index - 1];
 
-  const [title, setTitle] = useState("");
-  const [sub, setSub] = useState("");
-  const [imageUrl, setImageUrl] = useState(imageRow?.value_image_url ?? "");
+  const [title, setTitle] = useState(fallback?.title ?? "");
+  const [sub, setSub] = useState(fallback?.sub ?? "");
+  const [imageUrl, setImageUrl] = useState(imageRow?.value_image_url ?? fallback?.image ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setTitle(titleRow?.value_text ?? "");
-    setSub(subRow?.value_text ?? "");
-    setImageUrl(imageRow?.value_image_url ?? "");
+    setTitle(titleRow?.value_text ?? fallback?.title ?? "");
+    setSub(subRow?.value_text ?? fallback?.sub ?? "");
+    setImageUrl(imageRow?.value_image_url ?? fallback?.image ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [titleRow, subRow, imageRow]);
 
   async function handleSave() {
@@ -471,15 +527,17 @@ function HeroPillEditor({
   const iconKey = `hero_pill_${side}_${index}_icon`;
   const labelRow = rows.find((r) => r.key === labelKey);
   const iconRow = rows.find((r) => r.key === iconKey);
+  const fallback = (side === "left" ? HERO_DIAGRAM_LEFT_ITEMS : HERO_DIAGRAM_RIGHT_ITEMS)[index - 1];
 
-  const [label, setLabel] = useState("");
-  const [icon, setIcon] = useState("");
+  const [label, setLabel] = useState<string>(fallback?.label ?? "");
+  const [icon, setIcon] = useState<string>(fallback?.icon ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setLabel(labelRow?.value_text ?? "");
-    setIcon(iconRow?.value_text ?? "");
+    setLabel(labelRow?.value_text ?? fallback?.label ?? "");
+    setIcon(iconRow?.value_text ?? fallback?.icon ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [labelRow, iconRow]);
 
   async function handleSave() {
@@ -557,19 +615,21 @@ function HeroFeatureEditor({
   const heading2Row = rows.find((r) => r.key === heading2Key);
   const bodyRow = rows.find((r) => r.key === bodyKey);
   const iconRow = rows.find((r) => r.key === iconKey);
+  const fallback = HERO_FEATURE_CARDS[index - 1];
 
-  const [heading1, setHeading1] = useState("");
-  const [heading2, setHeading2] = useState("");
-  const [body, setBody] = useState("");
-  const [icon, setIcon] = useState("");
+  const [heading1, setHeading1] = useState<string>(fallback?.heading[0] ?? "");
+  const [heading2, setHeading2] = useState<string>(fallback?.heading[1] ?? "");
+  const [body, setBody] = useState<string>(fallback?.body ?? "");
+  const [icon, setIcon] = useState<string>(fallback?.icon ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setHeading1(heading1Row?.value_text ?? "");
-    setHeading2(heading2Row?.value_text ?? "");
-    setBody(bodyRow?.value_text ?? "");
-    setIcon(iconRow?.value_text ?? "");
+    setHeading1(heading1Row?.value_text ?? fallback?.heading[0] ?? "");
+    setHeading2(heading2Row?.value_text ?? fallback?.heading[1] ?? "");
+    setBody(bodyRow?.value_text ?? fallback?.body ?? "");
+    setIcon(iconRow?.value_text ?? fallback?.icon ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heading1Row, heading2Row, bodyRow, iconRow]);
 
   async function handleSave() {

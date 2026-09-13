@@ -2,13 +2,7 @@ import { useState } from "react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import Preloader from "../components/common/Preloader";
-import Hero, {
-  DEFAULT_LABEL,
-  DEFAULT_TAGLINE,
-  DEFAULT_STATEMENT,
-  DEFAULT_BIO,
-  DEFAULT_BIO_KO,
-} from "../components/home/Hero";
+import Hero from "../components/home/Hero";
 import IntroTop from "../components/home/IntroTop";
 import Reveal from "../components/common/Reveal";
 import StaggerReveal from "../components/common/StaggerReveal";
@@ -34,15 +28,25 @@ import HeroDiagram, {
 } from "../components/home/HeroDiagram";
 import { keywords as defaultKeywords, type KeywordItem } from "../data/keywords";
 import { skillGroups, type SkillSlide } from "../data/skills";
+import {
+  DEFAULT_HERO_LABEL,
+  DEFAULT_HERO_TAGLINE,
+  DEFAULT_HERO_STATEMENT,
+  DEFAULT_HERO_BIO,
+  DEFAULT_HERO_BIO_KO,
+  DEFAULT_INTRO_HEADING,
+  DEFAULT_INTRO_DESCRIPTION,
+  DEFAULT_WORKS_SUBTXT,
+  DEFAULT_WORKS_TITLE,
+  DEFAULT_WORKS_DESCRIPTION,
+  DEFAULT_SKILLS_SUBTXT,
+  DEFAULT_SKILLS_TITLE,
+} from "../data/siteDefaults";
 import { usePortfolios, mapRowToWorkItem } from "../lib/portfolioApi";
 import { useSiteContent, getSiteText, getSiteImage } from "../lib/siteContentApi";
 
-const DEFAULT_INTRO_HEADING =
-  "Design moves people. And people move the world. Design is not just what we see it’s how we feel, remember, and connect.";
 const DEFAULT_INTRO_HEADING_KO =
   "디자인은 사람을 움직이고, 사람은 세상을 움직입니다. 디자인은 보이는 것이 아니라 느끼고, 기억하고, 연결되는 것입니다.";
-const DEFAULT_INTRO_DESCRIPTION =
-  "사소한 요소 하나에도 의미를 담고, 그 안에서 공감과 연결의 순간을 만들어내는 디자인을 추구합니다. 나의 디자인은 '어떻게 보일까'보다 '어떻게 느껴질까'를 더 깊이 고민합니다. 저는 디자인을 통해 사람들의 하루에 잔잔한 변화를 만들고, 기억에 남는 경험과 진심이 닿는 브랜드를 만들어가고자 합니다.";
 
 /** 관리자가 site_content에 keyword_{n}_title/sub/image를 채우면 그 값으로, 비워두면
  *  data/keywords.ts의 기본 콘텐츠로 대체된다. "01." 같은 번호 라벨은 관리자가 편집할 수
@@ -183,20 +187,16 @@ export default function Home() {
   const resolvedHeroPillsLeft = resolveHeroPills(siteContent, "left", HERO_DIAGRAM_LEFT_ITEMS);
   const resolvedHeroPillsRight = resolveHeroPills(siteContent, "right", HERO_DIAGRAM_RIGHT_ITEMS);
   const resolvedHeroFeatures = resolveHeroFeatures(siteContent);
-  const heroLabel = getSiteText(siteContent, "hero_label", DEFAULT_LABEL);
-  const heroTagline = getSiteText(siteContent, "hero_tagline", DEFAULT_TAGLINE);
-  const heroStatement = getSiteText(siteContent, "hero_statement", DEFAULT_STATEMENT);
-  const heroBio = getSiteText(siteContent, "hero_bio", DEFAULT_BIO);
-  const heroBioKo = getSiteText(siteContent, "hero_bio_ko", DEFAULT_BIO_KO);
-  const worksSubTxt = getSiteText(siteContent, "works_subtxt", "(Professional)");
-  const worksTitle = getSiteText(siteContent, "works_title", "My Works");
-  const worksDescription = getSiteText(
-    siteContent,
-    "works_description",
-    "제가 경험한 과정, 고민의 흔적, 그리고 디자인을 통해 사람들과 나눈 감정의 이야기들입니다. 각 프로젝트는 서로 다른 목적과 문제를 가지고 있었지만, 그 안에서 저는 항상 사람과의 연결, 공감, 그리고 의미 있는 변화를 찾고자 했습니다"
-  );
-  const skillsSubTxt = getSiteText(siteContent, "skills_subtxt", "(Capabilities)");
-  const skillsTitle = getSiteText(siteContent, "skills_title", "Skills");
+  const heroLabel = getSiteText(siteContent, "hero_label", DEFAULT_HERO_LABEL);
+  const heroTagline = getSiteText(siteContent, "hero_tagline", DEFAULT_HERO_TAGLINE);
+  const heroStatement = getSiteText(siteContent, "hero_statement", DEFAULT_HERO_STATEMENT);
+  const heroBio = getSiteText(siteContent, "hero_bio", DEFAULT_HERO_BIO);
+  const heroBioKo = getSiteText(siteContent, "hero_bio_ko", DEFAULT_HERO_BIO_KO);
+  const worksSubTxt = getSiteText(siteContent, "works_subtxt", DEFAULT_WORKS_SUBTXT);
+  const worksTitle = getSiteText(siteContent, "works_title", DEFAULT_WORKS_TITLE);
+  const worksDescription = getSiteText(siteContent, "works_description", DEFAULT_WORKS_DESCRIPTION);
+  const skillsSubTxt = getSiteText(siteContent, "skills_subtxt", DEFAULT_SKILLS_SUBTXT);
+  const skillsTitle = getSiteText(siteContent, "skills_title", DEFAULT_SKILLS_TITLE);
   const workTogetherText = getSiteText(siteContent, "work_together_text", DEFAULT_WORK_TOGETHER_TEXT);
   const resolvedSkillGroups = resolveSkillGroups(siteContent);
   const resolvedClientRows = resolveClientRows(siteContent);

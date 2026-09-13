@@ -9,11 +9,14 @@ import { useTilt } from "../hooks/useTilt";
 import { useMagnetic } from "../hooks/useMagnetic";
 import profileImg from "../assets/portfolio/profile.jpg";
 import { useSiteContent, getSiteText, getSiteImage } from "../lib/siteContentApi";
-
-const DEFAULT_ABOUT_HEADING = "모두를 집중시키는 디자이너 신민석입니다";
-const DEFAULT_ABOUT_HEADING_EN = "A designer who commands everyone's attention.";
-const DEFAULT_ABOUT_DESCRIPTION =
-  "언제나 남들과 다른 시각으로 디자인을 바라보며, 평범함 속에 숨겨진 새로운 가능성을 발견하고, 익숙한 것들에서 비범함을 이끌어냅니다.";
+import {
+  DEFAULT_ABOUT_HEADING,
+  DEFAULT_ABOUT_HEADING_EN,
+  DEFAULT_ABOUT_DESCRIPTION,
+  DEFAULT_ABOUT_INFO_SUBTXT,
+  DEFAULT_ABOUT_INFO_TITLE,
+  DEFAULT_ABOUT_INFO_DESCRIPTION,
+} from "../data/siteDefaults";
 
 interface InfoRow {
   label: string;
@@ -181,9 +184,9 @@ export default function About() {
   const headingEn = getSiteText(siteContent, "about_heading_en", DEFAULT_ABOUT_HEADING_EN);
   const description = getSiteText(siteContent, "about_description", DEFAULT_ABOUT_DESCRIPTION);
   const profilePhoto = getSiteImage(siteContent, "about_profile_image", profileImg);
-  const infoSubTxt = getSiteText(siteContent, "about_info_subtxt", "(Profile)");
-  const infoTitle = getSiteText(siteContent, "about_info_title", "Info");
-  const infoDescription = getSiteText(siteContent, "about_info_description", "항목을 눌러 자세한 내용을 펼쳐보세요.");
+  const infoSubTxt = getSiteText(siteContent, "about_info_subtxt", DEFAULT_ABOUT_INFO_SUBTXT);
+  const infoTitle = getSiteText(siteContent, "about_info_title", DEFAULT_ABOUT_INFO_TITLE);
+  const infoDescription = getSiteText(siteContent, "about_info_description", DEFAULT_ABOUT_INFO_DESCRIPTION);
 
   // 다른 비주얼 요소(키워드 카드, 섹션 타이틀)와 같은 톤의 인터랙션을 프로필 사진에도 준다 —
   // 다만 실사 인물 사진이라 아이콘만큼 과감하진 않게 각도/확대를 절제했다.

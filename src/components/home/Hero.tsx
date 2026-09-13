@@ -2,6 +2,13 @@ import { useEffect, useRef } from "react";
 import { gsap } from "../../lib/gsap";
 import Hero3DLogo from "./Hero3DLogo";
 import HeroBackdrop from "./HeroBackdrop";
+import {
+  DEFAULT_HERO_LABEL,
+  DEFAULT_HERO_TAGLINE,
+  DEFAULT_HERO_STATEMENT,
+  DEFAULT_HERO_BIO,
+  DEFAULT_HERO_BIO_KO,
+} from "../../data/siteDefaults";
 
 const WORDMARK = "MSSHIN";
 
@@ -28,13 +35,14 @@ interface HeroProps {
   readyToReveal?: boolean;
 }
 
-export const DEFAULT_LABEL = "Design &\nPublishing";
-export const DEFAULT_TAGLINE = "Structured in process,\ncrafted with care.";
-export const DEFAULT_STATEMENT = "MADE TO WORK,\nNOT JUST LOOK";
-export const DEFAULT_BIO =
-  "I see every project from planning to implementation,\ndelivering results that go beyond what's visible.";
-export const DEFAULT_BIO_KO =
-  "저는 기획부터 구현까지 프로젝트 전체를 책임지고,\n보이는 것 이상의 결과로 이어지게 만듭니다.";
+// DEFAULT_LABEL 등 기본값 상수는 data/siteDefaults.ts로 옮겼다 — admin
+// 페이지가 이 파일(Hero3DLogo의 GLB preload 부수효과를 가진)을 거치지 않고
+// 기본값만 가져올 수 있어야 하기 때문이다. 하위 호환을 위해 그대로 재노출한다.
+export const DEFAULT_LABEL = DEFAULT_HERO_LABEL;
+export const DEFAULT_TAGLINE = DEFAULT_HERO_TAGLINE;
+export const DEFAULT_STATEMENT = DEFAULT_HERO_STATEMENT;
+export const DEFAULT_BIO = DEFAULT_HERO_BIO;
+export const DEFAULT_BIO_KO = DEFAULT_HERO_BIO_KO;
 /** 한 언어가 화면에 머무는 시간(ms) — 이 간격마다 영↔한이 번갈아 전환되며
  *  무한 반복된다. */
 const BIO_SWITCH_DELAY_MS = 2000;
@@ -320,15 +328,28 @@ export default function Hero({
       ref={sectionRef}
       className="visual relative flex w-full min-h-screen flex-col justify-between overflow-hidden bg-black mb-[100px]"
     >
-      {/* 배경(블랙 & 버번 톤 그라데이션 + 빛줄기 + 그리드)은 반드시 3D 로고보다 먼저
-          그려야, 투명한 캔버스 뒤로 배경이 비쳐 보인다. */}
-      <HeroBackdrop />
+      {/* Preloader(파티클 캔버스)가 화면을 덮고 있는 동안에도 이 컴포넌트 자체는
+          이미 마운트돼 있어서, readyToReveal 여부와 무관하게 HeroBackdrop의
+          파티클 캔버스와 Hero3DLogo의 WebGL(Bloom 포함) 렌더링이 그 뒤에서
+          함께 돌고 있었다 — 사용자 눈엔 안 보여도 GPU/CPU는 Preloader 자신의
+          캔버스까지 셋을 동시에 처리해야 해서 인트로 자체가 심각하게 느려지는
+          원인이었다. readyToReveal이 true가 되는 시점(Preloader가 실제로
+          화면을 드러내기 시작하는 순간)까지 이 둘을 아예 마운트하지 않는다 —
+          GLB 모델은 모듈 로드 시점에 이미 preload가 시작돼 있으므로(Hero3DLogo.tsx
+          상단의 useGLTF.preload) 이 시점엔 대개 이미 캐시돼 있어 지연이 거의 없다. */}
+      {readyToReveal && (
+        <>
+          {/* 배경(블랙 & 버번 톤 그라데이션 + 빛줄기 + 그리드)은 반드시 3D 로고보다
+              먼저 그려야, 투명한 캔버스 뒤로 배경이 비쳐 보인다. */}
+          <HeroBackdrop />
 
-      {/* 중앙 3D 로고 — 상/하단 텍스트와 겹쳐도 자연스럽도록 절대 배치, 클릭/포인터 이벤트는
-          아래 텍스트에 방해되지 않게 통과시킨다. */}
-      <div ref={logoWrapRef} role="img" aria-label={WORDMARK} className="absolute inset-0">
-        <Hero3DLogo />
-      </div>
+          {/* 중앙 3D 로고 — 상/하단 텍스트와 겹쳐도 자연스럽도록 절대 배치, 클릭/포인터
+              이벤트는 아래 텍스트에 방해되지 않게 통과시킨다. */}
+          <div ref={logoWrapRef} role="img" aria-label={WORDMARK} className="absolute inset-0">
+            <Hero3DLogo />
+          </div>
+        </>
+      )}
 
       <div className="relative z-10 flex items-start justify-between px-10 pt-[150px] max-lg:px-6 max-lg:pt-[128px] max-sm:px-5 max-sm:pt-[104px]">
         <p
