@@ -172,7 +172,7 @@ export default function Home() {
   // true가 된 뒤(=인트로가 실제로 콘텐츠를 드러내기 시작한 뒤)부터
   // 시작해야 한다.
   const [introDone, setIntroDone] = useState(false);
-  const { rows } = usePortfolios();
+  const { rows, loading: portfoliosLoading } = usePortfolios();
   const { rows: siteContent } = useSiteContent();
   const introHeading = getSiteText(siteContent, "intro_heading", DEFAULT_INTRO_HEADING);
   const introDescription = getSiteText(siteContent, "intro_description", DEFAULT_INTRO_DESCRIPTION);
@@ -257,6 +257,27 @@ export default function Home() {
 
         <Reveal as="section" duration={3000} className={`work ${workSectionClass}`}>
           <SectionTitle subTxt={worksSubTxt} title={worksTitle} description={worksDescription} />
+
+          {/* Supabase에서 포트폴리오 목록을 받아오는 동안(특히 네트워크가 느리거나
+              Supabase 프로젝트가 한동안 유휴 상태였다가 깨어나는 경우 몇 초씩 걸릴
+              수 있다) 이 자리가 텅 비어 있으면 "페이지가 이상하게 렌더링된다"는
+              인상을 준다 — 실제 카드와 같은 grid/폭을 쓰는 펄스 스켈레톤을 대신
+              보여줘서, 로딩이 의도된 상태라는 걸 바로 알 수 있게 한다. */}
+          {portfoliosLoading &&
+            [0, 1, 2].map((rowIndex) => (
+              <div
+                key={rowIndex}
+                className="work-list flex justify-between gap-5 mb-[240px] max-lg:gap-4 max-lg:mb-[60px] max-sm:flex-col max-sm:gap-7 max-sm:mb-10"
+              >
+                {[0, 1].map((i) => (
+                  <div key={i} className={HOME_SLOT_WIDTHS[rowIndex * 2 + i]}>
+                    <div className="w-full aspect-[3/2] max-w-full animate-pulse rounded-md bg-white/5 max-lg:rounded-sm" />
+                    <div className="mt-4 h-4 w-2/3 animate-pulse rounded bg-white/5" />
+                    <div className="mt-2 h-3 w-1/3 animate-pulse rounded bg-white/5" />
+                  </div>
+                ))}
+              </div>
+            ))}
 
           {featuredRows.map((rowItems, rowIndex) => (
             <StaggerReveal
