@@ -255,7 +255,12 @@ export default function Home() {
           </div>
         </section>
 
-        <Reveal as="section" duration={3000} className={`work ${workSectionClass}`}>
+        {/* 다른 섹션(hero-diagram/skills 등)과 달리 이 섹션만 3초 대신 1초로 줄였다 —
+            안에 WorkCard 각각이 자기 자신의 등장 애니메이션(StaggerReveal 1초 + tilt)을
+            또 갖고 있어서, 바깥 섹션까지 3초짜리 blur/scale/tilt 리빌이 겹치면 스크롤
+            진입 후 한참 동안 카드 이미지가 흐리고 눌린 채로 보여 "포트폴리오만 늦게
+            나온다"거나 "이미지가 잘려 보인다"는 인상으로 이어졌다. */}
+        <Reveal as="section" duration={1000} className={`work ${workSectionClass}`}>
           <SectionTitle subTxt={worksSubTxt} title={worksTitle} description={worksDescription} />
 
           {/* Supabase에서 포트폴리오 목록을 받아오는 동안(특히 네트워크가 느리거나
