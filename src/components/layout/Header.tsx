@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import logo from "../../assets/comn/logo.png";
-import logoBlack from "../../assets/comn/logo-b.png";
 import MobileNav from "./MobileNav";
 
 export type HeaderVariant = "default" | "sub";
@@ -85,12 +83,15 @@ export default function Header({ variant = "default" }: HeaderProps) {
           max-sm:w-[...]를 키워도 실제로는 더 작게 보였던 원인). max-lg부터는 컨테이너를
           내용물(이미지) 크기에 맞게 auto로 풀어서 이미지가 지정한 크기 그대로 보이게 한다. */}
       <h1 className="logo w-[30%] max-lg:relative max-lg:z-[60] max-lg:w-auto">
-        <Link to="/">
-          <img
-            src={isSub ? logoBlack : logo}
-            alt="신민석 포트폴리오 로고"
-            className="w-[226px] max-lg:w-[186px] max-sm:w-[204px]"
-          />
+        <Link to="/" aria-label="신민석 포트폴리오 로고">
+          <span
+            className={[
+              "font-en text-[28px] font-extrabold uppercase tracking-tight max-lg:text-[24px] max-sm:text-[26px]",
+              isSub ? "text-black" : "text-white",
+            ].join(" ")}
+          >
+            MSSHIN
+          </span>
         </Link>
       </h1>
 
