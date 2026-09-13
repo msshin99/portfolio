@@ -495,10 +495,14 @@ export default function Hero({
       // 보이는 상태로 남은 글자들만 한참 더 스크램블되는 구간이 길게
       // 남아서(특히 기기가 느리거나 다른 작업으로 프레임이 밀릴 때 더 길게
       // 늘어나 보였다), 마치 계속 깨져 보이는 것처럼 오인되었다.
+      // flickerOut이 이 컨테이너를 마지막에 opacity:0, filter:blur(6px)로
+      // 남겨두므로, opacity만 되돌리고 filter를 그대로 두면 두 번째 한글
+      // 전환부터는 블러가 남아 사실상 안 보이는 상태로 굳어버린다(실제로
+      // 있었던 버그) — fadeInEnglish처럼 filter도 함께 초기화한다.
       gsap.fromTo(
         bioKoRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: totalDuration / 1000, ease: "power1.out" },
+        { opacity: 0, filter: "blur(6px)" },
+        { opacity: 1, filter: "blur(0px)", duration: totalDuration / 1000, ease: "power1.out" },
       );
 
       const done = new Array<boolean>(koLetters.length).fill(false);
