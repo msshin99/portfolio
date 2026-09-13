@@ -138,7 +138,13 @@ function resolveClientRows(siteContent: Parameters<typeof getSiteText>[0]): Clie
   });
 }
 
-const sectionClass = "max-w-[1880px] mx-auto px-10 mb-[280px] max-lg:px-10 max-lg:mb-[240px] max-sm:px-5 max-sm:mb-[180px]";
+const sectionBase = "max-w-[1880px] mx-auto px-10 max-lg:px-10 max-sm:px-5";
+const sectionClass = `${sectionBase} mb-[280px] max-lg:mb-[240px] max-sm:mb-[180px]`;
+// work 섹션 바로 아래엔 WorkTogether 마퀴가 자체 상단 padding(모바일 60px)을
+// 이미 갖고 있어, 다른 섹션과 똑같이 mb-[180px]를 쓰면 두 요소 사이 간격이
+// 합산되어(180+60=240px) 유독 휑하게 벌어져 보였다 — 모바일에서만 이 섹션의
+// 여백을 조금 줄인다.
+const workSectionClass = `${sectionBase} mb-[280px] max-lg:mb-[240px] max-sm:mb-[100px]`;
 
 /**
  * My Works 카드 너비 — 피그마 선택 노드(2007:214) 실측 기준.
@@ -249,7 +255,7 @@ export default function Home() {
           </div>
         </section>
 
-        <Reveal as="section" duration={3000} className={`work ${sectionClass}`}>
+        <Reveal as="section" duration={3000} className={`work ${workSectionClass}`}>
           <SectionTitle subTxt={worksSubTxt} title={worksTitle} description={worksDescription} />
 
           {featuredRows.map((rowItems, rowIndex) => (
