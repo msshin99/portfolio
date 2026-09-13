@@ -133,13 +133,30 @@ export function mapRowToPortfolioDetail(row: PortfolioRow): PortfolioDetail {
   };
 }
 
-/** WorkCard 그리드(리스트/메인/Related Projects)에 쓰는 WorkItem 모양으로 변환. */
+/** 관리자가 업로드한 원본 이미지가 보정 없이 그대로 Supabase Storage에 올라가 있어(실측
+ *  2~4.5MB), 작은 카드 썸네일 하나 보여주려고 그 원본을 통째로 내려받는 게 "My Works"
+ *  섹션이 느리게 뜨는 걸로 체감되는 가장 큰 원인이었다 — 6장만 합쳐도 17MB가 넘는다.
+ *  Supabase Storage의 이미지 변환 엔드포인트(/render/image/public/...)를 쓰면 원본은
+ *  그대로 보존한 채, 카드에 실제로 필요한 크기로 서버에서 리사이즈+재인코딩된 버전을
+ *  대신 받아올 수 있다(같은 파일 기준 실측 2.9MB → 61KB). 카드가 아니라 상세 페이지의
+ *  큰 비주얼 이미지(mapRowToPortfolioDetail의 visual/mainImage)에는 적용하지 않는다 —
+ *  거긴 원래도 크게 보여줘야 하는 자리라 원본 그대로 쓴다.
+ */
+function toThumbnailUrl(url: string, width: number): string {
+  if (!url.includes("/storage/v1/object/public/")) return url;
+  const base = url.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/");
+  return `${base}?width=${width}&quality=75`;
+}
+
+/** WorkCard 그리드(리스트/메인/Related Projects)에 쓰는 WorkItem 모양으로 변환. 카드가
+ *  실제로 그려지는 가장 큰 폭(레티나 2배 기준 약 1820px, Home.tsx BIG_CARD 참고) 정도로만
+ *  받아오면 화면상 품질 차이 없이 충분하다. */
 export function mapRowToWorkItem(row: PortfolioRow): WorkItem {
   return {
     title: row.title,
     date: row.list_date_label,
     sub: row.list_caption,
-    image: row.hero_image_url ?? "",
+    image: row.hero_image_url ? toThumbnailUrl(row.hero_image_url, 1600) : "",
     href: `/portfolio/${row.slug}`,
   };
 }
