@@ -1,4 +1,5 @@
 import { Asterisk } from "lucide-react";
+import { useState } from "react";
 import StaggerReveal from "../common/StaggerReveal";
 import serviceImg1 from "../../assets/service/img-01.jpg";
 import serviceImg2 from "../../assets/service/img-02.jpg";
@@ -77,34 +78,54 @@ function MarqueeSet({ marqueeParts, image }: { marqueeParts: [string, string]; i
 }
 
 function ClientRow({ category, title, meta, image, marqueeParts }: ClientRowItem) {
+  // 데스크탑은 마우스 hover(group-hover)로 마퀴가 열리지만, 터치 기기는 :hover가
+  // 애초에 발생하지 않는다. 탭으로도 같은 효과를 열고 닫을 수 있도록 별도 상태를
+  // 두고, 이 상태일 때는 인라인 style로 opacity를 강제해 group-hover 클래스와
+  // 충돌 없이(동일 우선순위 유틸리티 클래스끼리는 나중에 추가한 쪽이 이긴다는
+  // 보장이 없으므로) 확실히 덮어쓴다.
+  const [active, setActive] = useState(false);
+
   return (
-    <li className="group relative overflow-hidden border-t border-white/10 last:border-b">
-      {/* 평소 상태 — 왼쪽 카테고리 / 가운데 큰 타이틀 / 오른쪽 연도. 3열
-          grid로 폭을 나눠야, 좌우 라벨 길이가 달라져도 가운데 타이틀이 항상
-          정확히 중앙에 온다(flex justify-between이면 라벨 길이에 따라
-          타이틀이 좌우로 밀린다). */}
+    <li
+      className="group relative cursor-pointer overflow-hidden border-t border-white/10 last:border-b"
+      role="button"
+      tabIndex={0}
+      onClick={() => setActive((prev) => !prev)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setActive((prev) => !prev);
+        }
+      }}
+    >
+      {/* 평소 상태 — 왼쪽 카테고리 / 가운데 큰 타이틀 / 오른쪽 연도. 좌우 라벨은
+          absolute로 빼서 가운데 타이틀이 형제 요소의 폭과 무관하게 항상 컨테이너
+          정중앙에 오게 한다(grid-cols-[1fr_auto_1fr] + justify-self-center 방식은
+          좁은 화면에서 auto 트랙이 0으로 계산돼 타이틀이 왼쪽으로 쏠리는 문제가
+          있었다). */}
       <div
         className={[
-          "relative z-10 grid h-[220px] grid-cols-[1fr_auto_1fr] items-center px-10 transition-opacity duration-300 ease-out",
+          "relative z-10 flex h-[220px] items-center justify-center transition-opacity duration-300 ease-out",
           "group-hover:opacity-0",
-          "max-lg:h-[170px] max-lg:px-6",
-          "max-sm:h-[130px] max-sm:px-4",
+          "max-lg:h-[170px]",
+          "max-sm:h-[130px]",
         ].join(" ")}
+        style={active ? { opacity: 0 } : undefined}
       >
-        <span className="font-en text-base text-white/45 max-sm:hidden">{category}</span>
-        <h3 className="font-en justify-self-center text-[76px] font-bold text-white max-lg:text-[46px] max-sm:text-[30px]">
+        <span className="font-en absolute left-10 text-base text-white/45 max-lg:left-6 max-sm:hidden">{category}</span>
+        <h3 className="font-en text-center text-[76px] font-bold text-white max-lg:text-[46px] max-sm:text-[30px]">
           {title}
         </h3>
-        <span className="font-en justify-self-end text-base text-white/45 max-sm:hidden">{meta}</span>
+        <span className="font-en absolute right-10 text-base text-white/45 max-lg:right-6 max-sm:hidden">{meta}</span>
       </div>
 
-      {/* hover 상태 — 흰 배경 위로 로고 마크 + 브랜드명 + 원형 이미지가 반복
-          되며 끝없이 흘러가는 마퀴. pointer-events는 끄고, 실제 클릭 대상은
-          아래 평소 상태 레이어가 아니라 이 li 자체(추후 링크가 필요해지면
-          li를 a/Link로 바꾸면 된다). */}
+      {/* hover(데스크탑)/tap(모바일) 상태 — 흰 배경 위로 로고 마크 + 브랜드명 +
+          원형 이미지가 반복되며 끝없이 흘러가는 마퀴. pointer-events는 끄고,
+          실제 클릭 대상은 이 li 자체다. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-20 flex items-center overflow-hidden bg-white opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100"
+        style={active ? { opacity: 1 } : undefined}
       >
         <div className="client-marquee-track flex w-max shrink-0 items-center">
           <MarqueeSet marqueeParts={marqueeParts} image={image} />
