@@ -73,30 +73,30 @@ interface IntroTiming {
  *  이전엔 전환이 너무 빨리 지나가 버린다는 피드백을 받아 전체적으로 늘렸다. */
 const TIMINGS: Record<"first" | "returning", IntroTiming> = {
   first: {
-    gatherDuration: 1.9,
-    gatherStaggerMax: 1.0,
-    holdDuration: 2.2,
-    rearrangeDuration: 1.9,
-    rearrangeStaggerMax: 0.95,
-    // 그리드(동심 다각형)가 다 모인 뒤 별자리처럼 서로 이어지는 선
-    // (constellation lines)이 나타났다 사라질 시간을 벌기 위해 늘렸다.
-    gridHoldDuration: 1.0,
-    holeDuration: 1.7,
-    fadeOutDuration: 0.9,
-    subtitleDelay: 3.2,
+    gatherDuration: 2.1,
+    gatherStaggerMax: 1.1,
+    holdDuration: 2.4,
+    rearrangeDuration: 2.1,
+    rearrangeStaggerMax: 1.05,
+    // 성긴 고리가 자리잡은 뒤 드리프트로 살아 움직이는 걸 더 오래 볼 수
+    // 있도록 다른 단계보다 크게 늘렸다.
+    gridHoldDuration: 1.6,
+    holeDuration: 1.85,
+    fadeOutDuration: 1.0,
+    subtitleDelay: 3.4,
     subtitleFadeDuration: 0.5,
-    subtitleHold: 1.3,
+    subtitleHold: 1.6,
   },
   returning: {
-    gatherDuration: 0.95,
-    gatherStaggerMax: 0.55,
-    holdDuration: 1.2,
-    rearrangeDuration: 0.95,
-    rearrangeStaggerMax: 0.5,
-    gridHoldDuration: 0.5,
-    holeDuration: 1.0,
-    fadeOutDuration: 0.55,
-    subtitleDelay: 1.3,
+    gatherDuration: 1.05,
+    gatherStaggerMax: 0.6,
+    holdDuration: 1.3,
+    rearrangeDuration: 1.05,
+    rearrangeStaggerMax: 0.55,
+    gridHoldDuration: 0.75,
+    holeDuration: 1.1,
+    fadeOutDuration: 0.6,
+    subtitleDelay: 1.4,
     subtitleFadeDuration: 0.32,
     subtitleHold: 0.7,
   },
@@ -624,9 +624,18 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         subtitleEl.style.transform = "translateX(-50%)";
       }
 
+      // 고리 기준 반지름 — 각 파티클이 중심에서 얼마나 멀리 떨어졌는지를
+      // 이 값과 비교해서, 고리 바깥으로 흩어진("이탈") 점일수록 드리프트
+      // 진폭을 더 크게 준다. 딱 붙어있는 고리 자체보다 그 주변에 성기게
+      // 떠 있는 점들이 더 크게 흔들려야 "주변 점들이 살아 움직인다"는
+      // 인상이 뚜렷해진다.
+      const scatterBaseR = Math.min(width, height) * SCATTER_RING_RADIUS_RATIO;
+
       particles = textPoints.map((tp, i) => {
         const start = randomOffscreenPoint(width, height);
         const gp = gridPoints[i];
+        const distRatio = Math.hypot(gp.x - width / 2, gp.y - height / 2) / scatterBaseR;
+        const driftScale = Math.min(2.4, Math.max(0.7, distRatio));
         return {
           x: start.x,
           y: start.y,
@@ -646,9 +655,10 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           velY: 0,
           driftPhase: Math.random() * Math.PI * 2,
           driftFreq: 0.6 + Math.random() * 1.1,
-          // 처음엔 2~9px로 뒀는데 육안으로는 거의 안 보일 만큼 은은해서,
-          // "살아있다"는 느낌이 확실히 들도록 진폭을 키웠다.
-          driftAmp: 5 + Math.random() * 14,
+          // 처음엔 2~9px로 뒀는데 육안으로는 거의 안 보일 만큼 은은해서 5~19px로
+          // 키웠고, 여기에 다시 거리 기반 driftScale(0.7~2.4배)을 곱해 고리
+          // 바깥의 이탈 점들이 눈에 띄게 더 크게 흔들리도록 했다.
+          driftAmp: (5 + Math.random() * 14) * driftScale,
         };
       });
 
