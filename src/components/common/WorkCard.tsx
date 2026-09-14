@@ -195,12 +195,13 @@ export default function WorkCard({
           // 자동으로 걸어버려서, 사진 자체는 항상 원래(풀스크린) 크기 그대로 있고 부모 박스가
           // 커지는 만큼만 "구멍"으로 더 보이는 것처럼 되어버린다 — 즉 "사진이 커지는" 게 아니라
           // "이미 꽉 찬 사진을 보는 창이 넓어지는" 것처럼 보여서 핵심 전환 모션 자체가 깨진다.
-          // object-cover는 카드 박스(3:2)와 원본 이미지의 가로세로 비율이 다르면
-          // 위아래(또는 좌우)를 잘라내 채운다 — 세로로 긴 원본(예: 웹페이지 전체
-          // 스크린샷)일수록 잘려나가는 비율이 커서 "이미지가 잘려/확대돼 보인다"는
-          // 인상을 줬다. object-contain으로 바꿔 원본 비율을 그대로 유지한 채 박스
-          // 안에 전부 들어오게 하고, 남는 여백은 로딩 스켈레톤과 같은 bg-white/5로
-          // 채워 빈 공간이 아니라 카드의 일부처럼 보이게 한다.
+          // object-contain은 원본 비율을 그대로 유지해 잘리는 부분은 없지만, 세로로
+          // 긴 원본(노트북 목업+제품 사진이 위아래로 이어붙은 등)일수록 카드 좌우에
+          // 어두운 여백이 크게 생겨 콘텐츠가 작게 떠 있는 것처럼 보이는 문제가 있었다
+          // — 어두운 배경에서는 그 여백이 잘 안 보여 오히려 "이미지가 잘린" 것 같은
+          // 착시를 줬다. object-cover + object-top으로 바꿔 카드를 항상 여백 없이
+          // 꽉 채우고, 세로로 긴 원본은 보통 더 중요한 정보가 담긴 위쪽부터 기준으로
+          // 잘라낸다.
           <motion.div
             layoutId={handedOff ? undefined : layoutId}
             animate={{ opacity: handedOff ? 0 : 1 }}
@@ -213,8 +214,8 @@ export default function WorkCard({
               alt={item.title}
               className={
                 thumbnailReveal
-                  ? "w-full h-full object-contain block will-change-transform"
-                  : "w-full h-full object-contain block transition-transform duration-500 ease-out group-hover:scale-110"
+                  ? "w-full h-full object-cover object-top block will-change-transform"
+                  : "w-full h-full object-cover object-top block transition-transform duration-500 ease-out group-hover:scale-110"
               }
             />
           </motion.div>
@@ -225,8 +226,8 @@ export default function WorkCard({
             alt={item.title}
             className={
               thumbnailReveal
-                ? "rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-contain max-w-full bg-white/5 will-change-transform"
-                : "rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-contain max-w-full bg-white/5 transition-transform duration-500 ease-out group-hover:scale-110"
+                ? "rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-cover object-top max-w-full bg-white/5 will-change-transform"
+                : "rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-cover object-top max-w-full bg-white/5 transition-transform duration-500 ease-out group-hover:scale-110"
             }
           />
         )}
