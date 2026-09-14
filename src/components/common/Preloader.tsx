@@ -515,6 +515,8 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 느낌까지 더한다 — 위치 드리프트와 주파수가 달라 서로 어긋난
           // 리듬으로 겹친다.
           twinkle = 1 + Math.sin(time * p.twinkleFreq + p.twinklePhase) * 0.4;
+        }
+        if (ringRotationState.active) {
           // 점 하나하나의 흔들림과는 별개로, 고리 전체를 중심을 축으로 아주
           // 천천히 통째로 돌린다 — 각 점의 제자리 떨림 위에 "천체가 맴도는"
           // 듯한 느낌을 더해 훨씬 살아있게 보이게 한다. 속도를 최대한 낮춰
@@ -623,6 +625,14 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
     // 움직이게 한다. 텍스트가 떠 있는 hold 구간에는 끄고 그대로 둬서
     // "MSSHIN" 가독성은 건드리지 않는다.
     const driftState = { active: false };
+    // 고리 "전체 회전"은 driftState와 별개 스위치로 둔다 — driftState는 재배열
+    // 전환이 시작되는 순간(holdEnd)부터 켜지는데, 그 시점엔 점들이 아직
+    // MSSHIN 위치에서 고리 위치로 날아가는 도중이라, 그 이동 중인 좌표에까지
+    // 전체 회전을 얹으면 원래는 사방으로 모여드는 모양이 한쪽으로 쏠려
+    // 도는 것처럼 비스듬히 밀려 보인다(사선처럼 보이는 원인이었다). 점들이
+    // 고리에 다 도착한 뒤(phase2End)부터만 회전을 켜서, 전환 중에는 순수하게
+    // 목적지를 향해서만 움직이게 한다.
+    const ringRotationState = { active: false };
     // 그리드 완성 직후 짧게 나타났다 사라지는 별자리 연결선의 불투명도.
     const lineState = { alpha: 0 };
     // 격자 인접 쌍(같은 행의 오른쪽 이웃 + 같은 열의 아래쪽 이웃)만 이어서, 모든
@@ -677,32 +687,24 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       // 더 은은하게 보이게 한다(getParticleCount와 같은 기준선을 쓴다).
       const dotSizeScale = width <= 600 ? 0.72 : 1;
 
-      // MSSHIN -> 고리 전환에서 각 점의 목적지(gridPoints[i])가 원래 텍스트 위치와
-      // 아무 상관 없는 무작위 인덱스라, 점들이 서로 어지럽게 교차하며 "흩어졌다가
-      // 다시 모이는" 것처럼 보였다 — 글자가 고리로 하나로 이어져 흘러들어가는
-      // 느낌을 내려면, 왼쪽에서 오른쪽으로 읽히는 텍스트 순서와 고리를 도는
-      // 각도 순서를 서로 짝지어야 한다. 텍스트 점을 x좌표(왼→오) 순으로,
-      // 고리 점을 중심각(한 바퀴) 순으로 각각 정렬한 뒤 같은 순번끼리 짝지으면,
-      // 글자가 왼쪽부터 순서대로 고리를 한 바퀴 감아 들어가듯 연속적으로
-      // 이어지는 궤적이 만들어진다.
-      const cx = width / 2;
-      const cy = height / 2;
-      const textOrder = textPoints.map((_, i) => i).sort((a, b) => textPoints[a].x - textPoints[b].x);
-      const gridOrder = gridPoints
-        .map((_, i) => i)
-        .sort((a, b) => {
-          const angleA = Math.atan2(gridPoints[a].y - cy, gridPoints[a].x - cx);
-          const angleB = Math.atan2(gridPoints[b].y - cy, gridPoints[b].x - cx);
-          return angleA - angleB;
-        });
-      const gridForText: Point[] = new Array(textPoints.length);
-      for (let k = 0; k < textOrder.length; k++) {
-        gridForText[textOrder[k]] = gridPoints[gridOrder[k % gridOrder.length]];
+      // MSSHIN -> 고리 전환에서 점들이 글자 순서(왼→오)와 고리를 도는 각도 순서로
+      // 짝지어지도록 정렬해 짝짓는 방식을 몇 차례 시도했는데, 어떤 정렬 기준을
+      // 쓰든 "정해진 순서대로 한 방향으로 쓸려가는" 모양이 되어 화면을 가로지르는
+      // 사선 띠처럼 보였다 — 정렬 자체가 만드는 인위적인 줄서기 때문이었다.
+      // 그래서 순서를 아예 섞어서(shuffle) 짝짓는다 — 각 점의 목적지가 화면
+      // 전역에 고르게 흩어지므로 한 방향으로 쓸려가는 띠가 생기지 않고, intensity를
+      // 낮춰(거의 직선에 가까운 궤적) 점들끼리 서로 어지럽게 교차하는 느낌도
+      // 크지 않다 — 글자가 사방으로 흩어졌다 고리로 모여드는, 방향성 없는
+      // 자연스러운 움직임이 된다.
+      const gridShuffled = gridPoints.slice();
+      for (let i = gridShuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [gridShuffled[i], gridShuffled[j]] = [gridShuffled[j], gridShuffled[i]];
       }
 
       particles = textPoints.map((tp, i) => {
         const start = randomOffscreenPoint(width, height);
-        const gp = gridForText[i];
+        const gp = gridShuffled[i % gridShuffled.length];
         const distRatio = Math.hypot(gp.x - width / 2, gp.y - height / 2) / scatterBaseR;
         const driftScale = Math.min(3.4, Math.max(0.7, distRatio));
         return {
@@ -861,6 +863,10 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       // 은은한 맴돎이 겹쳐져 전환 자체가 훨씬 생동감 있게 보인다. 고리로 다
       // 모인 뒤에도(구멍이 뚫리기 전까지) 계속 살아있는 느낌을 이어간다.
       master.call(() => { driftState.active = true; }, [], holdEnd);
+      // 고리 "전체 회전"은 점들이 실제로 고리에 다 도착한 뒤(phase2End)에만
+      // 켠다 — 날아가는 도중에 켜면 이동 중인 좌표까지 회전이 얹혀서 원래는
+      // 사방에서 모여드는 모양이 한쪽으로 쏠려 도는 사선처럼 보인다.
+      master.call(() => { ringRotationState.active = true; }, [], phase2End);
 
       // 그리드가 다 모인 직후 ~ 구멍이 뚫리기 직전까지, 파티클들이 서로 이어진
       // 회로처럼 잠깐 반짝였다 사라진다 — 그리드로의 재배열이 "그냥 흩어져
@@ -879,6 +885,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       master.call(() => {
         holeState.active = true;
         driftState.active = false;
+        ringRotationState.active = false;
         // 구멍이 뚫리기 시작하는 바로 그 지점에서 불꽃 파편이 사방으로 튄다 —
         // 기존 방사형 flash와 겹쳐, 단순히 "사라짐"이 아니라 "터지며 드러남"이
         // 되도록 임팩트를 더한다.
