@@ -173,11 +173,12 @@ const GLASS_STYLE: CSSProperties = {
   backgroundColor: "rgba(255,255,255,0.04)",
 };
 
-/** 하단 3개 피처 카드 전용 배경 — flat한 회색 유리 대신, 아주 옅은 웜톤이 도는
- *  깊은 블랙 그라디언트와 은은한 하이라이트/그림자로 무게감과 고급스러움을 준다. */
+/** 하단 3개 피처 카드 전용 배경 — flat한 회색 유리 대신, 색상 없이 순수 블랙/화이트
+ *  톤만으로 깊이를 준다. 상단은 미세하게 밝은 무채색 sheen, 하단으로 갈수록
+ *  순수 블랙으로 가라앉는 그라디언트 + 은은한 하이라이트/그림자로 무게감을 만든다. */
 const FEATURE_CARD_STYLE: CSSProperties = {
   background:
-    "linear-gradient(165deg, rgba(48,38,30,0.55) 0%, rgba(9,8,7,0.98) 42%, rgba(0,0,0,1) 100%)",
+    "linear-gradient(165deg, rgba(255,255,255,0.09) 0%, rgba(10,10,10,0.98) 42%, rgba(0,0,0,1) 100%)",
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.07), 0 24px 48px -24px rgba(0,0,0,0.9)",
 };
 
