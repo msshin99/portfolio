@@ -69,32 +69,32 @@ interface IntroTiming {
  *  이전엔 전환이 너무 빨리 지나가 버린다는 피드백을 받아 전체적으로 늘렸다. */
 const TIMINGS: Record<"first" | "returning", IntroTiming> = {
   first: {
-    gatherDuration: 1.5,
-    gatherStaggerMax: 0.8,
-    holdDuration: 1.7,
-    rearrangeDuration: 1.4,
-    rearrangeStaggerMax: 0.75,
-    // 그리드(동심원)가 다 모인 뒤 별자리처럼 서로 이어지는 선(constellation
-    // lines)이 나타났다 사라질 시간을 벌기 위해 0.4 -> 0.7로 늘렸다.
-    gridHoldDuration: 0.7,
-    holeDuration: 1.4,
-    fadeOutDuration: 0.8,
-    subtitleDelay: 2.6,
-    subtitleFadeDuration: 0.45,
-    subtitleHold: 1.0,
+    gatherDuration: 1.9,
+    gatherStaggerMax: 1.0,
+    holdDuration: 2.2,
+    rearrangeDuration: 1.9,
+    rearrangeStaggerMax: 0.95,
+    // 그리드(동심 다각형)가 다 모인 뒤 별자리처럼 서로 이어지는 선
+    // (constellation lines)이 나타났다 사라질 시간을 벌기 위해 늘렸다.
+    gridHoldDuration: 1.0,
+    holeDuration: 1.7,
+    fadeOutDuration: 0.9,
+    subtitleDelay: 3.2,
+    subtitleFadeDuration: 0.5,
+    subtitleHold: 1.3,
   },
   returning: {
-    gatherDuration: 0.75,
-    gatherStaggerMax: 0.45,
-    holdDuration: 0.95,
-    rearrangeDuration: 0.75,
-    rearrangeStaggerMax: 0.4,
-    gridHoldDuration: 0.4,
-    holeDuration: 0.8,
-    fadeOutDuration: 0.45,
-    subtitleDelay: 1.0,
-    subtitleFadeDuration: 0.28,
-    subtitleHold: 0.55,
+    gatherDuration: 0.95,
+    gatherStaggerMax: 0.55,
+    holdDuration: 1.2,
+    rearrangeDuration: 0.95,
+    rearrangeStaggerMax: 0.5,
+    gridHoldDuration: 0.5,
+    holeDuration: 1.0,
+    fadeOutDuration: 0.55,
+    subtitleDelay: 1.3,
+    subtitleFadeDuration: 0.32,
+    subtitleHold: 0.7,
   },
 };
 
@@ -259,12 +259,27 @@ function computeRingSizes(count: number): number[] {
   return sizes;
 }
 
-/** 파티클 개수만큼 화면 중앙에 동심원(과녁/레이더 같은 여러 겹 원) 좌표를
- *  배치한다. 이전엔 소용돌이 나선 + 방사형 가닥을 함께 그었는데, 선이
- *  사방으로 교차하니 오히려 난해해 보인다는 피드백을 받아 — 각 링을 그
- *  자체로 닫힌 원 하나로만 잇는 훨씬 단순하고 또렷한 형태로 바꿨다. 화려함은
- *  유지하면서(여러 겹의 빛나는 원이 동시에 떠 있는 모습) 한눈에 읽히는
- *  기하학적 구조라 "그냥 어지럽다"는 인상이 안 남는다. */
+/** 정n각형 둘레 위의 한 점을 반환한다 — t는 둘레를 한 바퀴 도는 비율(0~1).
+ *  각도로 원을 그리는 대신, 꼭짓점 사이를 직선으로 보간해서 실제로 곧은
+ *  변을 가진 다각형 윤곽을 만든다. */
+function polygonPerimeterPoint(cx: number, cy: number, radius: number, sides: number, rotation: number, t: number): Point {
+  const edge = Math.floor(t * sides) % sides;
+  const edgeT = t * sides - Math.floor(t * sides);
+  const a1 = rotation + (edge / sides) * Math.PI * 2;
+  const a2 = rotation + ((edge + 1) / sides) * Math.PI * 2;
+  const x1 = cx + Math.cos(a1) * radius;
+  const y1 = cy + Math.sin(a1) * radius;
+  const x2 = cx + Math.cos(a2) * radius;
+  const y2 = cy + Math.sin(a2) * radius;
+  return { x: x1 + (x2 - x1) * edgeT, y: y1 + (y2 - y1) * edgeT };
+}
+
+/** 파티클 개수만큼 화면 중앙에 겹겹이 포개진 정다각형(삼각형 -> 사각형 ->
+ *  오각형 -> ... ) 좌표를 배치한다. 동심원은 밋밋하고 단순해 보인다는
+ *  피드백을 받아, 링마다 변의 개수를 하나씩 늘려가는 다각형으로 바꿨다 —
+ *  안쪽부터 삼각형·사각형·오각형·육각형·칠각형·팔각형이 겹겹이 포개진
+ *  만다라 같은 구조라 "기하학적"이라는 인상이 뚜렷하고, 각 링이 여전히
+ *  그 자체로 닫힌 도형 하나뿐이라 선이 서로 교차해 어지러워지는 일도 없다. */
 function buildRingPoints(count: number, width: number, height: number): Point[] {
   const cx = width / 2;
   const cy = height / 2;
@@ -273,12 +288,12 @@ function buildRingPoints(count: number, width: number, height: number): Point[] 
   const points: Point[] = [];
   sizes.forEach((n, ringIdx) => {
     const r = ((ringIdx + 1) / RING_COUNT) * maxRadius;
-    // 링마다 시작 각도를 살짝씩 돌려서, 안쪽/바깥 링의 점들이 방사형으로 한
-    // 줄에 나란히 겹치지 않고 꽃잎처럼 어긋나 보이게 한다.
-    const angleOffset = ringIdx * 0.35;
+    const sides = ringIdx + 3; // 3(삼각형) ~ RING_COUNT+2(팔각형, RING_COUNT=6일 때)
+    // 링마다 회전을 살짝씩 줘서 꼭짓점이 방사형으로 한 줄에 겹치지 않고
+    // 톱니바퀴가 겹쳐진 것처럼 어긋나 보이게 한다.
+    const rotation = ringIdx * 0.22;
     for (let j = 0; j < n; j++) {
-      const angle = (j / n) * Math.PI * 2 + angleOffset;
-      points.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
+      points.push(polygonPerimeterPoint(cx, cy, r, sides, rotation, j / n));
     }
   });
   return points;
@@ -648,9 +663,9 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       }, particles[0]);
 
       // 별자리 연결선 쌍을 미리 계산해둔다 — 각 링에 속한 점들을 그 링 안에서만
-      // 순서대로 잇고 마지막 점을 다시 첫 점과 이어 닫힌 원을 만든다. 링을
-      // 넘나드는 선(예전 나선의 방사형 가닥)은 두지 않아서, 여러 겹의 원이
-      // 교차 없이 또렷하게 겹쳐 보인다.
+      // 순서대로 잇고 마지막 점을 다시 첫 점과 이어 닫힌 다각형을 만든다.
+      // 링을 넘나드는 선(예전 나선의 방사형 가닥)은 두지 않아서, 겹겹이
+      // 포개진 다각형들이 교차 없이 또렷하게 보인다.
       const ringSizes = computeRingSizes(count);
       gridLines = [];
       let ringOffset = 0;
