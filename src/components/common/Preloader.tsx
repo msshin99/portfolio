@@ -64,40 +64,37 @@ interface IntroTiming {
 }
 
 /** 첫 방문(first)과 같은 세션 안에서의 재방문/새로고침(returning)의 타이밍을 하나의
- *  설정 객체로 분리해서 관리한다 — returning은 first의 절반 정도 속도로 재생된다.
- *  예전엔 first 전체가(gather+hold+rearrange+hole+fade 합산) 약 11초나 걸려서,
- *  포트폴리오 데이터는 이미 2초 만에 준비돼 있는데도 화면 전체가 그 뒤에 11초+
- *  가려진 채라 "포트폴리오가 늦게 나온다"는 인상을 줬다 — "MSSHIN"을 읽을 시간
- *  (holdDuration)은 최대한 보존하면서 나머지 단계를 줄여 전체를 첫 방문 기준
- *  6초대로, 재방문은 3초대로 낮췄다. */
+ *  설정 객체로 분리해서 관리한다 — returning은 first보다 빠르게 재생된다.
+ *  각 단계(gather/hold/rearrange)를 눈으로 따라갈 수 있을 만큼 여유 있게 —
+ *  이전엔 전환이 너무 빨리 지나가 버린다는 피드백을 받아 전체적으로 늘렸다. */
 const TIMINGS: Record<"first" | "returning", IntroTiming> = {
   first: {
-    gatherDuration: 1.1,
-    gatherStaggerMax: 0.65,
-    holdDuration: 1.4,
-    rearrangeDuration: 1.0,
-    rearrangeStaggerMax: 0.6,
-    // 그리드가 다 모인 뒤 별자리처럼 서로 이어지는 선(constellation lines)이
-    // 나타났다 사라질 시간을 벌기 위해 기존 0.4 -> 0.55로 살짝 늘렸다.
-    gridHoldDuration: 0.55,
-    holeDuration: 1.2,
-    fadeOutDuration: 0.7,
-    subtitleDelay: 1.6,
+    gatherDuration: 1.5,
+    gatherStaggerMax: 0.8,
+    holdDuration: 1.7,
+    rearrangeDuration: 1.4,
+    rearrangeStaggerMax: 0.75,
+    // 그리드(동심원)가 다 모인 뒤 별자리처럼 서로 이어지는 선(constellation
+    // lines)이 나타났다 사라질 시간을 벌기 위해 0.4 -> 0.7로 늘렸다.
+    gridHoldDuration: 0.7,
+    holeDuration: 1.4,
+    fadeOutDuration: 0.8,
+    subtitleDelay: 2.6,
     subtitleFadeDuration: 0.45,
-    subtitleHold: 0.9,
+    subtitleHold: 1.0,
   },
   returning: {
-    gatherDuration: 0.55,
-    gatherStaggerMax: 0.33,
-    holdDuration: 0.7,
-    rearrangeDuration: 0.5,
-    rearrangeStaggerMax: 0.3,
-    gridHoldDuration: 0.3,
-    holeDuration: 0.6,
-    fadeOutDuration: 0.35,
-    subtitleDelay: 0.8,
-    subtitleFadeDuration: 0.23,
-    subtitleHold: 0.45,
+    gatherDuration: 0.75,
+    gatherStaggerMax: 0.45,
+    holdDuration: 0.95,
+    rearrangeDuration: 0.75,
+    rearrangeStaggerMax: 0.4,
+    gridHoldDuration: 0.4,
+    holeDuration: 0.8,
+    fadeOutDuration: 0.45,
+    subtitleDelay: 1.0,
+    subtitleFadeDuration: 0.28,
+    subtitleHold: 0.55,
   },
 };
 
@@ -483,24 +480,14 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         ctx.restore();
       }
 
-      // shadowBlur(발광)는 구멍이 뚫리기 전까지만 켠다 — 구멍이 뚫리는 동안은
-      // 화면 전체를 덮는 큰 반경의 destination-out 그라디언트를 매 프레임 새로
-      // 그려야 해서 이미 무겁고, 여기에 460개 파티클 전체의 shadowBlur까지
-      // 겹치면(둘 다 캔버스 2D에서 특히 비용이 큰 연산이다) 프레임이 심하게
-      // 늘어져 실제 재생 시간이 의도한 것보다 훨씬 길어지는 문제가 있었다 —
-      // 구멍 단계에서는 그리드 파티클 대부분이 곧 지워질 배경일 뿐이라 발광이
-      // 없어도 체감상 차이가 없다.
-      const glowOn = !holeState.active;
+      // 발광(shadowBlur) 없이 또렷한 점으로만 그린다.
       ctx.fillStyle = PARTICLE_COLOR;
-      if (glowOn) ctx.shadowColor = PARTICLE_COLOR;
       for (const p of particles) {
         if (p === heroParticle && holeState.active) continue;
         ctx.beginPath();
-        if (glowOn) ctx.shadowBlur = p.radius * 2.4;
         ctx.arc(p.x + p.dispX, p.y + p.dispY, p.radius, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.shadowBlur = 0;
 
       // 구멍이 뚫리는 순간 사방으로 흩어지는 불꽃 파편들. deltaTime(ms)로 매 프레임
       // 위치를 갱신하고, 수명이 다한 것부터 배열에서 제거한다.
@@ -518,10 +505,6 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 감쇠(drag) — 처음엔 빠르게 튕겨나가다 점점 느려지며 잦아든다.
           s.vx *= 0.94;
           s.vy *= 0.94;
-          // shadowBlur는 여기서도 뺐다 — 이미 화면을 뒤덮는 큰 destination-out
-          // 그라디언트가 그려지는 구간이라, 파편 하나하나까지 블러를 더하면
-          // 프레임이 심하게 무거워진다(위 particles 루프의 glowOn과 같은 이유).
-          // 파편은 개수와 감쇠만으로도 충분히 화려하게 보인다.
           const alpha = Math.max(0, s.life / s.maxLife);
           ctx.beginPath();
           ctx.fillStyle = s.color;
@@ -530,7 +513,6 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           ctx.fill();
         }
         ctx.globalAlpha = 1;
-        ctx.shadowBlur = 0;
       }
 
       if (holeState.active) {
