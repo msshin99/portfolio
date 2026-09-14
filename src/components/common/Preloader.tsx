@@ -27,6 +27,14 @@ const TEXT = "MSSHIN";
  *  이후 콘텐츠의 톤을 은근히 이어지게 했다. */
 const BG_COLOR = "#050505";
 const PARTICLE_COLOR = "#e9e6dd";
+/** 사이트 전역 포인트 컬러(--color-primary-txt, 버튼/링크 등에 쓰는 그 오렌지)를
+ *  파티클 일부에 섞어 인트로에도 같은 아이덴티티를 은근히 심는다 — 전부 이
+ *  색이면 화려하다 못해 산만해지므로, 아래 ACCENT_RATIO만큼만 무작위로 섞는다. */
+const ACCENT_COLOR = "#f56214";
+const ACCENT_RATIO = 0.16;
+/** 파티클이 움직이는 동안(gather/rearrange) 화면을 완전히 지우는 대신 이 색으로
+ *  옅게 겹쳐 칠해서 짧은 잔상(trail)을 만든다 — 알파가 낮을수록 꼬리가 길게 남는다. */
+const BG_TRAIL_COLOR = "rgba(5,5,5,0.17)";
 
 interface IntroTiming {
   /** 파티클 하나가 글자 모양으로 모이는 데 걸리는 시간(초) */
@@ -63,7 +71,9 @@ const TIMINGS: Record<"first" | "returning", IntroTiming> = {
     holdDuration: 1.4,
     rearrangeDuration: 1.0,
     rearrangeStaggerMax: 0.6,
-    gridHoldDuration: 0.4,
+    // 그리드가 다 모인 뒤 별자리처럼 서로 이어지는 선(constellation lines)이
+    // 나타났다 사라질 시간을 벌기 위해 기존 0.4 -> 0.55로 살짝 늘렸다.
+    gridHoldDuration: 0.55,
     holeDuration: 1.2,
     fadeOutDuration: 0.7,
     subtitleDelay: 1.6,
@@ -76,7 +86,7 @@ const TIMINGS: Record<"first" | "returning", IntroTiming> = {
     holdDuration: 0.7,
     rearrangeDuration: 0.5,
     rearrangeStaggerMax: 0.3,
-    gridHoldDuration: 0.2,
+    gridHoldDuration: 0.3,
     holeDuration: 0.6,
     fadeOutDuration: 0.35,
     subtitleDelay: 0.8,
@@ -267,6 +277,19 @@ interface Particle extends Point {
   gridX: number;
   gridY: number;
   radius: number;
+  color: string;
+}
+
+/** 구멍이 뚫리는 순간 터져나가는 불꽃 파편 하나. 물리 시뮬레이션이라 할 것도 없이
+ *  등속 직선 + 감쇠뿐이지만, 방사형으로 여러 개가 동시에 흩어지면 "빵 터지는"
+ *  느낌을 확실히 더해준다. */
+interface Spark extends Point {
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  radius: number;
+  color: string;
 }
 
 /** Hero3DLogo/HeroEmbers의 캔버스와 같은 이유로 dpr 상한을 둔다 — Retina 등
@@ -321,7 +344,13 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
     if (!canvas || !container) return;
 
     let cancelled = false;
-    const master = gsap.timeline();
+    // paused로 만들어둔다 — 기본값(autoplay)이면 setupAndPlay()가 실제로 트윈을
+    // 채우기 전, 즉 Inter 800 폰트를 기다리는 최대 800ms 동안 타임라인 재생헤드가
+    // 이미 앞서 나가버려서, 실제 파티클 애니메이션이 시작될 땐 이미 그만큼의
+    // "구간"이 스킵/압축된 것처럼 재생돼 전체가 의도한 것보다 늘어져 보였다.
+    // setupAndPlay 맨 앞에서 명시적으로 play()를 호출해, 재생헤드가 실제 콘텐츠가
+    // 채워지는 시점부터 정확히 0에서 출발하게 한다.
+    const master = gsap.timeline({ paused: true });
     let subtitleTl: gsap.core.Timeline | undefined;
 
     const width = window.innerWidth;
@@ -337,17 +366,88 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       setVisible(false);
     };
 
-    const render = () => {
-      ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = BG_COLOR;
-      ctx.fillRect(0, 0, width, height);
+    const render = (_time: number, deltaTime: number) => {
+      // trailState.active인 동안(파티클이 실제로 움직이는 gather/rearrange 구간)엔
+      // 화면을 완전히 지우지 않고 반투명한 배경을 겹쳐 칠한다 — 이전 프레임 잔상이
+      // 옅게 남아 파티클마다 짧은 꼬리(comet trail)를 끌며 움직이는 것처럼 보인다.
+      // 글자/그리드로 자리잡아 정지하는 구간(hold, gridHold, hole, fadeOut)에는
+      // 다시 완전 불투명으로 지워서 잔상 없이 또렷하게 유지한다 — 전환되는 첫
+      // 프레임에 한 번 완전히 덮이므로 이전 꼬리는 자연스럽게 사라진다.
+      if (trailState.active) {
+        ctx.fillStyle = BG_TRAIL_COLOR;
+        ctx.fillRect(0, 0, width, height);
+      } else {
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = BG_COLOR;
+        ctx.fillRect(0, 0, width, height);
+      }
 
-      ctx.fillStyle = PARTICLE_COLOR;
+      // 그리드가 다 모인 뒤 짧게 나타났다 사라지는 별자리 연결선. 격자 인접
+      // 관계는 setupAndPlay에서 미리 계산해둔 gridLines를 그대로 쓰고, 살아있는
+      // 파티클의 "현재" 좌표(x,y)를 따라 그려서 애니메이션 중에도 자연스럽다.
+      if (lineState.alpha > 0.002) {
+        ctx.save();
+        ctx.strokeStyle = `rgba(233,230,221,${lineState.alpha})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (const [a, b] of gridLines) {
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // shadowBlur(발광)는 구멍이 뚫리기 전까지만 켠다 — 구멍이 뚫리는 동안은
+      // 화면 전체를 덮는 큰 반경의 destination-out 그라디언트를 매 프레임 새로
+      // 그려야 해서 이미 무겁고, 여기에 460개 파티클 전체의 shadowBlur까지
+      // 겹치면(둘 다 캔버스 2D에서 특히 비용이 큰 연산이다) 프레임이 심하게
+      // 늘어져 실제 재생 시간이 의도한 것보다 훨씬 길어지는 문제가 있었다 —
+      // 구멍 단계에서는 그리드 파티클 대부분이 곧 지워질 배경일 뿐이라 발광이
+      // 없어도 체감상 차이가 없다.
+      const glowOn = !holeState.active;
       for (const p of particles) {
         if (p === heroParticle && holeState.active) continue;
         ctx.beginPath();
+        ctx.fillStyle = p.color;
+        if (glowOn) {
+          ctx.shadowBlur = p.radius * 2.4;
+          ctx.shadowColor = p.color;
+        }
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+
+      // 구멍이 뚫리는 순간 사방으로 흩어지는 불꽃 파편들. deltaTime(ms)로 매 프레임
+      // 위치를 갱신하고, 수명이 다한 것부터 배열에서 제거한다.
+      if (sparks.length > 0) {
+        const dt = Math.min(deltaTime, 48) / 1000;
+        for (let i = sparks.length - 1; i >= 0; i--) {
+          const s = sparks[i];
+          s.life -= dt;
+          if (s.life <= 0) {
+            sparks.splice(i, 1);
+            continue;
+          }
+          s.x += s.vx * dt;
+          s.y += s.vy * dt;
+          // 감쇠(drag) — 처음엔 빠르게 튕겨나가다 점점 느려지며 잦아든다.
+          s.vx *= 0.94;
+          s.vy *= 0.94;
+          // shadowBlur는 여기서도 뺐다 — 이미 화면을 뒤덮는 큰 destination-out
+          // 그라디언트가 그려지는 구간이라, 파편 하나하나까지 블러를 더하면
+          // 프레임이 심하게 무거워진다(위 particles 루프의 glowOn과 같은 이유).
+          // 파편은 개수와 감쇠만으로도 충분히 화려하게 보인다.
+          const alpha = Math.max(0, s.life / s.maxLife);
+          ctx.beginPath();
+          ctx.fillStyle = s.color;
+          ctx.globalAlpha = alpha;
+          ctx.arc(s.x, s.y, s.radius * alpha, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
       }
 
       if (holeState.active) {
@@ -408,6 +508,36 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
     let heroParticle: Particle;
     const holeState = { active: false };
     const flashState = { opacity: 0 };
+    // gather/rearrange 구간에서만 켜는 잔상 모드 스위치.
+    const trailState = { active: false };
+    // 그리드 완성 직후 짧게 나타났다 사라지는 별자리 연결선의 불투명도.
+    const lineState = { alpha: 0 };
+    // 격자 인접 쌍(같은 행의 오른쪽 이웃 + 같은 열의 아래쪽 이웃)만 이어서, 모든
+    // 쌍을 다 잇는 것보다 훨씬 적은 선으로도 "격자 회로" 느낌을 낸다.
+    let gridLines: [Particle, Particle][] = [];
+    let sparks: Spark[] = [];
+
+    // 구멍이 뚫리는 순간 (cx,cy)에서 사방으로 흩어지는 불꽃 파편을 만든다 —
+    // 기존의 방사형 flash(빛 번짐)에 더해, 실제로 "터지는" 입자가 튀어나가는
+    // 레이어를 하나 더 얹어 임팩트를 키운다.
+    const spawnSparks = (cx: number, cy: number) => {
+      const count = 34;
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+        const speed = 260 + Math.random() * 340;
+        const maxLife = 0.5 + Math.random() * 0.45;
+        sparks.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: maxLife,
+          maxLife,
+          radius: 1.6 + Math.random() * 2,
+          color: Math.random() < 0.45 ? ACCENT_COLOR : PARTICLE_COLOR,
+        });
+      }
+    };
 
     const setupAndPlay = () => {
       if (cancelled) return;
@@ -438,6 +568,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 끊겨 보였다. 파티클 개수(getParticleCount)를 늘려 윤곽선 밀도를
           // 높이고, 반지름도 한 단계 더 키워 점 하나하나가 더 진하게 보이도록 했다.
           radius: 2.1 + Math.random() * 1.4,
+          color: Math.random() < ACCENT_RATIO ? ACCENT_COLOR : PARTICLE_COLOR,
         };
       });
 
@@ -448,9 +579,23 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         return d < dc ? p : closest;
       }, particles[0]);
 
+      // 별자리 연결선 쌍을 미리 계산해둔다 — buildGridPoints와 같은 규칙(같은
+      // cols 기준 col=i%cols, row=floor(i/cols))으로 각 파티클의 오른쪽/아래쪽
+      // 이웃만 이어서, 모든 쌍을 다 잇지 않고도 격자 회로 느낌을 낸다.
+      const cols = Math.ceil(Math.sqrt(count));
+      gridLines = [];
+      particles.forEach((p, i) => {
+        const col = i % cols;
+        if (col < cols - 1 && i + 1 < particles.length) gridLines.push([p, particles[i + 1]]);
+        if (i + cols < particles.length) gridLines.push([p, particles[i + cols]]);
+      });
+
       gsap.ticker.add(render);
 
       // Phase 1: 화면 밖 -> 글자 모양으로 모임 (파티클마다 랜덤 stagger)
+      // 파티클이 화면 밖에서 날아드는 이 구간은 잔상(trail)을 켜서, 쏟아져
+      // 들어오는 궤적 자체가 짧은 빛줄기처럼 보이게 한다.
+      master.call(() => { trailState.active = true; }, [], 0);
       particles.forEach((p) => {
         master.to(
           p,
@@ -460,8 +605,12 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       });
       const phase1End = timing.gatherStaggerMax + timing.gatherDuration;
       const holdEnd = phase1End + timing.holdDuration;
+      // 글자가 완성되어 정지하는 구간은 잔상을 끄고 다시 또렷하게 — "MSSHIN"을
+      // 읽는 동안 잔상으로 흐려 보이면 오히려 가독성을 해친다.
+      master.call(() => { trailState.active = false; }, [], phase1End);
 
-      // Phase 2: 잠깐 정지 후 -> 정사각형 그리드로 재배열
+      // Phase 2: 잠깐 정지 후 -> 정사각형 그리드로 재배열 (다시 잔상 on)
+      master.call(() => { trailState.active = true; }, [], holdEnd);
       particles.forEach((p) => {
         master.to(
           p,
@@ -471,11 +620,28 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       });
       const phase2End = holdEnd + timing.rearrangeStaggerMax + timing.rearrangeDuration;
       const gridHoldEnd = phase2End + timing.gridHoldDuration;
+      master.call(() => { trailState.active = false; }, [], phase2End);
+
+      // 그리드가 다 모인 직후 ~ 구멍이 뚫리기 직전까지, 파티클들이 서로 이어진
+      // 회로처럼 잠깐 반짝였다 사라진다 — 그리드로의 재배열이 "그냥 흩어져
+      // 있는 점들"이 아니라 "무언가로 조립되는 과정"처럼 읽히게 하는 장치.
+      const lineFadeDur = Math.min(0.18, timing.gridHoldDuration / 3);
+      master.fromTo(
+        lineState,
+        { alpha: 0 },
+        { alpha: 0.4, duration: lineFadeDur, ease: "power2.out" },
+        phase2End
+      );
+      master.to(lineState, { alpha: 0, duration: lineFadeDur, ease: "power2.in" }, gridHoldEnd - lineFadeDur);
 
       // Phase 3: 그리드가 다 모이면, 중심 파티클 하나가 커지면서 원형으로 화면을 지운다
       const holeRadiusTarget = Math.hypot(width, height);
       master.call(() => {
         holeState.active = true;
+        // 구멍이 뚫리기 시작하는 바로 그 지점에서 불꽃 파편이 사방으로 튄다 —
+        // 기존 방사형 flash와 겹쳐, 단순히 "사라짐"이 아니라 "터지며 드러남"이
+        // 되도록 임팩트를 더한다.
+        spawnSparks(heroParticle.x, heroParticle.y);
       }, [], gridHoldEnd);
       // 구멍을 통해 실제 콘텐츠가 처음 드러나기 시작하는 바로 이 순간이
       // "사용자에게 인트로가 끝났다"고 신호를 보내야 할 시점이다 — 캔버스가
@@ -519,6 +685,11 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
             timing.subtitleDelay + timing.subtitleFadeDuration + timing.subtitleHold
           );
       }
+
+      // 모든 트윈/콜을 다 채운 뒤에야 재생을 시작한다 — paused로 만들어둔 이유
+      // 그대로, 재생헤드가 0초부터 정확히 출발해야 위에서 계산한 timing 값들이
+      // 실제 체감 시간과 어긋나지 않는다.
+      master.play();
     };
 
     if (document.fonts) {
