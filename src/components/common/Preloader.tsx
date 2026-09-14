@@ -38,10 +38,6 @@ const REPEL_RADIUS = 140;
 const REPEL_STRENGTH = 2600;
 const SPRING_K = 90;
 
-/** 두 번째 형태(동심원)의 링 개수. computeRingSizes/buildRingPoints/별자리
- *  연결선 계산이 전부 이 값을 공유해야 링 경계가 서로 어긋나지 않는다. */
-const RING_COUNT = 6;
-
 interface IntroTiming {
   /** 파티클 하나가 글자 모양으로 모이는 데 걸리는 시간(초) */
   gatherDuration: number;
@@ -239,94 +235,103 @@ function sampleN<T>(arr: T[], n: number): T[] {
   return copy.slice(0, n);
 }
 
-/** count를 RING_COUNT개의 동심원에 나눠 배분한다 — 바깥 링일수록 둘레가 기니까
- *  더 많은 점을, 안쪽 링일수록 적은 점을 배정해 전체 밀도가 고르게 유지되도록
- *  한다. buildRingPoints(좌표 배치)와 별자리 연결선(gridLines, 각 링을 닫힌
- *  원으로 잇는 부분) 양쪽에서 똑같은 배분을 써야 링 경계가 어긋나지 않는다. */
-function computeRingSizes(count: number): number[] {
-  const sizes: number[] = [];
-  let remaining = count;
-  const totalWeight = (RING_COUNT * (RING_COUNT + 1)) / 2;
-  for (let ring = 1; ring <= RING_COUNT; ring++) {
-    if (ring === RING_COUNT) {
-      sizes.push(Math.max(1, remaining));
-      break;
-    }
-    const n = Math.max(6, Math.round((ring / totalWeight) * count));
-    sizes.push(n);
-    remaining -= n;
-  }
-  return sizes;
-}
+/** 파티클 개수만큼 화면 중앙에 사람 얼굴(정면 상반신) 실루엣을 채우는 좌표를
+ *  뽑는다 — 사용자가 보내준 하프톤(halftone) 초상화 이미지처럼, 점들이
+ *  얼굴 전체를 빼곡하게 메운 스티플(stipple) 형태를 목표로 한다. 캔버스
+ *  primitive(베지어 곡선)만으로 실제 사진 같은 디테일(눈코입 음영 등)을
+ *  재현할 순 없어서, 머리카락 -> 얼굴 -> 목/어깨로 이어지는 일반화된
+ *  상반신 실루엣만 그린다. 두 눈 자리는 destination-out으로 살짝 파내서
+ *  점이 찍히지 않는 작은 빈틈을 남겨 얼굴이라는 인상을 더한다.
+ *
+ *  buildTextPoints와 달리 윤곽선만이 아니라 실루엣 내부 전체를 격자로
+ *  채운다 — 텍스트는 내부를 채우면 굵은 글씨가 뭉뚱그려진 블록처럼
+ *  보였지만, 얼굴처럼 폭이 계속 변하는 유기적 형태는 내부를 채워야
+ *  참고 이미지처럼 "점으로 빼곡한 초상화"에 가까워진다. */
+function buildFacePoints(width: number, height: number, targetCount: number): Point[] {
+  const off = document.createElement("canvas");
+  off.width = width;
+  off.height = height;
+  const octx = off.getContext("2d");
+  if (!octx) return [];
 
-/** 정n각형의 꼭짓점을 하나 건너, 두 개 건너 … skip개씩 건너뛰며 이으면
- *  뾰족한 별(star polygon, {n/skip} 표기로 부르는 그것 — 오각별, 칠각별
- *  같은)이 된다. gcd(sides, skip)===1이면 모든 꼭짓점을 딱 한 번씩만
- *  거치는 하나의 끊기지 않는 선으로 별 전체를 그릴 수 있다(RING_SHAPES에
- *  넣어둔 조합은 전부 이 조건을 만족하도록 골랐다). t는 이 순서를 따라
- *  둘레를 한 바퀴 도는 비율(0~1) — 각 변은 실제 꼭짓점 사이를 직선으로
- *  보간해 뾰족하게 그려진다(각도로 원을 그리듯 뭉개지지 않는다). */
-function starPerimeterPoint(
-  cx: number,
-  cy: number,
-  radius: number,
-  sides: number,
-  skip: number,
-  rotation: number,
-  t: number
-): Point {
-  const edge = Math.floor(t * sides) % sides;
-  const edgeT = t * sides - Math.floor(t * sides);
-  const v1 = (edge * skip) % sides;
-  const v2 = ((edge + 1) * skip) % sides;
-  const a1 = rotation + (v1 / sides) * Math.PI * 2;
-  const a2 = rotation + (v2 / sides) * Math.PI * 2;
-  const x1 = cx + Math.cos(a1) * radius;
-  const y1 = cy + Math.sin(a1) * radius;
-  const x2 = cx + Math.cos(a2) * radius;
-  const y2 = cy + Math.sin(a2) * radius;
-  return { x: x1 + (x2 - x1) * edgeT, y: y1 + (y2 - y1) * edgeT };
-}
+  octx.clearRect(0, 0, width, height);
+  octx.fillStyle = "#fff";
 
-/** 링마다 쓸 {변의 개수, 건너뛰는 간격} 조합 — 안쪽부터 삼각형(별이 안 되는
- *  최소 도형) -> 오각별 -> 칠각별 -> 팔각별 -> 구각별 -> 십각별 순으로
- *  점점 더 화려하고 뾰족해진다. 전부 gcd(sides, skip)===1이라 끊기지
- *  않는 하나의 별 윤곽으로 그려진다. */
-const RING_SHAPES: { sides: number; skip: number }[] = [
-  { sides: 3, skip: 1 },
-  { sides: 5, skip: 2 },
-  { sides: 7, skip: 2 },
-  { sides: 8, skip: 3 },
-  { sides: 9, skip: 2 },
-  { sides: 10, skip: 3 },
-];
-
-/** 파티클 개수만큼 화면 중앙에 겹겹이 포개진 별(star polygon) 좌표를
- *  배치한다. 밋밋한 정다각형만으로는 아직 단순해 보인다는 피드백을 받아,
- *  변을 하나 걸러 잇는 별 모양으로 한 단계 더 화려하게 만들었다 — 오각별·
- *  칠각별·팔각별 같은 뾰족한 도형이 겹겹이 포개진 진짜 만다라/신성 기하학
- *  구조가 된다. 각 링은 여전히 그 자체로 끊기지 않는 하나의 선일 뿐이라,
- *  링을 넘나드는 교차선이 없어 아무리 뾰족해져도 어지럽지 않다. */
-function buildRingPoints(count: number, width: number, height: number): Point[] {
   const cx = width / 2;
-  const cy = height / 2;
-  const maxRadius = Math.min(width, height) * 0.4;
-  const sizes = computeRingSizes(count);
-  const points: Point[] = [];
-  sizes.forEach((n, ringIdx) => {
-    const r = ((ringIdx + 1) / RING_COUNT) * maxRadius;
-    const { sides, skip } = RING_SHAPES[ringIdx % RING_SHAPES.length];
-    // 예전엔 링마다 회전을 조금씩 어긋나게 줬는데, 변의 개수(3~10)가 서로
-    // 다른 별들이 제각각 다른 각도로 겹치니 축이 하나도 안 맞아 지저분해
-    // 보였다 — 모든 링의 꼭짓점 하나를 정확히 정오(12시) 방향으로 맞춰서,
-    // 크기만 다른 별들이 같은 수직 대칭축을 공유하는 단정한 문장(紋章)
-    // 형태로 바꿨다.
-    const rotation = -Math.PI / 2;
-    for (let j = 0; j < n; j++) {
-      points.push(starPerimeterPoint(cx, cy, r, sides, skip, rotation, j / n));
+  const s = Math.min(width, height) * 0.34;
+  // 얼굴 중심을 화면 정중앙보다 살짝 위에 둔다 — 어깨까지 포함한 상반신이라
+  // 얼굴만 정중앙에 놓으면 아래쪽 여백이 허전해 보인다.
+  const fy = height * 0.4;
+
+  // 머리카락 + 얼굴 윤곽 — 정수리에서 양옆으로 부풀었다가 턱으로 모이는
+  // 하나의 이어진 실루엣.
+  octx.beginPath();
+  octx.moveTo(cx - s * 0.8, fy + s * 0.1);
+  octx.bezierCurveTo(cx - s * 1.0, fy - s * 0.55, cx - s * 0.45, fy - s * 1.05, cx, fy - s * 1.0);
+  octx.bezierCurveTo(cx + s * 0.45, fy - s * 1.05, cx + s * 1.0, fy - s * 0.55, cx + s * 0.8, fy + s * 0.1);
+  octx.bezierCurveTo(cx + s * 0.74, fy + s * 0.55, cx + s * 0.4, fy + s * 0.95, cx, fy + s * 1.05);
+  octx.bezierCurveTo(cx - s * 0.4, fy + s * 0.95, cx - s * 0.74, fy + s * 0.55, cx - s * 0.8, fy + s * 0.1);
+  octx.closePath();
+  octx.fill();
+
+  // 목 + 어깨 — 얼굴 아래에서 화면 하단까지 사다리꼴로 넓어지며 이어진다.
+  const neckTop = fy + s * 0.9;
+  const shoulderY = Math.min(height * 0.92, fy + s * 2.6);
+  octx.beginPath();
+  octx.moveTo(cx - s * 0.26, neckTop);
+  octx.lineTo(cx - s * 1.55, shoulderY);
+  octx.lineTo(cx + s * 1.55, shoulderY);
+  octx.lineTo(cx + s * 0.26, neckTop);
+  octx.closePath();
+  octx.fill();
+
+  // 두 눈 자리는 파내서 점이 찍히지 않는 작은 빈틈으로 남긴다.
+  octx.save();
+  octx.globalCompositeOperation = "destination-out";
+  for (const dir of [-1, 1]) {
+    octx.beginPath();
+    octx.ellipse(cx + dir * s * 0.27, fy - s * 0.05, s * 0.09, s * 0.055, 0, 0, Math.PI * 2);
+    octx.fill();
+  }
+  octx.restore();
+
+  const { data } = octx.getImageData(0, 0, width, height);
+  const ALPHA_THRESHOLD = 120;
+  const isSolid = (x: number, y: number) => {
+    if (x < 0 || x >= width || y < 0 || y >= height) return false;
+    return data[(y * width + x) * 4 + 3] > ALPHA_THRESHOLD;
+  };
+
+  // 실루엣 내부를 고르게 채우는 격자 샘플링 — step을 이분 탐색으로
+  // targetCount에 가장 가까운 값으로 맞춘다(buildTextPoints와 같은 기법).
+  const collectAtStep = (step: number): Point[] => {
+    const pts: Point[] = [];
+    for (let y = 0; y < height; y += step) {
+      for (let x = 0; x < width; x += step) {
+        if (isSolid(x, y)) pts.push({ x, y });
+      }
     }
-  });
-  return points;
+    return pts;
+  };
+
+  let lo = 1;
+  let hi = Math.max(2, Math.round(Math.min(width, height) / 3));
+  let best = collectAtStep(Math.max(1, Math.round(Math.min(width, height) / 60)));
+  for (let i = 0; i < 18; i++) {
+    const step = Math.max(1, Math.round((lo + hi) / 2));
+    const pts = collectAtStep(step);
+    if (pts.length === 0) {
+      hi = step;
+      continue;
+    }
+    best = pts;
+    if (pts.length > targetCount) lo = step + 1;
+    else hi = step;
+    if (Math.abs(pts.length - targetCount) <= Math.max(2, targetCount * 0.03)) break;
+    if (lo >= hi) break;
+  }
+
+  return sampleN(best, targetCount);
 }
 
 /** 파티클의 시작 위치 — 화면 네 변 중 하나를 골라 그 바깥쪽 화면 밖 어딘가에 둔다. */
@@ -653,7 +658,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       if (cancelled) return;
       const count = getParticleCount(width);
       const { points: textPoints, textBottom } = buildTextPoints(TEXT, width, height, count);
-      const gridPoints = buildRingPoints(count, width, height);
+      const gridPoints = buildFacePoints(width, height, count);
 
       // 서브 문구를 퍼센트 기반 고정 위치가 아니라, 실제로 그려진 "MSSHIN" 글자
       // 실루엣 바로 아래 30px 지점에 둔다.
@@ -685,28 +690,21 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         };
       });
 
-      // 구멍을 뚫을 파티클 = 그리드 중심에 가장 가까운 파티클
+      // 구멍을 뚫을 파티클 = 얼굴 중심(두 눈 사이쯤, buildFacePoints의 fy와
+      // 같은 지점)에 가장 가까운 파티클 — 화면 정중앙이 아니라 얼굴 자체의
+      // 중심에서 터져나가야 자연스럽다.
+      const faceCenterY = height * 0.4;
       heroParticle = particles.reduce((closest, p) => {
-        const d = Math.hypot(p.gridX - width / 2, p.gridY - height / 2);
-        const dc = Math.hypot(closest.gridX - width / 2, closest.gridY - height / 2);
+        const d = Math.hypot(p.gridX - width / 2, p.gridY - faceCenterY);
+        const dc = Math.hypot(closest.gridX - width / 2, closest.gridY - faceCenterY);
         return d < dc ? p : closest;
       }, particles[0]);
 
-      // 별자리 연결선 쌍을 미리 계산해둔다 — 각 링에 속한 점들을 그 링 안에서만
-      // 순서대로 잇고 마지막 점을 다시 첫 점과 이어 닫힌 다각형을 만든다.
-      // 링을 넘나드는 선(예전 나선의 방사형 가닥)은 두지 않아서, 겹겹이
-      // 포개진 다각형들이 교차 없이 또렷하게 보인다.
-      const ringSizes = computeRingSizes(count);
+      // 얼굴 실루엣은 "링" 개념이 없는 자유 형태라 예전처럼 인접한 점끼리
+      // 이어 도형을 그리는 별자리 연결선은 의미가 없다 — 오히려 얼굴 위로
+      // 선이 어지럽게 그어지면 초상화처럼 보이려는 의도를 해친다. 비워둬서
+      // 순수하게 점(스티플)만으로 얼굴이 드러나게 한다.
       gridLines = [];
-      let ringOffset = 0;
-      ringSizes.forEach((n) => {
-        for (let j = 0; j < n; j++) {
-          const a = particles[ringOffset + j];
-          const b = particles[ringOffset + ((j + 1) % n)];
-          gridLines.push([a, b]);
-        }
-        ringOffset += n;
-      });
 
       gsap.ticker.add(render);
 
