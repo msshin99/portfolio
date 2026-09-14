@@ -791,9 +791,12 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       const phase2End = holdEnd + timing.rearrangeStaggerMax + timing.rearrangeDuration;
       const gridHoldEnd = phase2End + timing.gridHoldDuration;
       master.call(() => { trailState.active = false; }, [], phase2End);
-      // 성긴 고리가 자리잡고 나면(구멍이 뚫리기 전까지) 은은하게 맴도는
-      // 드리프트를 켠다 — 가만히 멈춰있지 않고 살아있는 느낌을 준다.
-      master.call(() => { driftState.active = true; }, [], phase2End);
+      // "MSSHIN" 정지 상태에서는 드리프트를 꺼서 얌전하게 두고("MSSHIN"을 읽는
+      // 동안은 화려하게 움직이지 않아야 한다), MSSHIN -> 고리로 재배열되는 이
+      // 전환이 시작되는 순간(holdEnd)부터 드리프트를 켠다 — 날아가는 궤적 위에
+      // 은은한 맴돎이 겹쳐져 전환 자체가 훨씬 생동감 있게 보인다. 고리로 다
+      // 모인 뒤에도(구멍이 뚫리기 전까지) 계속 살아있는 느낌을 이어간다.
+      master.call(() => { driftState.active = true; }, [], holdEnd);
 
       // 그리드가 다 모인 직후 ~ 구멍이 뚫리기 직전까지, 파티클들이 서로 이어진
       // 회로처럼 잠깐 반짝였다 사라진다 — 그리드로의 재배열이 "그냥 흩어져
