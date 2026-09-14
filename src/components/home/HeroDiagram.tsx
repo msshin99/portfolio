@@ -173,6 +173,14 @@ const GLASS_STYLE: CSSProperties = {
   backgroundColor: "rgba(255,255,255,0.04)",
 };
 
+/** 하단 3개 피처 카드 전용 배경 — flat한 회색 유리 대신, 아주 옅은 웜톤이 도는
+ *  깊은 블랙 그라디언트와 은은한 하이라이트/그림자로 무게감과 고급스러움을 준다. */
+const FEATURE_CARD_STYLE: CSSProperties = {
+  background:
+    "linear-gradient(165deg, rgba(48,38,30,0.55) 0%, rgba(9,8,7,0.98) 42%, rgba(0,0,0,1) 100%)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.07), 0 24px 48px -24px rgba(0,0,0,0.9)",
+};
+
 function pct(value: number, total: number) {
   return `${(value / total) * 100}%`;
 }
@@ -625,7 +633,7 @@ function FeatureCard({ icon, heading, body }: FeatureCardItem) {
         GLASS_CLASS,
         "transition-colors duration-500 ease-out hover:border-primary-txt/50",
       ].join(" ")}
-      style={GLASS_STYLE}
+      style={FEATURE_CARD_STYLE}
     >
       {/* 참고 이미지처럼 카드 하단 전체가 부드럽게 밝아지는 큰 그라디언트 글로우 — 평소엔
           숨어 있다가 호버 시 카드 아래쪽 대부분을 진하게 채우며 번진다. 색을 여러 단계로
