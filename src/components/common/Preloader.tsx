@@ -27,11 +27,6 @@ const TEXT = "MSSHIN";
  *  이후 콘텐츠의 톤을 은근히 이어지게 했다. */
 const BG_COLOR = "#050505";
 const PARTICLE_COLOR = "#e9e6dd";
-/** 사이트 전역 포인트 컬러(--color-primary-txt, 버튼/링크 등에 쓰는 그 오렌지)를
- *  파티클 일부에 섞어 인트로에도 같은 아이덴티티를 은근히 심는다 — 전부 이
- *  색이면 화려하다 못해 산만해지므로, 아래 ACCENT_RATIO만큼만 무작위로 섞는다. */
-const ACCENT_COLOR = "#f56214";
-const ACCENT_RATIO = 0.16;
 /** 파티클이 움직이는 동안(gather/rearrange) 화면을 완전히 지우는 대신 이 색으로
  *  옅게 겹쳐 칠해서 짧은 잔상(trail)을 만든다 — 알파가 낮을수록 꼬리가 길게 남는다. */
 const BG_TRAIL_COLOR = "rgba(5,5,5,0.17)";
@@ -277,7 +272,6 @@ interface Particle extends Point {
   gridX: number;
   gridY: number;
   radius: number;
-  color: string;
 }
 
 /** 구멍이 뚫리는 순간 터져나가는 불꽃 파편 하나. 물리 시뮬레이션이라 할 것도 없이
@@ -406,14 +400,12 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       // 구멍 단계에서는 그리드 파티클 대부분이 곧 지워질 배경일 뿐이라 발광이
       // 없어도 체감상 차이가 없다.
       const glowOn = !holeState.active;
+      ctx.fillStyle = PARTICLE_COLOR;
+      if (glowOn) ctx.shadowColor = PARTICLE_COLOR;
       for (const p of particles) {
         if (p === heroParticle && holeState.active) continue;
         ctx.beginPath();
-        ctx.fillStyle = p.color;
-        if (glowOn) {
-          ctx.shadowBlur = p.radius * 2.4;
-          ctx.shadowColor = p.color;
-        }
+        if (glowOn) ctx.shadowBlur = p.radius * 2.4;
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fill();
       }
@@ -534,7 +526,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           life: maxLife,
           maxLife,
           radius: 1.6 + Math.random() * 2,
-          color: Math.random() < 0.45 ? ACCENT_COLOR : PARTICLE_COLOR,
+          color: PARTICLE_COLOR,
         });
       }
     };
@@ -568,7 +560,6 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 끊겨 보였다. 파티클 개수(getParticleCount)를 늘려 윤곽선 밀도를
           // 높이고, 반지름도 한 단계 더 키워 점 하나하나가 더 진하게 보이도록 했다.
           radius: 2.1 + Math.random() * 1.4,
-          color: Math.random() < ACCENT_RATIO ? ACCENT_COLOR : PARTICLE_COLOR,
         };
       });
 
@@ -592,16 +583,65 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
 
       gsap.ticker.add(render);
 
+      // 파티클이 출발점에서 도착점까지 일직선으로 미끄러지는 대신, 방향과
+      // 굴곡이 제각각인 완만한 곡선(2차 베지어)을 그리며 날아가게 한다. 곡선을
+      // 따라 진행하는 동안엔 진행 방향에 수직으로 잦아드는 흔들림(wobble)까지
+      // 더해서, 정확히 목표 지점에 착지하면서도 날아가는 과정 자체는 여러
+      // 파티클이 서로 다른 궤적으로 펄럭이듯 활기차게 보이게 한다 — 직선
+      // 이동만으로는 아무리 개수가 많아도 "우르르 미끄러진다"는 인상이었다.
+      const flyAlongCurve = (
+        p: Particle,
+        fromX: number,
+        fromY: number,
+        toX: number,
+        toY: number,
+        duration: number,
+        delay: number
+      ) => {
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const dist = Math.hypot(dx, dy) || 1;
+        // 이동 방향에 수직인 단위벡터 — 이 축을 따라 곡선의 휘어짐과 흔들림을 준다.
+        const perpX = -dy / dist;
+        const perpY = dx / dist;
+        const bulgeSign = Math.random() < 0.5 ? 1 : -1;
+        // 거리 대비 18~60%만큼 옆으로 부푼 곡선 — 파티클마다 방향/크기가 달라
+        // 어떤 건 크게 휘고 어떤 건 거의 직선에 가깝게 날아온다.
+        const bulge = bulgeSign * (0.18 + Math.random() * 0.42) * dist;
+        const wobbleAmp = (0.03 + Math.random() * 0.09) * dist;
+        const wobbleFreq = 1.5 + Math.random() * 2.5;
+        const ctrlX = (fromX + toX) / 2 + perpX * bulge;
+        const ctrlY = (fromY + toY) / 2 + perpY * bulge;
+        const proxy = { t: 0 };
+        master.to(
+          proxy,
+          {
+            t: 1,
+            duration,
+            ease: "particleEase",
+            onUpdate: () => {
+              const t = proxy.t;
+              const mt = 1 - t;
+              // 2차 베지어: from -> ctrl -> to
+              const bx = mt * mt * fromX + 2 * mt * t * ctrlX + t * t * toX;
+              const by = mt * mt * fromY + 2 * mt * t * ctrlY + t * t * toY;
+              // 흔들림은 도착 직전(t->1)엔 진폭이 0으로 잦아들어 목표 지점에
+              // 정확히 착지한다 — 흔들리며 날아오다 마지막엔 딱 자리를 잡는다.
+              const wobble = Math.sin(t * Math.PI * wobbleFreq) * wobbleAmp * mt;
+              p.x = bx + perpX * wobble;
+              p.y = by + perpY * wobble;
+            },
+          },
+          delay
+        );
+      };
+
       // Phase 1: 화면 밖 -> 글자 모양으로 모임 (파티클마다 랜덤 stagger)
       // 파티클이 화면 밖에서 날아드는 이 구간은 잔상(trail)을 켜서, 쏟아져
       // 들어오는 궤적 자체가 짧은 빛줄기처럼 보이게 한다.
       master.call(() => { trailState.active = true; }, [], 0);
       particles.forEach((p) => {
-        master.to(
-          p,
-          { x: p.textX, y: p.textY, duration: timing.gatherDuration, ease: "particleEase" },
-          Math.random() * timing.gatherStaggerMax
-        );
+        flyAlongCurve(p, p.x, p.y, p.textX, p.textY, timing.gatherDuration, Math.random() * timing.gatherStaggerMax);
       });
       const phase1End = timing.gatherStaggerMax + timing.gatherDuration;
       const holdEnd = phase1End + timing.holdDuration;
@@ -610,11 +650,18 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       master.call(() => { trailState.active = false; }, [], phase1End);
 
       // Phase 2: 잠깐 정지 후 -> 정사각형 그리드로 재배열 (다시 잔상 on)
+      // from을 p.x(호출 시점엔 아직 화면 밖 시작 좌표)가 아니라 p.textX/textY로
+      // 명시한다 — 실제로 이 트윈이 재생될 시점엔 Phase 1이 끝나 그 자리에
+      // 있겠지만, 이 곡선 계산 자체는 재생 전(setup 시점)에 미리 해두기 때문.
       master.call(() => { trailState.active = true; }, [], holdEnd);
       particles.forEach((p) => {
-        master.to(
+        flyAlongCurve(
           p,
-          { x: p.gridX, y: p.gridY, duration: timing.rearrangeDuration, ease: "particleEase" },
+          p.textX,
+          p.textY,
+          p.gridX,
+          p.gridY,
+          timing.rearrangeDuration,
           holdEnd + Math.random() * timing.rearrangeStaggerMax
         );
       });
