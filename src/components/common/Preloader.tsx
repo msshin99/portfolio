@@ -29,7 +29,7 @@ const BG_COLOR = "#050505";
 const PARTICLE_COLOR = "#e9e6dd";
 /** 파티클이 움직이는 동안(gather/rearrange) 화면을 완전히 지우는 대신 이 색으로
  *  옅게 겹쳐 칠해서 짧은 잔상(trail)을 만든다 — 알파가 낮을수록 꼬리가 길게 남는다. */
-const BG_TRAIL_COLOR = "rgba(5,5,5,0.17)";
+const BG_TRAIL_COLOR = "rgba(5,5,5,0.26)";
 
 /** 마우스 인터랙션(밀어내기+스프링 복귀) 파라미터. 반지름 안에 들어온
  *  파티클만 밀려나고, 스프링 상수가 클수록 더 빨리·더 탱탱하게 제자리로
@@ -76,8 +76,8 @@ const TIMINGS: Record<"first" | "returning", IntroTiming> = {
     gatherDuration: 2.6,
     gatherStaggerMax: 1.35,
     holdDuration: 2.8,
-    rearrangeDuration: 2.6,
-    rearrangeStaggerMax: 1.25,
+    rearrangeDuration: 3.8,
+    rearrangeStaggerMax: 1.7,
     // 성긴 고리가 자리잡은 뒤 드리프트로 살아 움직이는 걸 더 오래 볼 수
     // 있도록 다른 단계보다 크게 늘렸다. 구멍이 뚫려 실제 메인 사이트로
     // 넘어가는 holeDuration/fadeOutDuration도 더 늦춰서, 화면이 바뀌는
@@ -93,8 +93,8 @@ const TIMINGS: Record<"first" | "returning", IntroTiming> = {
     gatherDuration: 1.3,
     gatherStaggerMax: 0.75,
     holdDuration: 1.5,
-    rearrangeDuration: 1.3,
-    rearrangeStaggerMax: 0.68,
+    rearrangeDuration: 1.9,
+    rearrangeStaggerMax: 0.9,
     gridHoldDuration: 1.1,
     holeDuration: 1.5,
     fadeOutDuration: 0.8,
@@ -716,7 +716,8 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         toY: number,
         duration: number,
         delay: number,
-        intensity = 1
+        intensity = 1,
+        ease = "back.out(1.5)"
       ) => {
         const dx = toX - fromX;
         const dy = toY - fromY;
@@ -738,7 +739,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           {
             t: 1,
             duration,
-            ease: "back.out(1.5)",
+            ease,
             onUpdate: () => {
               const t = proxy.t;
               const mt = 1 - t;
@@ -759,10 +760,22 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
 
       // Phase 1: 화면 밖 -> 글자 모양으로 모임 (파티클마다 랜덤 stagger)
       // 파티클이 화면 밖에서 날아드는 이 구간은 잔상(trail)을 켜서, 쏟아져
-      // 들어오는 궤적 자체가 짧은 빛줄기처럼 보이게 한다.
+      // 들어오는 궤적 자체가 짧은 빛줄기처럼 보이게 한다. 사용자에게 처음
+      // 보이는 화면이라 너무 강한 인상을 주지 않도록, intensity를 낮추고
+      // (곡선 굴곡/흔들림 폭을 줄임) 착지 바운스도 완만한 ease로 눌러둔다.
       master.call(() => { trailState.active = true; }, [], 0);
       particles.forEach((p) => {
-        flyAlongCurve(p, p.x, p.y, p.textX, p.textY, timing.gatherDuration, Math.random() * timing.gatherStaggerMax);
+        flyAlongCurve(
+          p,
+          p.x,
+          p.y,
+          p.textX,
+          p.textY,
+          timing.gatherDuration,
+          Math.random() * timing.gatherStaggerMax,
+          0.6,
+          "back.out(1.15)"
+        );
       });
       const phase1End = timing.gatherStaggerMax + timing.gatherDuration;
       const holdEnd = phase1End + timing.holdDuration;
@@ -774,14 +787,16 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       // from을 p.x(호출 시점엔 아직 화면 밖 시작 좌표)가 아니라 p.textX/textY로
       // 명시한다 — 실제로 이 트윈이 재생될 시점엔 Phase 1이 끝나 그 자리에
       // 있겠지만, 이 곡선 계산 자체는 재생 전(setup 시점)에 미리 해두기 때문.
-      // "MSSHIN" 글자가 와르르 흩어졌다 사각 그리드로 다시 뭉치는 이 전환이
-      // 가장 임팩트가 커야 할 구간이라, intensity를 1.8로 올려 곡선/흔들림
-      // 폭을 gather보다 훨씬 크게 준다 — 글자를 이루던 점들이 정말 "흩어졌다
-      // 재조립되는" 느낌을 낸다.
+      // "MSSHIN" 글자가 흩어졌다 고리로 다시 뭉치는 전환 — 예전엔 intensity
+      // 1.8 + 오버슈트 바운스(back.out)라 너무 격하고 급하게 느껴졌다.
+      // intensity를 낮춰 곡선/흔들림 폭을 완만하게 줄이고, 도착 시 튕기지
+      // 않고 매끄럽게 감속만 하는 ease(power3.out)로 바꿔 훨씬 자연스럽게
+      // 자리를 잡도록 한다(duration/stagger도 TIMINGS에서 늘려 전체적으로
+      // 더 천천히 진행된다).
       master.call(() => { trailState.active = true; }, [], holdEnd);
       particles.forEach((p) => {
         const delay = holdEnd + Math.random() * timing.rearrangeStaggerMax;
-        flyAlongCurve(p, p.textX, p.textY, p.gridX, p.gridY, timing.rearrangeDuration, delay, 1.8);
+        flyAlongCurve(p, p.textX, p.textY, p.gridX, p.gridY, timing.rearrangeDuration, delay, 1.05, "power3.out");
         // 자리를 잡는 동시에 크기도 함께 바뀐다 — 크고 작은 점이 뒤섞인
         // 고리가 되어 균일한 점 무더기보다 훨씬 생동감 있게 보인다. 위치
         // 트윈의 back-ease(오버슈트)와 달리 크기는 그대로 자라거나
