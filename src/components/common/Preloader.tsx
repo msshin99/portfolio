@@ -73,32 +73,34 @@ interface IntroTiming {
  *  이전엔 전환이 너무 빨리 지나가 버린다는 피드백을 받아 전체적으로 늘렸다. */
 const TIMINGS: Record<"first" | "returning", IntroTiming> = {
   first: {
-    gatherDuration: 2.5,
-    gatherStaggerMax: 1.3,
-    holdDuration: 2.7,
-    rearrangeDuration: 2.5,
-    rearrangeStaggerMax: 1.2,
+    gatherDuration: 2.6,
+    gatherStaggerMax: 1.35,
+    holdDuration: 2.8,
+    rearrangeDuration: 2.6,
+    rearrangeStaggerMax: 1.25,
     // 성긴 고리가 자리잡은 뒤 드리프트로 살아 움직이는 걸 더 오래 볼 수
-    // 있도록 다른 단계보다 크게 늘렸다.
-    gridHoldDuration: 2.1,
-    holeDuration: 2.1,
-    fadeOutDuration: 1.1,
-    subtitleDelay: 3.8,
+    // 있도록 다른 단계보다 크게 늘렸다. 구멍이 뚫려 실제 메인 사이트로
+    // 넘어가는 holeDuration/fadeOutDuration도 더 늦춰서, 화면이 바뀌는
+    // 순간 자체가 급하게 느껴지지 않게 했다.
+    gridHoldDuration: 2.4,
+    holeDuration: 2.6,
+    fadeOutDuration: 1.3,
+    subtitleDelay: 3.9,
     subtitleFadeDuration: 0.55,
-    subtitleHold: 1.9,
+    subtitleHold: 2.0,
   },
   returning: {
-    gatherDuration: 1.25,
-    gatherStaggerMax: 0.7,
-    holdDuration: 1.45,
-    rearrangeDuration: 1.25,
-    rearrangeStaggerMax: 0.65,
-    gridHoldDuration: 0.95,
-    holeDuration: 1.25,
-    fadeOutDuration: 0.68,
-    subtitleDelay: 1.55,
-    subtitleFadeDuration: 0.35,
-    subtitleHold: 0.8,
+    gatherDuration: 1.3,
+    gatherStaggerMax: 0.75,
+    holdDuration: 1.5,
+    rearrangeDuration: 1.3,
+    rearrangeStaggerMax: 0.68,
+    gridHoldDuration: 1.1,
+    holeDuration: 1.5,
+    fadeOutDuration: 0.8,
+    subtitleDelay: 1.6,
+    subtitleFadeDuration: 0.36,
+    subtitleHold: 0.85,
   },
 };
 
@@ -129,9 +131,9 @@ function isLowEndDevice() {
 }
 
 function getParticleCount(width: number) {
-  if (width <= 600) return 260;
-  if (width <= 1024) return 430;
-  return 900;
+  if (width <= 600) return 340;
+  if (width <= 1024) return 560;
+  return 1150;
 }
 
 interface Point {
@@ -499,7 +501,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 위치와 별개로 크기도 ±25% 정도 일렁여서, 떠다니기만 하는 게
           // 아니라 반짝이는 느낌까지 더한다 — 위치 드리프트와 주파수가
           // 달라 서로 어긋난 리듬으로 겹친다.
-          twinkle = 1 + Math.sin(time * p.twinkleFreq + p.twinklePhase) * 0.25;
+          twinkle = 1 + Math.sin(time * p.twinkleFreq + p.twinklePhase) * 0.32;
         }
         ctx.beginPath();
         ctx.arc(p.x + p.dispX + driftX, p.y + p.dispY + driftY, p.radius * twinkle, 0, Math.PI * 2);
@@ -650,7 +652,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         const start = randomOffscreenPoint(width, height);
         const gp = gridPoints[i];
         const distRatio = Math.hypot(gp.x - width / 2, gp.y - height / 2) / scatterBaseR;
-        const driftScale = Math.min(2.9, Math.max(0.7, distRatio));
+        const driftScale = Math.min(3.4, Math.max(0.7, distRatio));
         return {
           x: start.x,
           y: start.y,
@@ -664,20 +666,19 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 끊겨 보였다. 파티클 개수(getParticleCount)를 늘려 윤곽선 밀도를
           // 높이고, 반지름도 한 단계 더 키워 점 하나하나가 더 진하게 보이도록 했다.
           radius: 2.1 + Math.random() * 1.4,
-          // 점 개수를 크게 늘리면서 크기는 오히려 줄였다 — 크고 굵은 점 몇
-          // 개보다, 작고 촘촘한 점 수백 개가 훨씬 사진 같은 입자감을 준다.
-          // 제곱 분포는 그대로 유지해 대부분은 작고 이따금 살짝 큰 점이
-          // 섞이게 한다.
-          ringRadius: 0.7 + Math.random() ** 2 * 4.2,
+          // 점 개수를 더 늘리면서, 최댓값(4.9px)은 그대로 두고 최솟값만 더
+          // 낮췄다(0.7 -> 0.35) — 가장 큰 점이 지금보다 더 커지지는 않으면서,
+          // 작은 점과 큰 점 사이의 크기 차이(대비)는 더 뚜렷해진다.
+          ringRadius: 0.35 + Math.random() ** 2 * 4.55,
           dispX: 0,
           dispY: 0,
           velX: 0,
           velY: 0,
           driftPhase: Math.random() * Math.PI * 2,
-          driftFreq: 0.7 + Math.random() * 1.5,
-          // 거리 기반 driftScale(0.7~2.9배)을 곱해 고리 바깥의 이탈 점들이
-          // 눈에 띄게 더 크게, 더 빠르게 흔들리도록 진폭도 한 단계 더 키웠다.
-          driftAmp: (7 + Math.random() * 18) * driftScale,
+          driftFreq: 0.8 + Math.random() * 1.8,
+          // 거리 기반 driftScale(0.7~3.4배)을 곱해 고리 바깥의 이탈 점들이
+          // 눈에 띄게 더 크게, 더 빠르게 흔들리도록 진폭을 한 단계 더 키웠다.
+          driftAmp: (9 + Math.random() * 22) * driftScale,
           twinklePhase: Math.random() * Math.PI * 2,
           twinkleFreq: 1.0 + Math.random() * 2.0,
         };
