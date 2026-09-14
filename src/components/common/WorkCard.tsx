@@ -195,9 +195,9 @@ export default function WorkCard({
           // 자동으로 걸어버려서, 사진 자체는 항상 원래(풀스크린) 크기 그대로 있고 부모 박스가
           // 커지는 만큼만 "구멍"으로 더 보이는 것처럼 되어버린다 — 즉 "사진이 커지는" 게 아니라
           // "이미 꽉 찬 사진을 보는 창이 넓어지는" 것처럼 보여서 핵심 전환 모션 자체가 깨진다.
-          // object-contain으로 원본 비율을 그대로 유지해 잘리는 부분 없이 이미지 전체를
-          // 보여준다. 남는 여백은 뒤에 다른 걸 깔지 않고 카드와 같은 톤(bg-white/5)으로만
-          // 채운다.
+          // Supabase 변환 단계에서 resize=contain으로 비율을 올바르게 유지한 채 받아오므로
+          // (portfolioApi.ts의 toThumbnailUrl 참고), 이제는 object-cover로 카드를 여백 없이
+          // 꽉 채워도 이미지가 과도하게 잘리거나 확대돼 보이지 않는다.
           <motion.div
             layoutId={handedOff ? undefined : layoutId}
             animate={{ opacity: handedOff ? 0 : 1 }}
@@ -210,8 +210,8 @@ export default function WorkCard({
               alt={item.title}
               className={
                 thumbnailReveal
-                  ? "w-full h-full object-contain block will-change-transform"
-                  : "w-full h-full object-contain block transition-transform duration-500 ease-out group-hover:scale-110"
+                  ? "w-full h-full object-cover block will-change-transform"
+                  : "w-full h-full object-cover block transition-transform duration-500 ease-out group-hover:scale-110"
               }
             />
           </motion.div>
@@ -222,8 +222,8 @@ export default function WorkCard({
             alt={item.title}
             className={
               thumbnailReveal
-                ? "rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-contain max-w-full bg-white/5 will-change-transform"
-                : "rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-contain max-w-full bg-white/5 transition-transform duration-500 ease-out group-hover:scale-110"
+                ? "rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-cover max-w-full bg-white/5 will-change-transform"
+                : "rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-cover max-w-full bg-white/5 transition-transform duration-500 ease-out group-hover:scale-110"
             }
           />
         )}
