@@ -38,10 +38,9 @@ const REPEL_RADIUS = 140;
 const REPEL_STRENGTH = 2600;
 const SPRING_K = 90;
 
-/** 두 번째 형태(나선)가 도는 바퀴 수 — buildSpiralPoints와 별자리 연결선
- *  계산(같은 각도의 "한 바퀴 전" 이웃을 찾을 때) 양쪽에서 같은 값을 써야
- *  나선 팔이 어긋나지 않는다. */
-const SPIRAL_TURNS = 4.5;
+/** 두 번째 형태(동심원)의 링 개수. computeRingSizes/buildRingPoints/별자리
+ *  연결선 계산이 전부 이 값을 공유해야 링 경계가 서로 어긋나지 않는다. */
+const RING_COUNT = 6;
 
 interface IntroTiming {
   /** 파티클 하나가 글자 모양으로 모이는 데 걸리는 시간(초) */
@@ -243,25 +242,48 @@ function sampleN<T>(arr: T[], n: number): T[] {
   return copy.slice(0, n);
 }
 
-/** 파티클 개수만큼 화면 중앙에 소용돌이치는 나선(spiral) 좌표를 배치한다.
- *  예전엔 격자였는데, 격자보다 훨씬 화려하고 "은하수가 소용돌이치다 터지는"
- *  느낌을 주는 나선으로 바꿨다. 반지름을 sqrt(t)로 키워서(각도는 t에 선형
- *  비례) 나선 안쪽과 바깥쪽의 점 밀도가 고르게 유지되도록 했다 — 단순히
- *  반지름을 t에 비례시키면 중심부만 촘촘하고 바깥은 듬성듬성해 보인다.
- *  가장 안쪽 점(i=0)은 반지름이 거의 0이라 자연스럽게 나선의 "눈"이 되고,
- *  이 자리가 그대로 heroParticle(구멍이 뚫려나가는 기준점)로 선택돼
- *  나선의 중심에서 정확히 빵 터지는 것처럼 이어진다. */
-function buildSpiralPoints(count: number, width: number, height: number): Point[] {
+/** count를 RING_COUNT개의 동심원에 나눠 배분한다 — 바깥 링일수록 둘레가 기니까
+ *  더 많은 점을, 안쪽 링일수록 적은 점을 배정해 전체 밀도가 고르게 유지되도록
+ *  한다. buildRingPoints(좌표 배치)와 별자리 연결선(gridLines, 각 링을 닫힌
+ *  원으로 잇는 부분) 양쪽에서 똑같은 배분을 써야 링 경계가 어긋나지 않는다. */
+function computeRingSizes(count: number): number[] {
+  const sizes: number[] = [];
+  let remaining = count;
+  const totalWeight = (RING_COUNT * (RING_COUNT + 1)) / 2;
+  for (let ring = 1; ring <= RING_COUNT; ring++) {
+    if (ring === RING_COUNT) {
+      sizes.push(Math.max(1, remaining));
+      break;
+    }
+    const n = Math.max(6, Math.round((ring / totalWeight) * count));
+    sizes.push(n);
+    remaining -= n;
+  }
+  return sizes;
+}
+
+/** 파티클 개수만큼 화면 중앙에 동심원(과녁/레이더 같은 여러 겹 원) 좌표를
+ *  배치한다. 이전엔 소용돌이 나선 + 방사형 가닥을 함께 그었는데, 선이
+ *  사방으로 교차하니 오히려 난해해 보인다는 피드백을 받아 — 각 링을 그
+ *  자체로 닫힌 원 하나로만 잇는 훨씬 단순하고 또렷한 형태로 바꿨다. 화려함은
+ *  유지하면서(여러 겹의 빛나는 원이 동시에 떠 있는 모습) 한눈에 읽히는
+ *  기하학적 구조라 "그냥 어지럽다"는 인상이 안 남는다. */
+function buildRingPoints(count: number, width: number, height: number): Point[] {
   const cx = width / 2;
   const cy = height / 2;
   const maxRadius = Math.min(width, height) * 0.4;
+  const sizes = computeRingSizes(count);
   const points: Point[] = [];
-  for (let i = 0; i < count; i++) {
-    const t = i / Math.max(1, count - 1);
-    const r = Math.sqrt(t) * maxRadius;
-    const angle = t * SPIRAL_TURNS * Math.PI * 2;
-    points.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
-  }
+  sizes.forEach((n, ringIdx) => {
+    const r = ((ringIdx + 1) / RING_COUNT) * maxRadius;
+    // 링마다 시작 각도를 살짝씩 돌려서, 안쪽/바깥 링의 점들이 방사형으로 한
+    // 줄에 나란히 겹치지 않고 꽃잎처럼 어긋나 보이게 한다.
+    const angleOffset = ringIdx * 0.35;
+    for (let j = 0; j < n; j++) {
+      const angle = (j / n) * Math.PI * 2 + angleOffset;
+      points.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
+    }
+  });
   return points;
 }
 
@@ -604,7 +626,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       if (cancelled) return;
       const count = getParticleCount(width);
       const { points: textPoints, textBottom } = buildTextPoints(TEXT, width, height, count);
-      const gridPoints = buildSpiralPoints(count, width, height);
+      const gridPoints = buildRingPoints(count, width, height);
 
       // 서브 문구를 퍼센트 기반 고정 위치가 아니라, 실제로 그려진 "MSSHIN" 글자
       // 실루엣 바로 아래 30px 지점에 둔다.
@@ -643,16 +665,20 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         return d < dc ? p : closest;
       }, particles[0]);
 
-      // 별자리 연결선 쌍을 미리 계산해둔다. 나선 순서상 바로 다음 점끼리 이으면
-      // 나선의 팔(arm) 자체가 하나의 흐르는 선으로 그려지고, 여기에 한 바퀴
-      // 전(같은 각도, 한 단계 안쪽) 점과도 이어서 바깥에서 안쪽으로 향하는
-      // 방사형 가닥까지 더하면 거미줄처럼 성긴 격자가 아니라 은하 나선팔
-      // 특유의 소용돌이 구조가 살아난다.
-      const pointsPerTurn = Math.max(1, Math.round(count / SPIRAL_TURNS));
+      // 별자리 연결선 쌍을 미리 계산해둔다 — 각 링에 속한 점들을 그 링 안에서만
+      // 순서대로 잇고 마지막 점을 다시 첫 점과 이어 닫힌 원을 만든다. 링을
+      // 넘나드는 선(예전 나선의 방사형 가닥)은 두지 않아서, 여러 겹의 원이
+      // 교차 없이 또렷하게 겹쳐 보인다.
+      const ringSizes = computeRingSizes(count);
       gridLines = [];
-      particles.forEach((p, i) => {
-        if (i + 1 < particles.length) gridLines.push([p, particles[i + 1]]);
-        if (i + pointsPerTurn < particles.length) gridLines.push([p, particles[i + pointsPerTurn]]);
+      let ringOffset = 0;
+      ringSizes.forEach((n) => {
+        for (let j = 0; j < n; j++) {
+          const a = particles[ringOffset + j];
+          const b = particles[ringOffset + ((j + 1) % n)];
+          gridLines.push([a, b]);
+        }
+        ringOffset += n;
       });
 
       gsap.ticker.add(render);
