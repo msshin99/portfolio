@@ -677,9 +677,32 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       // 더 은은하게 보이게 한다(getParticleCount와 같은 기준선을 쓴다).
       const dotSizeScale = width <= 600 ? 0.72 : 1;
 
+      // MSSHIN -> 고리 전환에서 각 점의 목적지(gridPoints[i])가 원래 텍스트 위치와
+      // 아무 상관 없는 무작위 인덱스라, 점들이 서로 어지럽게 교차하며 "흩어졌다가
+      // 다시 모이는" 것처럼 보였다 — 글자가 고리로 하나로 이어져 흘러들어가는
+      // 느낌을 내려면, 왼쪽에서 오른쪽으로 읽히는 텍스트 순서와 고리를 도는
+      // 각도 순서를 서로 짝지어야 한다. 텍스트 점을 x좌표(왼→오) 순으로,
+      // 고리 점을 중심각(한 바퀴) 순으로 각각 정렬한 뒤 같은 순번끼리 짝지으면,
+      // 글자가 왼쪽부터 순서대로 고리를 한 바퀴 감아 들어가듯 연속적으로
+      // 이어지는 궤적이 만들어진다.
+      const cx = width / 2;
+      const cy = height / 2;
+      const textOrder = textPoints.map((_, i) => i).sort((a, b) => textPoints[a].x - textPoints[b].x);
+      const gridOrder = gridPoints
+        .map((_, i) => i)
+        .sort((a, b) => {
+          const angleA = Math.atan2(gridPoints[a].y - cy, gridPoints[a].x - cx);
+          const angleB = Math.atan2(gridPoints[b].y - cy, gridPoints[b].x - cx);
+          return angleA - angleB;
+        });
+      const gridForText: Point[] = new Array(textPoints.length);
+      for (let k = 0; k < textOrder.length; k++) {
+        gridForText[textOrder[k]] = gridPoints[gridOrder[k % gridOrder.length]];
+      }
+
       particles = textPoints.map((tp, i) => {
         const start = randomOffscreenPoint(width, height);
-        const gp = gridPoints[i];
+        const gp = gridForText[i];
         const distRatio = Math.hypot(gp.x - width / 2, gp.y - height / 2) / scatterBaseR;
         const driftScale = Math.min(3.4, Math.max(0.7, distRatio));
         return {
