@@ -648,6 +648,11 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       // 인상이 뚜렷해진다.
       const scatterBaseR = Math.min(width, height) * SCATTER_RING_RADIUS_RATIO;
 
+      // 모바일 화면은 같은 픽셀 크기의 점이 상대적으로 훨씬 크고 진하게 보여서
+      // 인상이 더 세게 느껴진다 — 화면폭이 좁을 때만 점 크기를 한 단계 줄여
+      // 더 은은하게 보이게 한다(getParticleCount와 같은 기준선을 쓴다).
+      const dotSizeScale = width <= 600 ? 0.72 : 1;
+
       particles = textPoints.map((tp, i) => {
         const start = randomOffscreenPoint(width, height);
         const gp = gridPoints[i];
@@ -665,11 +670,11 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 획이 굵은 곳(가로/세로 스트로크)에서 점 사이 간격이 도드라져 윤곽이
           // 끊겨 보였다. 파티클 개수(getParticleCount)를 늘려 윤곽선 밀도를
           // 높이고, 반지름도 한 단계 더 키워 점 하나하나가 더 진하게 보이도록 했다.
-          radius: 2.1 + Math.random() * 1.4,
+          radius: (2.1 + Math.random() * 1.4) * dotSizeScale,
           // 점 개수를 더 늘리면서, 최댓값(4.9px)은 그대로 두고 최솟값만 더
           // 낮췄다(0.7 -> 0.35) — 가장 큰 점이 지금보다 더 커지지는 않으면서,
           // 작은 점과 큰 점 사이의 크기 차이(대비)는 더 뚜렷해진다.
-          ringRadius: 0.35 + Math.random() ** 2 * 4.55,
+          ringRadius: (0.35 + Math.random() ** 2 * 4.55) * dotSizeScale,
           dispX: 0,
           dispY: 0,
           velX: 0,
