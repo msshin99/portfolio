@@ -649,11 +649,15 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       gsap.ticker.add(render);
 
       // 파티클이 출발점에서 도착점까지 일직선으로 미끄러지는 대신, 방향과
-      // 굴곡이 제각각인 완만한 곡선(2차 베지어)을 그리며 날아가게 한다. 곡선을
+      // 굴곡이 제각각인 큼직한 곡선(2차 베지어)을 그리며 날아가게 한다. 곡선을
       // 따라 진행하는 동안엔 진행 방향에 수직으로 잦아드는 흔들림(wobble)까지
-      // 더해서, 정확히 목표 지점에 착지하면서도 날아가는 과정 자체는 여러
-      // 파티클이 서로 다른 궤적으로 펄럭이듯 활기차게 보이게 한다 — 직선
-      // 이동만으로는 아무리 개수가 많아도 "우르르 미끄러진다"는 인상이었다.
+      // 더해서, 여러 파티클이 서로 다른 궤적으로 펄럭이듯 활기차게 보이게
+      // 한다 — 직선 이동만으로는 아무리 개수가 많아도 "우르르 미끄러진다"는
+      // 인상이었다. 착지 직전엔 목표 지점을 살짝 지나쳤다 튕기듯 돌아오는
+      // back-ease를 써서 도착 자체에도 임팩트를 준다(t가 1을 살짝 넘었다가
+      // 정확히 1로 수렴 — 베지어 공식은 t>1에서도 곡선의 접선 방향으로 자연스럽게
+      // 연장되므로 어색하게 튀지 않는다). intensity가 클수록 곡선의 굴곡과
+      // 흔들림 폭이 커져 더 격하게 움직인다.
       const flyAlongCurve = (
         p: Particle,
         fromX: number,
@@ -661,7 +665,8 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         toX: number,
         toY: number,
         duration: number,
-        delay: number
+        delay: number,
+        intensity = 1
       ) => {
         const dx = toX - fromX;
         const dy = toY - fromY;
@@ -670,11 +675,11 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         const perpX = -dy / dist;
         const perpY = dx / dist;
         const bulgeSign = Math.random() < 0.5 ? 1 : -1;
-        // 거리 대비 18~60%만큼 옆으로 부푼 곡선 — 파티클마다 방향/크기가 달라
-        // 어떤 건 크게 휘고 어떤 건 거의 직선에 가깝게 날아온다.
-        const bulge = bulgeSign * (0.18 + Math.random() * 0.42) * dist;
-        const wobbleAmp = (0.03 + Math.random() * 0.09) * dist;
-        const wobbleFreq = 1.5 + Math.random() * 2.5;
+        // 거리 대비 30~110%만큼 옆으로 크게 부푼 곡선 — 파티클마다 방향/크기가
+        // 달라 어떤 건 거의 반 바퀴 휘돌고 어떤 건 상대적으로 완만하게 날아온다.
+        const bulge = bulgeSign * (0.3 + Math.random() * 0.8) * dist * intensity;
+        const wobbleAmp = (0.06 + Math.random() * 0.16) * dist * intensity;
+        const wobbleFreq = 2 + Math.random() * 3.5;
         const ctrlX = (fromX + toX) / 2 + perpX * bulge;
         const ctrlY = (fromY + toY) / 2 + perpY * bulge;
         const proxy = { t: 0 };
@@ -683,16 +688,17 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           {
             t: 1,
             duration,
-            ease: "particleEase",
+            ease: "back.out(1.5)",
             onUpdate: () => {
               const t = proxy.t;
               const mt = 1 - t;
-              // 2차 베지어: from -> ctrl -> to
+              // 2차 베지어: from -> ctrl -> to (t가 1을 넘나드는 구간도 같은
+              // 공식이 곡선 연장선 위의 점을 그대로 내어준다)
               const bx = mt * mt * fromX + 2 * mt * t * ctrlX + t * t * toX;
               const by = mt * mt * fromY + 2 * mt * t * ctrlY + t * t * toY;
-              // 흔들림은 도착 직전(t->1)엔 진폭이 0으로 잦아들어 목표 지점에
-              // 정확히 착지한다 — 흔들리며 날아오다 마지막엔 딱 자리를 잡는다.
-              const wobble = Math.sin(t * Math.PI * wobbleFreq) * wobbleAmp * mt;
+              // 흔들림은 도착 시점(t=1)엔 진폭이 0이 되어 목표 지점에 정확히
+              // 착지한다 — 흔들리며 날아오다 마지막엔 딱 자리를 잡는다.
+              const wobble = Math.sin(t * Math.PI * wobbleFreq) * wobbleAmp * (1 - t) * (1 - t);
               p.x = bx + perpX * wobble;
               p.y = by + perpY * wobble;
             },
@@ -718,6 +724,10 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       // from을 p.x(호출 시점엔 아직 화면 밖 시작 좌표)가 아니라 p.textX/textY로
       // 명시한다 — 실제로 이 트윈이 재생될 시점엔 Phase 1이 끝나 그 자리에
       // 있겠지만, 이 곡선 계산 자체는 재생 전(setup 시점)에 미리 해두기 때문.
+      // "MSSHIN" 글자가 와르르 흩어졌다 사각 그리드로 다시 뭉치는 이 전환이
+      // 가장 임팩트가 커야 할 구간이라, intensity를 1.8로 올려 곡선/흔들림
+      // 폭을 gather보다 훨씬 크게 준다 — 글자를 이루던 점들이 정말 "흩어졌다
+      // 재조립되는" 느낌을 낸다.
       master.call(() => { trailState.active = true; }, [], holdEnd);
       particles.forEach((p) => {
         flyAlongCurve(
@@ -727,7 +737,8 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           p.gridX,
           p.gridY,
           timing.rearrangeDuration,
-          holdEnd + Math.random() * timing.rearrangeStaggerMax
+          holdEnd + Math.random() * timing.rearrangeStaggerMax,
+          1.8
         );
       });
       const phase2End = holdEnd + timing.rearrangeStaggerMax + timing.rearrangeDuration;
