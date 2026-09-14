@@ -116,7 +116,7 @@ export default function WorkTogether({ text = DEFAULT_WORK_TOGETHER_TEXT }: { te
       ref={sectionRef}
       className="work-together overflow-hidden w-full py-[120px] max-lg:py-[90px] max-sm:py-[60px]"
     >
-      <div ref={trackRef} className="flex w-max shrink-0 items-center">
+      <div ref={trackRef} className="flex w-max shrink-0 items-center will-change-transform">
         <WorkTogetherSet text={text} />
         <WorkTogetherSet text={text} ariaHidden />
       </div>

@@ -777,7 +777,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           p.textY,
           timing.gatherDuration,
           Math.random() * timing.gatherStaggerMax,
-          0.3,
+          0.2,
           "power2.out"
         );
       });

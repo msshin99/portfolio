@@ -719,10 +719,15 @@
    GSAP가 문자열째로 부드럽게 보간하지 못하는 대표적인 속성이라, "숫자 하나
    (--glow: 0→1)를 GSAP로 움직이고 그 값을 CSS calc()가 읽어 그림으로
    바꾸는" 방식으로 나눴다. */
+/* drop-shadow는 프레임마다 다시 래스터라이즈해야 해서 비용이 큰 필터다 —
+   예전엔 반복 문구마다(최대 16벌) 겹쳐진 두 겹의 drop-shadow를 매 프레임
+   갱신해서, 그 메인스레드 부담이 같은 프레임에서 도는 흐름(xPercent) 트윈
+   까지 끌어내려 살짝 버벅이게 만들었다. 한 겹으로 줄이고 will-change로
+   브라우저에 미리 레이어를 예약해둬서 체감 부드러움을 되찾는다. */
 .work-together-text {
   --glow: 0;
-  filter: drop-shadow(0 0 calc(var(--glow) * 24px) rgb(245 98 20 / calc(var(--glow) * 0.85)))
-    drop-shadow(0 0 calc(var(--glow) * 56px) rgb(245 98 20 / calc(var(--glow) * 0.35)));
+  will-change: filter;
+  filter: drop-shadow(0 0 calc(var(--glow) * 28px) rgb(245 98 20 / calc(var(--glow) * 0.75)));
 }
 
 } /* end @layer utilities */
