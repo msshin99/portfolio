@@ -129,9 +129,9 @@ function isLowEndDevice() {
 }
 
 function getParticleCount(width: number) {
-  if (width <= 600) return 190;
-  if (width <= 1024) return 320;
-  return 680;
+  if (width <= 600) return 260;
+  if (width <= 1024) return 430;
+  return 900;
 }
 
 interface Point {
@@ -639,7 +639,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         const start = randomOffscreenPoint(width, height);
         const gp = gridPoints[i];
         const distRatio = Math.hypot(gp.x - width / 2, gp.y - height / 2) / scatterBaseR;
-        const driftScale = Math.min(2.4, Math.max(0.7, distRatio));
+        const driftScale = Math.min(2.9, Math.max(0.7, distRatio));
         return {
           x: start.x,
           y: start.y,
@@ -653,19 +653,20 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 끊겨 보였다. 파티클 개수(getParticleCount)를 늘려 윤곽선 밀도를
           // 높이고, 반지름도 한 단계 더 키워 점 하나하나가 더 진하게 보이도록 했다.
           radius: 2.1 + Math.random() * 1.4,
-          // 제곱으로 치우친 분포 — 대부분은 작은 점이고 이따금 훨씬 큰 점이
-          // 섞여서, 균일한 점 무더기보다 훨씬 생동감 있는 고리가 된다.
-          ringRadius: 1.1 + Math.random() ** 2 * 6.5,
+          // 점 개수를 크게 늘리면서 크기는 오히려 줄였다 — 크고 굵은 점 몇
+          // 개보다, 작고 촘촘한 점 수백 개가 훨씬 사진 같은 입자감을 준다.
+          // 제곱 분포는 그대로 유지해 대부분은 작고 이따금 살짝 큰 점이
+          // 섞이게 한다.
+          ringRadius: 0.7 + Math.random() ** 2 * 4.2,
           dispX: 0,
           dispY: 0,
           velX: 0,
           velY: 0,
           driftPhase: Math.random() * Math.PI * 2,
-          driftFreq: 0.6 + Math.random() * 1.1,
-          // 처음엔 2~9px로 뒀는데 육안으로는 거의 안 보일 만큼 은은해서 5~19px로
-          // 키웠고, 여기에 다시 거리 기반 driftScale(0.7~2.4배)을 곱해 고리
-          // 바깥의 이탈 점들이 눈에 띄게 더 크게 흔들리도록 했다.
-          driftAmp: (5 + Math.random() * 14) * driftScale,
+          driftFreq: 0.7 + Math.random() * 1.5,
+          // 거리 기반 driftScale(0.7~2.9배)을 곱해 고리 바깥의 이탈 점들이
+          // 눈에 띄게 더 크게, 더 빠르게 흔들리도록 진폭도 한 단계 더 키웠다.
+          driftAmp: (7 + Math.random() * 18) * driftScale,
         };
       });
 
