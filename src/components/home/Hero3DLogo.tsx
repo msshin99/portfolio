@@ -15,6 +15,14 @@ const BASE_TILT_X = -0.16;
  *  3/4 각도. */
 const BASE_ROTATION_Y = 0.32;
 
+/** 이 시간(초, Canvas 마운트 시점 기준)이 지나기 전까지는 유휴 스웨이/마우스
+ *  추적 기울임을 아예 적용하지 않고 기준각(BASE_ROTATION_Y/BASE_TILT_X)에
+ *  가만히 멈춰 있는다 — Hero.tsx의 로고 진입(스케일업) 애니메이션이 대략 이
+ *  시점에 끝나므로, "정중앙에 딱 나타난 뒤에야 비로소 움직이기 시작"하는
+ *  것처럼 보이게 한다. 진입 애니메이션과 동시에 이미 흔들리고 있으면 처음
+ *  자리를 잡기도 전에 산만하게 보인다. */
+const ENTRANCE_HOLD_SEC = 2;
+
 /** 정점 애니메이션 대상이 되는 메시 하나의 상태 — 지오메트리 로드 직후의 원본
  *  좌표 스냅샷(original)과, 매 프레임 댐핑되며 0으로 수렴하는 정점별 Z 오프셋
  *  버퍼(offsets)를 함께 들고 있는다. */
@@ -182,15 +190,21 @@ function LogoModel({ visibleRef }: { visibleRef: RefObject<boolean> }) {
     // 게 드러나도록, 서로 주기가 다른 사인파 몇 개를 얹어 아주 은은하게
     // 계속 떠 있는 듯한 유휴 모션을 더한다 — 주기를 다르게 둬야 흔들림이
     // 기계적으로 반복되는 티가 안 나고 자연스럽게 표류하는 느낌이 난다.
-    const idleSwayY = Math.sin(t * 0.45) * 0.075;
-    const idleTiltX = Math.sin(t * 0.65 + 1.3) * 0.045;
-    const idleBobY = Math.sin(t * 0.6 + 0.6) * 0.11;
+    // 진입 애니메이션이 자리 잡기 전(ENTRANCE_HOLD_SEC 이전)엔 이 모션과
+    // 마우스 추적을 전부 0으로 죽여서, 기준각에 가만히 멈춰 있다가 자리를
+    // 완전히 잡은 뒤에야 움직이기 시작하게 한다.
+    const settled = t > ENTRANCE_HOLD_SEC;
+    const idleSwayY = settled ? Math.sin(t * 0.45) * 0.075 : 0;
+    const idleTiltX = settled ? Math.sin(t * 0.65 + 1.3) * 0.045 : 0;
+    const idleBobY = settled ? Math.sin(t * 0.6 + 0.6) * 0.11 : 0;
+    const pointerX = settled ? pointer.current.x : 0;
+    const pointerY = settled ? pointer.current.y : 0;
 
     // 한 바퀴씩 계속 도는 대신 고정된 3/4 각도를 기준으로, 마우스 위치에 따라
     // 아주 살짝만 좌우/상하로 기울여 입체감만 은은하게 느껴지게 한다.
-    const targetSpinY = BASE_ROTATION_Y + pointer.current.x * 0.12 + idleSwayY;
-    const targetTiltX = BASE_TILT_X + pointer.current.y * 0.12 + idleTiltX;
-    const targetTiltZ = -pointer.current.x * 0.08;
+    const targetSpinY = BASE_ROTATION_Y + pointerX * 0.12 + idleSwayY;
+    const targetTiltX = BASE_TILT_X + pointerY * 0.12 + idleTiltX;
+    const targetTiltZ = -pointerX * 0.08;
     spin.rotation.y = THREE.MathUtils.lerp(spin.rotation.y, targetSpinY, 0.04);
     tilt.rotation.x = THREE.MathUtils.lerp(tilt.rotation.x, targetTiltX, 0.04);
     tilt.rotation.z = THREE.MathUtils.lerp(tilt.rotation.z, targetTiltZ, 0.04);
@@ -431,8 +445,9 @@ export default function Hero3DLogo({ className = "" }: { className?: string }) {
           <Environment preset="studio" />
           {/* margin을 줄일수록 카메라가 모델에 더 바짝 맞춰져 화면에서 차지하는
               크기가 커진다 — fit 거리가 margin에 거의 비례하므로, 0.95를
-              1.2로 나눈 값(약 0.79)을 주면 화면상 크기가 대략 20% 커진다. */}
-          <Bounds fit clip margin={0.79}>
+              1.2로 나눈 값(약 0.79)을 주면 화면상 크기가 대략 20% 커진다.
+              0.70으로 한 단계 더 낮춰 조금 더 크게 보이게 했다. */}
+          <Bounds fit clip margin={0.7}>
             <Center>
               <LogoModel visibleRef={visibleRef} />
             </Center>
