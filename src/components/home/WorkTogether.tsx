@@ -42,11 +42,19 @@ export default function WorkTogether({ text = DEFAULT_WORK_TOGETHER_TEXT }: { te
     const chars = track.querySelectorAll<HTMLElement>(".wt-char");
     const repeats = track.querySelectorAll<HTMLElement>(".work-together-text");
 
+    // 끊임없이 흐르는 xPercent 루프(scrollTween)와는 별개의 transform 축(x, px 단위)에
+    // 얹는 "입장" 오프셋 — 사용자에게 이 문구가 처음 보이는 순간, 화면 오른쪽 바깥에서
+    // 모니터 해상도 안으로 들어오는 것처럼 보이게 한다. GSAP는 x(px)와 xPercent를 독립적인
+    // 축으로 합성하므로, 루프가 계속 도는 중에도 이 오프셋만 0으로 트윈하면 자연스럽게
+    // 겹쳐진다.
+    gsap.set(track, { x: window.innerWidth });
+
     const scrollTween = gsap.to(track, {
       xPercent: -50,
       ease: "none",
       duration: SCROLL_DURATION,
       repeat: -1,
+      paused: true,
     });
 
     // stagger 객체 자체에 repeat/yoyo를 주면, 전체 트윈을 반복하는 대신
@@ -58,6 +66,7 @@ export default function WorkTogether({ text = DEFAULT_WORK_TOGETHER_TEXT }: { te
       duration: 1,
       ease: "sine.inOut",
       stagger: { each: WAVE_STEP, yoyo: true, repeat: -1 },
+      paused: true,
     });
 
     const glowTween = gsap.to(repeats, {
@@ -65,14 +74,31 @@ export default function WorkTogether({ text = DEFAULT_WORK_TOGETHER_TEXT }: { te
       duration: 1.6,
       ease: "sine.inOut",
       stagger: { each: GLOW_STEP, yoyo: true, repeat: -1 },
+      paused: true,
     });
 
     const tweens = [scrollTween, waveTween, glowTween];
 
+    let hasEntered = false;
+
     // 스크롤로 화면 밖에 나가 있는 동안엔 세 트윈을 전부 멈춰서 불필요한
     // 리소스 소모를 막는다(Hero3DLogo/HeroEmbers/Footer와 같은 원칙).
     const observer = new IntersectionObserver(([entry]) => {
-      tweens.forEach((t) => (entry.isIntersecting ? t.play() : t.pause()));
+      if (!entry.isIntersecting) {
+        tweens.forEach((t) => t.pause());
+        return;
+      }
+      if (!hasEntered) {
+        hasEntered = true;
+        gsap.to(track, {
+          x: 0,
+          duration: 1.4,
+          ease: "power3.out",
+          onComplete: () => tweens.forEach((t) => t.play()),
+        });
+        return;
+      }
+      tweens.forEach((t) => t.play());
     });
     observer.observe(section);
 
