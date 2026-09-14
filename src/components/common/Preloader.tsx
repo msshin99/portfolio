@@ -45,6 +45,9 @@ const SCATTER_RING_JITTER = 0.22;
 /** 이 확률로 훨씬 멀리 떨어진 "이탈" 점을 하나씩 섞어서, 고리 바깥으로
  *  드문드문 흩어진 참고 이미지 특유의 성긴 느낌을 낸다. */
 const SCATTER_RING_OUTLIER_CHANCE = 0.06;
+/** 고리 전체가 중심을 축으로 도는 각속도(라디안/초) — 회전이 눈에 띄지
+ *  않을 만큼 아주 느리게, 은은한 "맴도는" 인상만 준다. */
+const RING_ROTATION_SPEED = 0.11;
 
 interface IntroTiming {
   /** 파티클 하나가 글자 모양으로 모이는 데 걸리는 시간(초) */
@@ -512,6 +515,17 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 느낌까지 더한다 — 위치 드리프트와 주파수가 달라 서로 어긋난
           // 리듬으로 겹친다.
           twinkle = 1 + Math.sin(time * p.twinkleFreq + p.twinklePhase) * 0.4;
+          // 점 하나하나의 흔들림과는 별개로, 고리 전체를 중심을 축으로 아주
+          // 천천히 통째로 돌린다 — 각 점의 제자리 떨림 위에 "천체가 맴도는"
+          // 듯한 느낌을 더해 훨씬 살아있게 보이게 한다. 속도를 최대한 낮춰
+          // 도는 티가 나지 않을 정도로만 느껴지게 한다.
+          const rdx = p.x - width / 2;
+          const rdy = p.y - height / 2;
+          const angle = time * RING_ROTATION_SPEED;
+          const cosA = Math.cos(angle);
+          const sinA = Math.sin(angle);
+          driftX += rdx * cosA - rdy * sinA - rdx;
+          driftY += rdx * sinA + rdy * cosA - rdy;
         }
         ctx.beginPath();
         ctx.arc(p.x + p.dispX + driftX, p.y + p.dispY + driftY, p.radius * twinkle, 0, Math.PI * 2);
