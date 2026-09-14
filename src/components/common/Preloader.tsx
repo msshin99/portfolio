@@ -488,16 +488,20 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       ctx.fillStyle = PARTICLE_COLOR;
       for (const p of particles) {
         if (p === heroParticle && holeState.active) continue;
-        // 앰비언트 드리프트 — 파티클마다 다른 위상/속도로 작은 원을 그리며
-        // 제자리를 맴돈다. dispX/dispY(마우스 반응용 스프링 변위)와는 별개
-        // 레이어라 서로 간섭하지 않고 그대로 더해진다.
+        // 앰비언트 드리프트 — 파티클마다 다른 위상/속도로 제자리를 맴돈다.
+        // x/y축에 서로 다른 주파수·위상을 줘서(리사주 도형처럼) 완전한
+        // 원이 아니라 매번 조금씩 다르게 휘어지는 경로로 떠다니게 한다 —
+        // 딱 떨어지는 원 궤적보다 훨씬 유기적이고 실감 나게 움직인다.
+        // dispX/dispY(마우스 반응용 스프링 변위)와는 별개 레이어라 서로
+        // 간섭하지 않고 그대로 더해진다.
         let driftX = 0;
         let driftY = 0;
         let twinkle = 1;
         if (driftState.active) {
-          const a = time * p.driftFreq + p.driftPhase;
-          driftX = Math.cos(a) * p.driftAmp;
-          driftY = Math.sin(a) * p.driftAmp;
+          const ax = time * p.driftFreq + p.driftPhase;
+          const ay = time * p.driftFreq * 0.63 + p.driftPhase * 1.9 + 2.1;
+          driftX = Math.cos(ax) * p.driftAmp;
+          driftY = Math.sin(ay) * p.driftAmp * 0.85;
           // 위치와 별개로 크기도 ±25% 정도 일렁여서, 떠다니기만 하는 게
           // 아니라 반짝이는 느낌까지 더한다 — 위치 드리프트와 주파수가
           // 달라 서로 어긋난 리듬으로 겹친다.
@@ -683,7 +687,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           driftFreq: 0.8 + Math.random() * 1.8,
           // 거리 기반 driftScale(0.7~3.4배)을 곱해 고리 바깥의 이탈 점들이
           // 눈에 띄게 더 크게, 더 빠르게 흔들리도록 진폭을 한 단계 더 키웠다.
-          driftAmp: (9 + Math.random() * 22) * driftScale,
+          driftAmp: (11 + Math.random() * 27) * driftScale,
           twinklePhase: Math.random() * Math.PI * 2,
           twinkleFreq: 1.0 + Math.random() * 2.0,
         };
