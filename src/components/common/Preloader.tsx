@@ -687,24 +687,27 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       // 더 은은하게 보이게 한다(getParticleCount와 같은 기준선을 쓴다).
       const dotSizeScale = width <= 600 ? 0.72 : 1;
 
-      // MSSHIN -> 고리 전환에서 점들이 글자 순서(왼→오)와 고리를 도는 각도 순서로
-      // 짝지어지도록 정렬해 짝짓는 방식을 몇 차례 시도했는데, 어떤 정렬 기준을
-      // 쓰든 "정해진 순서대로 한 방향으로 쓸려가는" 모양이 되어 화면을 가로지르는
-      // 사선 띠처럼 보였다 — 정렬 자체가 만드는 인위적인 줄서기 때문이었다.
-      // 그래서 순서를 아예 섞어서(shuffle) 짝짓는다 — 각 점의 목적지가 화면
-      // 전역에 고르게 흩어지므로 한 방향으로 쓸려가는 띠가 생기지 않고, intensity를
-      // 낮춰(거의 직선에 가까운 궤적) 점들끼리 서로 어지럽게 교차하는 느낌도
-      // 크지 않다 — 글자가 사방으로 흩어졌다 고리로 모여드는, 방향성 없는
-      // 자연스러운 움직임이 된다.
-      const gridShuffled = gridPoints.slice();
-      for (let i = gridShuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [gridShuffled[i], gridShuffled[j]] = [gridShuffled[j], gridShuffled[i]];
+      // MSSHIN -> 고리 전환: 예전엔 사선처럼 쓸려가 보였는데, 알고 보니 원인은
+      // 매칭 순서가 아니라 "고리 전체 회전"이 아직 날아가는 도중인 좌표에까지
+      // 얹혀 한쪽으로 쏠려 보인 것이었다(아래 ringRotationState 참고, 이제는
+      // 다 도착한 뒤에만 돈다). 그 문제가 실제 원인이었던 회전 쪽에서
+      // 해결됐으니, 각 점이 무작위 목적지로 흩어지는 대신 "자기 자신의 중심
+      // 기준 각도"와 가장 가까운 고리 점으로 이어지도록 다시 짝짓는다 —
+      // 왼쪽 글자는 고리 왼쪽으로, 오른쪽은 오른쪽으로 자연스럽게 흘러들어가
+      // 하나로 이어지는 느낌을 준다.
+      const cx = width / 2;
+      const cy = height / 2;
+      const angleOf = (p: Point) => Math.atan2(p.y - cy, p.x - cx);
+      const textOrder = textPoints.map((_, i) => i).sort((a, b) => angleOf(textPoints[a]) - angleOf(textPoints[b]));
+      const gridOrder = gridPoints.map((_, i) => i).sort((a, b) => angleOf(gridPoints[a]) - angleOf(gridPoints[b]));
+      const gridForText: Point[] = new Array(textPoints.length);
+      for (let k = 0; k < textOrder.length; k++) {
+        gridForText[textOrder[k]] = gridPoints[gridOrder[k % gridOrder.length]];
       }
 
       particles = textPoints.map((tp, i) => {
         const start = randomOffscreenPoint(width, height);
-        const gp = gridShuffled[i % gridShuffled.length];
+        const gp = gridForText[i];
         const distRatio = Math.hypot(gp.x - width / 2, gp.y - height / 2) / scatterBaseR;
         const driftScale = Math.min(3.4, Math.max(0.7, distRatio));
         return {
