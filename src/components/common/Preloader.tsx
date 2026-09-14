@@ -38,10 +38,14 @@ const REPEL_RADIUS = 140;
 const REPEL_STRENGTH = 2600;
 const SPRING_K = 90;
 
-/** 얼굴 형태의 하프톤 반지름 범위 — 그림자(어두운 곳)는 MIN, 빛을 받는
- *  부분(밝은 곳)은 MAX에 가깝게 그린다. */
-const FACE_MIN_RADIUS = 0.6;
-const FACE_MAX_RADIUS = 5.2;
+/** 두 번째 형태(별) 관련 상수 — 링 개수, 별 꼭짓점 개수, 안쪽/바깥쪽 반지름
+ *  비율. 별 모양(star OUTLINE)은 꼭짓점을 건너뛰며 잇는 별 다각형(star
+ *  polygon)과 달리 바깥/안쪽 점을 번갈아 순서대로 잇기만 해서 선이 서로
+ *  교차하지 않는다 — 화려하면서도 난해해 보이지 않는 별 모양을 원한다는
+ *  피드백에 따른 선택. */
+const STAR_RING_COUNT = 4;
+const STAR_POINTS = 5;
+const STAR_INNER_RATIO = 0.46;
 
 interface IntroTiming {
   /** 파티클 하나가 글자 모양으로 모이는 데 걸리는 시간(초) */
@@ -240,165 +244,74 @@ function sampleN<T>(arr: T[], n: number): T[] {
   return copy.slice(0, n);
 }
 
-/** 파티클 개수만큼 화면 중앙에 사람 얼굴(정면 상반신) 실루엣을 채우는 좌표를
- *  뽑는다 — 사용자가 보내준 하프톤(halftone) 초상화 이미지처럼, 점들이
- *  얼굴 전체를 빼곡하게 메운 스티플(stipple) 형태를 목표로 한다. 캔버스
- *  primitive(베지어 곡선)만으로 실제 사진 같은 디테일(눈코입 음영 등)을
- *  재현할 순 없어서, 머리카락 -> 얼굴 -> 목/어깨로 이어지는 일반화된
- *  상반신 실루엣만 그린다. 두 눈 자리는 destination-out으로 살짝 파내서
- *  점이 찍히지 않는 작은 빈틈을 남겨 얼굴이라는 인상을 더한다.
- *
- *  buildTextPoints와 달리 윤곽선만이 아니라 실루엣 내부 전체를 격자로
- *  채운다 — 텍스트는 내부를 채우면 굵은 글씨가 뭉뚱그려진 블록처럼
- *  보였지만, 얼굴처럼 폭이 계속 변하는 유기적 형태는 내부를 채워야
- *  참고 이미지처럼 "점으로 빼곡한 초상화"에 가까워진다. */
-interface FacePointsResult {
-  points: Point[];
-  /** 각 점에 대응하는 0~1 밝기 — 하프톤처럼 밝을수록(빛을 받은 쪽) 큰 원,
-   *  어두울수록(그림자) 작은 원으로 그리는 데 쓴다. points와 같은 인덱스로 짝지어진다. */
-  intensities: number[];
+/** 정n각별의 둘레 위의 한 점을 반환한다 — t는 둘레를 한 바퀴 도는 비율(0~1).
+ *  꼭짓점을 건너뛰며 잇는 별 다각형(star polygon, 오각별 {5/2} 같은)과 달리
+ *  바깥쪽(outerR)과 안쪽(innerR) 점을 번갈아 "순서대로" 잇기만 한다 — 흔히
+ *  아는 매끈한 별 모양(★) 하나가 그려질 뿐, 선이 스스로 교차하지 않아
+ *  아무리 겹쳐도 복잡해 보이지 않는다. */
+function starOutlinePoint(
+  cx: number,
+  cy: number,
+  outerR: number,
+  innerR: number,
+  points: number,
+  rotation: number,
+  t: number
+): Point {
+  const totalVerts = points * 2;
+  const seg = Math.floor(t * totalVerts) % totalVerts;
+  const segT = t * totalVerts - Math.floor(t * totalVerts);
+  const angleStep = Math.PI / points;
+  const r1 = seg % 2 === 0 ? outerR : innerR;
+  const r2 = (seg + 1) % 2 === 0 ? outerR : innerR;
+  const a1 = rotation + seg * angleStep;
+  const a2 = rotation + (seg + 1) * angleStep;
+  const x1 = cx + Math.cos(a1) * r1;
+  const y1 = cy + Math.sin(a1) * r1;
+  const x2 = cx + Math.cos(a2) * r2;
+  const y2 = cy + Math.sin(a2) * r2;
+  return { x: x1 + (x2 - x1) * segT, y: y1 + (y2 - y1) * segT };
 }
 
-function buildFacePoints(width: number, height: number, targetCount: number): FacePointsResult {
-  const off = document.createElement("canvas");
-  off.width = width;
-  off.height = height;
-  const octx = off.getContext("2d");
-  if (!octx) return { points: [], intensities: [] };
-
-  octx.clearRect(0, 0, width, height);
-
-  const cx = width / 2;
-  const s = Math.min(width, height) * 0.34;
-  // 얼굴 중심을 화면 정중앙보다 살짝 위에 둔다 — 어깨까지 포함한 상반신이라
-  // 얼굴만 정중앙에 놓으면 아래쪽 여백이 허전해 보인다.
-  const fy = height * 0.4;
-
-  // 얼굴+머리카락 실루엣 — 참고 이미지를 따라, 정수리는 왼쪽으로 살짝
-  // 치우친 둥근 돔 모양으로 부풀리고, 오른쪽엔 귀(또는 헤어락)로 보이는
-  // 별도의 볼록한 덩어리를 붙이고, 턱은 완만한 U자가 아니라 뾰족하게
-  // 모이는 점으로 마무리한다.
-  const faceHairPath = () => {
-    octx.beginPath();
-    octx.moveTo(cx - s * 0.3, fy + s * 0.62); // 턱 왼쪽 시작점
-    octx.bezierCurveTo(cx - s * 0.75, fy + s * 0.4, cx - s * 0.95, fy - s * 0.35, cx - s * 0.55, fy - s * 0.85);
-    octx.bezierCurveTo(cx - s * 0.3, fy - s * 1.15, cx + s * 0.15, fy - s * 1.12, cx + s * 0.4, fy - s * 0.78);
-    octx.bezierCurveTo(cx + s * 0.6, fy - s * 0.45, cx + s * 0.65, fy - s * 0.12, cx + s * 0.5, fy + s * 0.12);
-    octx.bezierCurveTo(cx + s * 0.42, fy + s * 0.38, cx + s * 0.16, fy + s * 0.55, cx - s * 0.02, fy + s * 0.65);
-    octx.bezierCurveTo(cx - s * 0.12, fy + s * 0.66, cx - s * 0.22, fy + s * 0.65, cx - s * 0.3, fy + s * 0.62);
-    octx.closePath();
-  };
-  // 오른쪽 귀/헤어락 — 얼굴 본체와 살짝 겹치는 별도의 볼록한 타원.
-  const earPath = () => {
-    octx.beginPath();
-    octx.ellipse(cx + s * 0.63, fy + s * 0.05, s * 0.17, s * 0.23, -0.15, 0, Math.PI * 2);
-  };
-
-  octx.save();
-  faceHairPath();
-  octx.clip();
-
-  // 왼쪽 위에서 빛이 들어와 오른쪽 아래로 갈수록 그림자가 지는 방향성 조명 —
-  // 흰색(가장 밝음) -> 회색 -> 검정(가장 어두움) 순으로, 얼굴 전체에 걸쳐
-  // 큰 명암 대비를 만든다.
-  const lightGrad = octx.createLinearGradient(cx - s * 0.9, fy - s * 1.1, cx + s * 0.5, fy + s * 0.9);
-  lightGrad.addColorStop(0, "#ffffff");
-  lightGrad.addColorStop(0.45, "#aaaaaa");
-  lightGrad.addColorStop(0.75, "#444444");
-  lightGrad.addColorStop(1, "#0a0a0a");
-  octx.fillStyle = lightGrad;
-  octx.fillRect(cx - s * 1.2, fy - s * 1.3, s * 2.4, s * 2.6);
-
-  // 머리카락 — 정수리~왼쪽 위를 짙게 덮어 얼굴보다 어두운 덩어리로
-  // 구분되게 한다.
-  const hairGrad = octx.createLinearGradient(cx - s * 0.9, fy - s, cx + s * 0.4, fy - s * 0.3);
-  hairGrad.addColorStop(0, "#666666");
-  hairGrad.addColorStop(1, "#0a0a0a");
-  octx.fillStyle = hairGrad;
-  octx.beginPath();
-  octx.ellipse(cx - s * 0.1, fy - s * 0.65, s * 0.85, s * 0.5, 0, Math.PI * 0.95, Math.PI * 2.05);
-  octx.fill();
-  octx.restore();
-
-  // 귀/헤어락은 얼굴보다 한 단 어두운 톤으로 별도로 채운다 — 얼굴 덩어리와
-  // 겹치되 살짝 다른 명도라 참고 이미지처럼 곁가지로 붙어있는 인상을 준다.
-  octx.save();
-  earPath();
-  octx.clip();
-  const earGrad = octx.createLinearGradient(cx + s * 0.46, fy - s * 0.18, cx + s * 0.8, fy + s * 0.28);
-  earGrad.addColorStop(0, "#8a8a8a");
-  earGrad.addColorStop(1, "#151515");
-  octx.fillStyle = earGrad;
-  octx.fillRect(cx + s * 0.4, fy - s * 0.3, s * 0.5, s * 0.7);
-  octx.restore();
-
-  // 목 — 턱 끝에서 짧게 이어지는 가는 줄기. 참고 이미지처럼 아래 두 블록과는
-  // 눈에 띄게 끊어져 보이도록 짧게만 그린다. 아래 칼라/어깨 블록까지 포함한
-  // 전체 세로 배치는 s의 배수 대신 "칼라/어깨 각각 최대 이만큼"으로 한
-  // 번 더 min()을 걸어서, s가 뷰포트 높이에 비해 큰 정사각형/가로로 넓은
-  // 화면에서도 어깨 블록의 높이가 음수(=안 그려짐)가 되지 않게 한다.
-  const neckTop = fy + s * 0.63;
-  const neckBottom = fy + s * 0.85;
-  octx.beginPath();
-  octx.moveTo(cx - s * 0.12, neckTop);
-  octx.lineTo(cx - s * 0.09, neckBottom);
-  octx.lineTo(cx + s * 0.09, neckBottom);
-  octx.lineTo(cx + s * 0.05, neckTop);
-  octx.closePath();
-  octx.fillStyle = "#3a3a3a";
-  octx.fill();
-
-  // 칼라(collar) — 목 아래 살짝 간격을 두고 떨어진 작은 사각 블록.
-  const collarY0 = fy + s * 0.95;
-  const collarY1 = fy + s * 1.25;
-  octx.beginPath();
-  octx.roundRect(cx - s * 0.42, collarY0, s * 0.84, collarY1 - collarY0, s * 0.14);
-  const collarGrad = octx.createLinearGradient(cx - s * 0.42, collarY0, cx + s * 0.3, collarY1);
-  collarGrad.addColorStop(0, "#c9c9c9");
-  collarGrad.addColorStop(1, "#2a2a2a");
-  octx.fillStyle = collarGrad;
-  octx.fill();
-
-  // 어깨 — 칼라보다 한 번 더 간격을 두고 떨어진, 훨씬 넓은 아래쪽 블록.
-  // 시작점(shoulderY0)에 먼저 여유 있는 고정 높이를 더해 끝점을 구한 뒤에야
-  // 화면 하단으로 클램프한다 — 끝점만 독립적으로 클램프하면(예전 버전)
-  // 시작점이 그 클램프된 값보다 아래로 내려가 버려 높이가 음수가 되는
-  // 경우가 있었다.
-  const shoulderY0 = fy + s * 1.35;
-  const shoulderY1 = Math.min(height * 0.97, shoulderY0 + s * 0.7);
-  octx.beginPath();
-  octx.roundRect(cx - s * 1.05, shoulderY0, s * 2.1, Math.max(4, shoulderY1 - shoulderY0), s * 0.18);
-  const shoulderGrad = octx.createLinearGradient(cx - s * 1.05, shoulderY0, cx + s * 0.7, shoulderY1);
-  shoulderGrad.addColorStop(0, "#cfcfcf");
-  shoulderGrad.addColorStop(0.5, "#6b6b6b");
-  shoulderGrad.addColorStop(1, "#181818");
-  octx.fillStyle = shoulderGrad;
-  octx.fill();
-
-  // ---- 밝기 기반 샘플링 ----
-  // 참고 이미지처럼 흔들림 없는 반듯한 격자를 그대로 쓴다(지터 없음) —
-  // 완전히 빈(알파 0) 배경만 걸러내고 나머지는 밝기(intensity)를 그대로
-  // 들고 가서, 가장자리가 하드 엣지 대신 점점 옅어지는 느낌을 낸다.
-  const { data } = octx.getImageData(0, 0, width, height);
-  const step = Math.max(2, Math.round(Math.min(width, height) / 70));
-  const candidates: { x: number; y: number; intensity: number }[] = [];
-  for (let y = 0; y < height; y += step) {
-    for (let x = 0; x < width; x += step) {
-      const i = (y * width + x) * 4;
-      const a = data[i + 3];
-      if (a < 10) continue;
-      const luminance = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) / 255;
-      const intensity = luminance * (a / 255);
-      if (intensity < 0.04) continue;
-      candidates.push({ x, y, intensity });
+/** count를 STAR_RING_COUNT개의 겹(별 크기)로 나눠 배분한다 — 바깥 겹일수록
+ *  둘레가 기니까 더 많은 점을 배정한다. buildStarPoints와 별자리 연결선
+ *  계산 양쪽에서 같은 배분을 써야 겹 경계가 어긋나지 않는다. */
+function computeStarRingSizes(count: number): number[] {
+  const sizes: number[] = [];
+  let remaining = count;
+  const totalWeight = (STAR_RING_COUNT * (STAR_RING_COUNT + 1)) / 2;
+  for (let ring = 1; ring <= STAR_RING_COUNT; ring++) {
+    if (ring === STAR_RING_COUNT) {
+      sizes.push(Math.max(1, remaining));
+      break;
     }
+    const n = Math.max(6, Math.round((ring / totalWeight) * count));
+    sizes.push(n);
+    remaining -= n;
   }
+  return sizes;
+}
 
-  const picked = sampleN(candidates, targetCount);
-  return {
-    points: picked.map((c) => ({ x: c.x, y: c.y })),
-    intensities: picked.map((c) => c.intensity),
-  };
+/** 파티클 개수만큼 화면 중앙에 겹겹이 포개진 매끈한 별(★) 좌표를 배치한다.
+ *  꼭짓점을 건너뛰며 잇는 별 다각형(오각별·칠각별 등)은 화려하지만 선이
+ *  스스로 교차해 난해해 보인다는 피드백을 받아, 아주 단순한 5각 별
+ *  윤곽선을 크기만 다르게 여러 겹 겹치는 방식으로 되돌렸다 — 화려함은
+ *  겹의 개수로, 명료함은 교차 없는 별 윤곽선으로 확보한다. 모든 겹이 같은
+ *  회전(정오 방향으로 한 꼭짓점)을 공유해 축이 어긋나지 않는다. */
+function buildStarPoints(count: number, width: number, height: number): Point[] {
+  const cx = width / 2;
+  const cy = height / 2;
+  const maxOuter = Math.min(width, height) * 0.42;
+  const sizes = computeStarRingSizes(count);
+  const points: Point[] = [];
+  sizes.forEach((n, ringIdx) => {
+    const outerR = ((ringIdx + 1) / STAR_RING_COUNT) * maxOuter;
+    const innerR = outerR * STAR_INNER_RATIO;
+    for (let j = 0; j < n; j++) {
+      points.push(starOutlinePoint(cx, cy, outerR, innerR, STAR_POINTS, -Math.PI / 2, j / n));
+    }
+  });
+  return points;
 }
 
 /** 파티클의 시작 위치 — 화면 네 변 중 하나를 골라 그 바깥쪽 화면 밖 어딘가에 둔다. */
@@ -423,9 +336,6 @@ interface Particle extends Point {
   gridX: number;
   gridY: number;
   radius: number;
-  /** 얼굴 형태로 모일 때 이 점이 맡아야 할 하프톤 반지름(밝을수록 큰 원) —
-   *  rearrange 단계에서 radius를 이 값으로 함께 트윈한다. */
-  faceRadius: number;
   // 마우스가 가까이 오면 밀려났다가 스프링처럼 되돌아오는 인터랙티브 변위.
   // GSAP가 제어하는 "목표 위치"(x, y)와는 별개로 그리기 직전에만 더해지는
   // 오프셋이라, 어떤 애니메이션 단계(gather/hold/grid)에서도 목표 위치 자체를
@@ -728,7 +638,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       if (cancelled) return;
       const count = getParticleCount(width);
       const { points: textPoints, textBottom } = buildTextPoints(TEXT, width, height, count);
-      const face = buildFacePoints(width, height, count);
+      const gridPoints = buildStarPoints(count, width, height);
 
       // 서브 문구를 퍼센트 기반 고정 위치가 아니라, 실제로 그려진 "MSSHIN" 글자
       // 실루엣 바로 아래 30px 지점에 둔다.
@@ -739,8 +649,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
 
       particles = textPoints.map((tp, i) => {
         const start = randomOffscreenPoint(width, height);
-        const gp = face.points[i];
-        const intensity = face.intensities[i] ?? 0.5;
+        const gp = gridPoints[i];
         return {
           x: start.x,
           y: start.y,
@@ -754,9 +663,6 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 끊겨 보였다. 파티클 개수(getParticleCount)를 늘려 윤곽선 밀도를
           // 높이고, 반지름도 한 단계 더 키워 점 하나하나가 더 진하게 보이도록 했다.
           radius: 2.1 + Math.random() * 1.4,
-          // 하프톤 반지름 — 빛을 받는 밝은 부분은 크게, 그림자는 작게. 참고
-          // 이미지의 원 크기 대비를 흉내내려 범위를 꽤 넓게 잡았다.
-          faceRadius: FACE_MIN_RADIUS + intensity * (FACE_MAX_RADIUS - FACE_MIN_RADIUS),
           dispX: 0,
           dispY: 0,
           velX: 0,
@@ -764,21 +670,28 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         };
       });
 
-      // 구멍을 뚫을 파티클 = 얼굴 중심(두 눈 사이쯤, buildFacePoints의 fy와
-      // 같은 지점)에 가장 가까운 파티클 — 화면 정중앙이 아니라 얼굴 자체의
-      // 중심에서 터져나가야 자연스럽다.
-      const faceCenterY = height * 0.4;
+      // 구멍을 뚫을 파티클 = 별 중심(화면 정중앙)에 가장 가까운 파티클.
       heroParticle = particles.reduce((closest, p) => {
-        const d = Math.hypot(p.gridX - width / 2, p.gridY - faceCenterY);
-        const dc = Math.hypot(closest.gridX - width / 2, closest.gridY - faceCenterY);
+        const d = Math.hypot(p.gridX - width / 2, p.gridY - height / 2);
+        const dc = Math.hypot(closest.gridX - width / 2, closest.gridY - height / 2);
         return d < dc ? p : closest;
       }, particles[0]);
 
-      // 얼굴 실루엣은 "링" 개념이 없는 자유 형태라 예전처럼 인접한 점끼리
-      // 이어 도형을 그리는 별자리 연결선은 의미가 없다 — 오히려 얼굴 위로
-      // 선이 어지럽게 그어지면 초상화처럼 보이려는 의도를 해친다. 비워둬서
-      // 순수하게 점(스티플)만으로 얼굴이 드러나게 한다.
+      // 별자리 연결선 쌍을 미리 계산해둔다 — 각 겹에 속한 점들을 그 겹
+      // 안에서만 순서대로 잇고 마지막 점을 다시 첫 점과 이어 닫힌 별
+      // 윤곽선을 만든다. 겹을 넘나드는 선은 두지 않아서, 겹겹이 포개진
+      // 별들이 교차 없이 또렷하게 겹쳐 보인다.
+      const starRingSizes = computeStarRingSizes(count);
       gridLines = [];
+      let starRingOffset = 0;
+      starRingSizes.forEach((n) => {
+        for (let j = 0; j < n; j++) {
+          const a = particles[starRingOffset + j];
+          const b = particles[starRingOffset + ((j + 1) % n)];
+          gridLines.push([a, b]);
+        }
+        starRingOffset += n;
+      });
 
       gsap.ticker.add(render);
 
@@ -866,11 +779,6 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       particles.forEach((p) => {
         const delay = holdEnd + Math.random() * timing.rearrangeStaggerMax;
         flyAlongCurve(p, p.textX, p.textY, p.gridX, p.gridY, timing.rearrangeDuration, delay, 1.8);
-        // 자리를 잡는 동시에 하프톤 반지름으로도 함께 자란다 — 빛을 받는
-        // 부분은 크게, 그림자는 작게 커져서 얼굴이 "조립되며 드러나는"
-        // 느낌을 준다. 위치 트윈의 back-ease(살짝 오버슈트)와 달리 반지름은
-        // 그대로 커지기만 해야 자연스러워 별도로 power2.out을 쓴다.
-        master.to(p, { radius: p.faceRadius, duration: timing.rearrangeDuration, ease: "power2.out" }, delay);
       });
       const phase2End = holdEnd + timing.rearrangeStaggerMax + timing.rearrangeDuration;
       const gridHoldEnd = phase2End + timing.gridHoldDuration;
