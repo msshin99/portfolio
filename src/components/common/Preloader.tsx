@@ -73,32 +73,32 @@ interface IntroTiming {
  *  이전엔 전환이 너무 빨리 지나가 버린다는 피드백을 받아 전체적으로 늘렸다. */
 const TIMINGS: Record<"first" | "returning", IntroTiming> = {
   first: {
-    gatherDuration: 2.1,
-    gatherStaggerMax: 1.1,
-    holdDuration: 2.4,
-    rearrangeDuration: 2.1,
-    rearrangeStaggerMax: 1.05,
+    gatherDuration: 2.5,
+    gatherStaggerMax: 1.3,
+    holdDuration: 2.7,
+    rearrangeDuration: 2.5,
+    rearrangeStaggerMax: 1.2,
     // 성긴 고리가 자리잡은 뒤 드리프트로 살아 움직이는 걸 더 오래 볼 수
     // 있도록 다른 단계보다 크게 늘렸다.
-    gridHoldDuration: 1.6,
-    holeDuration: 1.85,
-    fadeOutDuration: 1.0,
-    subtitleDelay: 3.4,
-    subtitleFadeDuration: 0.5,
-    subtitleHold: 1.6,
+    gridHoldDuration: 2.1,
+    holeDuration: 2.1,
+    fadeOutDuration: 1.1,
+    subtitleDelay: 3.8,
+    subtitleFadeDuration: 0.55,
+    subtitleHold: 1.9,
   },
   returning: {
-    gatherDuration: 1.05,
-    gatherStaggerMax: 0.6,
-    holdDuration: 1.3,
-    rearrangeDuration: 1.05,
-    rearrangeStaggerMax: 0.55,
-    gridHoldDuration: 0.75,
-    holeDuration: 1.1,
-    fadeOutDuration: 0.6,
-    subtitleDelay: 1.4,
-    subtitleFadeDuration: 0.32,
-    subtitleHold: 0.7,
+    gatherDuration: 1.25,
+    gatherStaggerMax: 0.7,
+    holdDuration: 1.45,
+    rearrangeDuration: 1.25,
+    rearrangeStaggerMax: 0.65,
+    gridHoldDuration: 0.95,
+    holeDuration: 1.25,
+    fadeOutDuration: 0.68,
+    subtitleDelay: 1.55,
+    subtitleFadeDuration: 0.35,
+    subtitleHold: 0.8,
   },
 };
 
@@ -129,9 +129,9 @@ function isLowEndDevice() {
 }
 
 function getParticleCount(width: number) {
-  if (width <= 600) return 130;
-  if (width <= 1024) return 220;
-  return 460;
+  if (width <= 600) return 190;
+  if (width <= 1024) return 320;
+  return 680;
 }
 
 interface Point {
@@ -291,6 +291,10 @@ interface Particle extends Point {
   gridX: number;
   gridY: number;
   radius: number;
+  /** 성긴 고리로 모일 때 이 점이 가져야 할 반지름 — rearrange 단계에서
+   *  radius를 이 값으로 함께 트윈해서, 크고 작은 점이 뒤섞인 훨씬
+   *  생동감 있는 고리를 만든다. */
+  ringRadius: number;
   // 마우스가 가까이 오면 밀려났다가 스프링처럼 되돌아오는 인터랙티브 변위.
   // GSAP가 제어하는 "목표 위치"(x, y)와는 별개로 그리기 직전에만 더해지는
   // 오프셋이라, 어떤 애니메이션 단계(gather/hold/grid)에서도 목표 위치 자체를
@@ -649,6 +653,9 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 끊겨 보였다. 파티클 개수(getParticleCount)를 늘려 윤곽선 밀도를
           // 높이고, 반지름도 한 단계 더 키워 점 하나하나가 더 진하게 보이도록 했다.
           radius: 2.1 + Math.random() * 1.4,
+          // 제곱으로 치우친 분포 — 대부분은 작은 점이고 이따금 훨씬 큰 점이
+          // 섞여서, 균일한 점 무더기보다 훨씬 생동감 있는 고리가 된다.
+          ringRadius: 1.1 + Math.random() ** 2 * 6.5,
           dispX: 0,
           dispY: 0,
           velX: 0,
@@ -760,6 +767,11 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       particles.forEach((p) => {
         const delay = holdEnd + Math.random() * timing.rearrangeStaggerMax;
         flyAlongCurve(p, p.textX, p.textY, p.gridX, p.gridY, timing.rearrangeDuration, delay, 1.8);
+        // 자리를 잡는 동시에 크기도 함께 바뀐다 — 크고 작은 점이 뒤섞인
+        // 고리가 되어 균일한 점 무더기보다 훨씬 생동감 있게 보인다. 위치
+        // 트윈의 back-ease(오버슈트)와 달리 크기는 그대로 자라거나
+        // 줄어들기만 해야 자연스러워 별도로 power2.out을 쓴다.
+        master.to(p, { radius: p.ringRadius, duration: timing.rearrangeDuration, ease: "power2.out" }, delay);
       });
       const phase2End = holdEnd + timing.rearrangeStaggerMax + timing.rearrangeDuration;
       const gridHoldEnd = phase2End + timing.gridHoldDuration;
