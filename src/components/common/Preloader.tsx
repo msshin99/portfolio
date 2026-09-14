@@ -259,14 +259,28 @@ function computeRingSizes(count: number): number[] {
   return sizes;
 }
 
-/** 정n각형 둘레 위의 한 점을 반환한다 — t는 둘레를 한 바퀴 도는 비율(0~1).
- *  각도로 원을 그리는 대신, 꼭짓점 사이를 직선으로 보간해서 실제로 곧은
- *  변을 가진 다각형 윤곽을 만든다. */
-function polygonPerimeterPoint(cx: number, cy: number, radius: number, sides: number, rotation: number, t: number): Point {
+/** 정n각형의 꼭짓점을 하나 건너, 두 개 건너 … skip개씩 건너뛰며 이으면
+ *  뾰족한 별(star polygon, {n/skip} 표기로 부르는 그것 — 오각별, 칠각별
+ *  같은)이 된다. gcd(sides, skip)===1이면 모든 꼭짓점을 딱 한 번씩만
+ *  거치는 하나의 끊기지 않는 선으로 별 전체를 그릴 수 있다(RING_SHAPES에
+ *  넣어둔 조합은 전부 이 조건을 만족하도록 골랐다). t는 이 순서를 따라
+ *  둘레를 한 바퀴 도는 비율(0~1) — 각 변은 실제 꼭짓점 사이를 직선으로
+ *  보간해 뾰족하게 그려진다(각도로 원을 그리듯 뭉개지지 않는다). */
+function starPerimeterPoint(
+  cx: number,
+  cy: number,
+  radius: number,
+  sides: number,
+  skip: number,
+  rotation: number,
+  t: number
+): Point {
   const edge = Math.floor(t * sides) % sides;
   const edgeT = t * sides - Math.floor(t * sides);
-  const a1 = rotation + (edge / sides) * Math.PI * 2;
-  const a2 = rotation + ((edge + 1) / sides) * Math.PI * 2;
+  const v1 = (edge * skip) % sides;
+  const v2 = ((edge + 1) * skip) % sides;
+  const a1 = rotation + (v1 / sides) * Math.PI * 2;
+  const a2 = rotation + (v2 / sides) * Math.PI * 2;
   const x1 = cx + Math.cos(a1) * radius;
   const y1 = cy + Math.sin(a1) * radius;
   const x2 = cx + Math.cos(a2) * radius;
@@ -274,12 +288,25 @@ function polygonPerimeterPoint(cx: number, cy: number, radius: number, sides: nu
   return { x: x1 + (x2 - x1) * edgeT, y: y1 + (y2 - y1) * edgeT };
 }
 
-/** 파티클 개수만큼 화면 중앙에 겹겹이 포개진 정다각형(삼각형 -> 사각형 ->
- *  오각형 -> ... ) 좌표를 배치한다. 동심원은 밋밋하고 단순해 보인다는
- *  피드백을 받아, 링마다 변의 개수를 하나씩 늘려가는 다각형으로 바꿨다 —
- *  안쪽부터 삼각형·사각형·오각형·육각형·칠각형·팔각형이 겹겹이 포개진
- *  만다라 같은 구조라 "기하학적"이라는 인상이 뚜렷하고, 각 링이 여전히
- *  그 자체로 닫힌 도형 하나뿐이라 선이 서로 교차해 어지러워지는 일도 없다. */
+/** 링마다 쓸 {변의 개수, 건너뛰는 간격} 조합 — 안쪽부터 삼각형(별이 안 되는
+ *  최소 도형) -> 오각별 -> 칠각별 -> 팔각별 -> 구각별 -> 십각별 순으로
+ *  점점 더 화려하고 뾰족해진다. 전부 gcd(sides, skip)===1이라 끊기지
+ *  않는 하나의 별 윤곽으로 그려진다. */
+const RING_SHAPES: { sides: number; skip: number }[] = [
+  { sides: 3, skip: 1 },
+  { sides: 5, skip: 2 },
+  { sides: 7, skip: 2 },
+  { sides: 8, skip: 3 },
+  { sides: 9, skip: 2 },
+  { sides: 10, skip: 3 },
+];
+
+/** 파티클 개수만큼 화면 중앙에 겹겹이 포개진 별(star polygon) 좌표를
+ *  배치한다. 밋밋한 정다각형만으로는 아직 단순해 보인다는 피드백을 받아,
+ *  변을 하나 걸러 잇는 별 모양으로 한 단계 더 화려하게 만들었다 — 오각별·
+ *  칠각별·팔각별 같은 뾰족한 도형이 겹겹이 포개진 진짜 만다라/신성 기하학
+ *  구조가 된다. 각 링은 여전히 그 자체로 끊기지 않는 하나의 선일 뿐이라,
+ *  링을 넘나드는 교차선이 없어 아무리 뾰족해져도 어지럽지 않다. */
 function buildRingPoints(count: number, width: number, height: number): Point[] {
   const cx = width / 2;
   const cy = height / 2;
@@ -288,12 +315,12 @@ function buildRingPoints(count: number, width: number, height: number): Point[] 
   const points: Point[] = [];
   sizes.forEach((n, ringIdx) => {
     const r = ((ringIdx + 1) / RING_COUNT) * maxRadius;
-    const sides = ringIdx + 3; // 3(삼각형) ~ RING_COUNT+2(팔각형, RING_COUNT=6일 때)
+    const { sides, skip } = RING_SHAPES[ringIdx % RING_SHAPES.length];
     // 링마다 회전을 살짝씩 줘서 꼭짓점이 방사형으로 한 줄에 겹치지 않고
-    // 톱니바퀴가 겹쳐진 것처럼 어긋나 보이게 한다.
+    // 별들이 서로 어긋나게 겹쳐 보이게 한다.
     const rotation = ringIdx * 0.22;
     for (let j = 0; j < n; j++) {
-      points.push(polygonPerimeterPoint(cx, cy, r, sides, rotation, j / n));
+      points.push(starPerimeterPoint(cx, cy, r, sides, skip, rotation, j / n));
     }
   });
   return points;
