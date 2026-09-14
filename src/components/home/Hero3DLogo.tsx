@@ -6,7 +6,17 @@ import { BlendFunction, ToneMappingMode } from "postprocessing";
 import * as THREE from "three";
 import logoUrl from "../../assets/MSSHIN_logo_metallic.glb?url";
 
-useGLTF.preload(logoUrl);
+// 모듈이 로드되자마자(=인트로 파티클이 막 첫 프레임을 그리려는 바로 그 순간)
+// 곧바로 GLB 프리로드를 시작하면, 그 fetch+디코드 비용이 인트로의 가장
+// 중요한 첫 1~3초와 정확히 겹쳐서 파티클이 시작부터 뚝뚝 끊겨 보였다
+// (실측: 3초 동안 rAF가 딱 1번만 돎). 그렇다고 아예 없애면 이번엔 그 비용이
+// Hero3DLogo가 실제로 마운트되는 시점(readyToReveal)으로 그대로 넘어가,
+// 인트로가 끝나고 히어로가 드러나는 가장 중요한 순간에 다시 끊긴다. 인트로
+// 자신의 초기 렌더가 안정된 뒤(1.5초)로 살짝 늦춰서 시작하면, 남은 10초
+// 이상의 인트로 재생 시간 동안 여유 있게 끝나 있어 두 시점 다 매끄럽다.
+if (typeof window !== "undefined") {
+  window.setTimeout(() => useGLTF.preload(logoUrl), 1500);
+}
 
 /** 정면을 살짝 위에서 내려다보듯 기울여, 두께(8 unit)가 있는 얇은 부조라는 게
  *  드러나도록 하는 기본 틸트각. */
@@ -431,7 +441,7 @@ export default function Hero3DLogo({ className = "" }: { className?: string }) {
           왼쪽에 치우쳐 보였다 — Bounds가 매번 그 바운딩 박스 중심으로
           되돌리려 하므로 3D 트랜스폼으로는 보정이 상쇄돼버려서, 이미 렌더된
           캔버스 자체를 2D로 살짝 오른쪽으로 밀어 시각적 중심을 맞춘다. */}
-      <div className="absolute inset-0" style={{ transform: "translateX(14.5%)" }}>
+      <div className="absolute inset-0" style={{ transform: "translateX(-1.1%)" }}>
       <Canvas
         dpr={[1, 1.5]}
         camera={{ position: [0, 0, 8.5], fov: 34 }}
@@ -451,10 +461,9 @@ export default function Hero3DLogo({ className = "" }: { className?: string }) {
               골든아워 프리셋 대신 중립적인 스튜디오 조명 HDRI를 쓴다. */}
           <Environment preset="studio" />
           {/* margin을 줄일수록 카메라가 모델에 더 바짝 맞춰져 화면에서 차지하는
-              크기가 커진다 — fit 거리가 margin에 거의 비례하므로, 0.95를
-              1.2로 나눈 값(약 0.79)을 주면 화면상 크기가 대략 20% 커진다.
-              0.58로 한 단계 더 낮춰 조금 더 크게 보이게 했다. */}
-          <Bounds fit clip margin={0.58}>
+              크기가 커진다 — fit 거리가 margin에 거의 비례한다. 0.58은 너무
+              커 보인다는 피드백에 0.65로 살짝 올려 한 단계 줄였다. */}
+          <Bounds fit clip margin={0.65}>
             <Center>
               <LogoModel visibleRef={visibleRef} />
             </Center>
