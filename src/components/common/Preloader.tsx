@@ -310,6 +310,12 @@ interface Particle extends Point {
   driftPhase: number;
   driftFreq: number;
   driftAmp: number;
+  // 위치 드리프트와는 별개로, 크기가 살짝 커졌다 작아지며 반짝이는
+  // 트윙클 효과용 파라미터 — 움직임뿐 아니라 밝기(크기)까지 함께
+  // 일렁여야 "떠다니는 먼지"가 아니라 "반짝이는 별"에 가까운 생동감이
+  // 난다.
+  twinklePhase: number;
+  twinkleFreq: number;
 }
 
 /** 구멍이 뚫리는 순간 터져나가는 불꽃 파편 하나. 물리 시뮬레이션이라 할 것도 없이
@@ -485,13 +491,18 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         // 레이어라 서로 간섭하지 않고 그대로 더해진다.
         let driftX = 0;
         let driftY = 0;
+        let twinkle = 1;
         if (driftState.active) {
           const a = time * p.driftFreq + p.driftPhase;
           driftX = Math.cos(a) * p.driftAmp;
           driftY = Math.sin(a) * p.driftAmp;
+          // 위치와 별개로 크기도 ±25% 정도 일렁여서, 떠다니기만 하는 게
+          // 아니라 반짝이는 느낌까지 더한다 — 위치 드리프트와 주파수가
+          // 달라 서로 어긋난 리듬으로 겹친다.
+          twinkle = 1 + Math.sin(time * p.twinkleFreq + p.twinklePhase) * 0.25;
         }
         ctx.beginPath();
-        ctx.arc(p.x + p.dispX + driftX, p.y + p.dispY + driftY, p.radius, 0, Math.PI * 2);
+        ctx.arc(p.x + p.dispX + driftX, p.y + p.dispY + driftY, p.radius * twinkle, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -667,6 +678,8 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 거리 기반 driftScale(0.7~2.9배)을 곱해 고리 바깥의 이탈 점들이
           // 눈에 띄게 더 크게, 더 빠르게 흔들리도록 진폭도 한 단계 더 키웠다.
           driftAmp: (7 + Math.random() * 18) * driftScale,
+          twinklePhase: Math.random() * Math.PI * 2,
+          twinkleFreq: 1.0 + Math.random() * 2.0,
         };
       });
 
