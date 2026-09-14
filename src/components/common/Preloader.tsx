@@ -316,9 +316,12 @@ function buildRingPoints(count: number, width: number, height: number): Point[] 
   sizes.forEach((n, ringIdx) => {
     const r = ((ringIdx + 1) / RING_COUNT) * maxRadius;
     const { sides, skip } = RING_SHAPES[ringIdx % RING_SHAPES.length];
-    // 링마다 회전을 살짝씩 줘서 꼭짓점이 방사형으로 한 줄에 겹치지 않고
-    // 별들이 서로 어긋나게 겹쳐 보이게 한다.
-    const rotation = ringIdx * 0.22;
+    // 예전엔 링마다 회전을 조금씩 어긋나게 줬는데, 변의 개수(3~10)가 서로
+    // 다른 별들이 제각각 다른 각도로 겹치니 축이 하나도 안 맞아 지저분해
+    // 보였다 — 모든 링의 꼭짓점 하나를 정확히 정오(12시) 방향으로 맞춰서,
+    // 크기만 다른 별들이 같은 수직 대칭축을 공유하는 단정한 문장(紋章)
+    // 형태로 바꿨다.
+    const rotation = -Math.PI / 2;
     for (let j = 0; j < n; j++) {
       points.push(starPerimeterPoint(cx, cy, r, sides, skip, rotation, j / n));
     }
