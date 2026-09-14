@@ -120,7 +120,7 @@ export function mapRowToPortfolioDetail(row: PortfolioRow): PortfolioDetail {
     meta: row.meta,
     websiteUrl: row.website_url ?? "",
     visual: row.hero_image_url ?? "",
-    mainImage: mainImage?.main_image_url ?? "",
+    mainImage: mainImage?.main_image_url ? toDetailImageUrl(mainImage.main_image_url, 2600) : "",
     boxContainer: {
       sub1: boxContainer?.sub1_image_url ?? "",
       sub2: boxContainer?.sub2_image_url ?? "",
@@ -138,9 +138,9 @@ export function mapRowToPortfolioDetail(row: PortfolioRow): PortfolioDetail {
  *  섹션이 느리게 뜨는 걸로 체감되는 가장 큰 원인이었다 — 6장만 합쳐도 17MB가 넘는다.
  *  Supabase Storage의 이미지 변환 엔드포인트(/render/image/public/...)를 쓰면 원본은
  *  그대로 보존한 채, 카드에 실제로 필요한 크기로 서버에서 리사이즈+재인코딩된 버전을
- *  대신 받아올 수 있다(같은 파일 기준 실측 2.9MB → 61KB). 카드가 아니라 상세 페이지의
- *  큰 비주얼 이미지(mapRowToPortfolioDetail의 visual/mainImage)에는 적용하지 않는다 —
- *  거긴 원래도 크게 보여줘야 하는 자리라 원본 그대로 쓴다.
+ *  대신 받아올 수 있다(같은 파일 기준 실측 2.9MB → 61KB). 히어로 비주얼(visual)은 화면
+ *  전체 폭까지 쓰이는 자리라 원본 그대로 두지만, mainImage는 max-w-[1320px]로만 보여서
+ *  아래 toDetailImageUrl로 같은 방식의 리사이즈를 적용한다.
  */
 /** resize=contain을 반드시 같이 줘야 한다 — width만 주고 resize를 생략하면 Supabase
  *  변환 엔드포인트가 비율을 유지한 채 축소하는 게 아니라, 원본 높이는 그대로 둔 채
@@ -151,6 +151,24 @@ function toThumbnailUrl(url: string, width: number): string {
   if (!url.includes("/storage/v1/object/public/")) return url;
   const base = url.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/");
   return `${base}?width=${width}&quality=75&resize=contain`;
+}
+
+/** 상세 페이지 맨 하단의 "사이트 디자인" 풀와이드 이미지(mainImage)도 원본(실측 2~4.5MB)을
+ *  그대로 써서 렌더링이 늦게 뜬다는 피드백이 있었다 — 화면에는 max-w-[1320px]로만 보이는데
+ *  원본은 그보다 훨씬 큰 해상도(최대 3840px대)라 안 쓰는 픽셀까지 통째로 내려받던 것.
+ *  레티나 2배(2640px)까지는 화질 손해 없이 커버되도록 width=2600, 큰 이미지라 품질은
+ *  썸네일(75)보다 높은 82로 유지한다. */
+function toDetailImageUrl(url: string, width: number): string {
+  if (!url.includes("/storage/v1/object/public/")) return url;
+  const base = url.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/");
+  return `${base}?width=${width}&quality=78&resize=contain`;
+}
+
+/** 변환 엔드포인트가 실패했을 때(예: "source image resolution is too large to process" —
+ *  실측 일부 원본이 여기 걸려 400을 반환한다) 원본 URL로 되돌리기 위한 함수. mainImage의
+ *  <img onError>에서 쓴다 — 못 줄인 원본이라도 아예 깨진 이미지로 보이는 것보다는 낫다. */
+export function toOriginalUrl(url: string): string {
+  return url.replace("/storage/v1/render/image/public/", "/storage/v1/object/public/").split("?")[0];
 }
 
 /** WorkCard 그리드(리스트/메인/Related Projects)에 쓰는 WorkItem 모양으로 변환. 카드가

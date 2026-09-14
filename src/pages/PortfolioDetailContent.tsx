@@ -9,7 +9,7 @@ import InputStyleGuide from "../components/portfolio/InputStyleGuide";
 import Reveal from "../components/common/Reveal";
 import StaggerReveal from "../components/common/StaggerReveal";
 import type { PortfolioDetail as PortfolioDetailData } from "../data/portfolioDetails";
-import { usePortfolios, mapRowToWorkItem } from "../lib/portfolioApi";
+import { usePortfolios, mapRowToWorkItem, toOriginalUrl } from "../lib/portfolioApi";
 
 interface PortfolioDetailContentProps {
   detail: PortfolioDetailData;
@@ -339,7 +339,16 @@ export default function PortfolioDetailContent({
       <Reveal duration={1500} className="web overflow-hidden mt-40 max-lg:mt-28 max-sm:mt-16">
         <div className={`cont ${detail.slug} relative w-full max-w-full mx-auto`}>
           <a href="" className="block w-full max-w-[1320px] mx-auto">
-            <img src={detail.mainImage} alt="" className="w-full" />
+            <img
+              src={detail.mainImage}
+              alt=""
+              className="w-full"
+              onError={(e) => {
+                const img = e.currentTarget;
+                const original = toOriginalUrl(img.src);
+                if (img.src !== original) img.src = original;
+              }}
+            />
           </a>
         </div>
       </Reveal>
