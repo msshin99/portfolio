@@ -163,19 +163,12 @@ function centerLinePath(fromX: number, toX: number) {
 /** 사각형 카드는 전부 이 radius로 통일한다. */
 const BOX_RADIUS = "rounded-[4px]";
 
-/** pill/카드 표면 — 유리 반사/블러 효과 대신, 참고 이미지(후기 카드)처럼 배경보다
- *  한 톤 밝은 무채색 판 위에 아주 옅은 헤어라인 보더만 두르는 플랫한 카드 스타일. */
-/** box-shadow는 인라인 style이 아니라 클래스로 둬야 한다 — 인라인 style은 항상 CSS
- *  클래스(:hover 포함)보다 우선 적용되므로, 여기 넣으면 아래 Pill의 hover:shadow-*가
- *  절대 먹히지 않는다. */
-const GLASS_CLASS = "border border-white/[0.08]";
-const GLASS_STYLE: CSSProperties = {
-  backgroundColor: "rgba(255,255,255,0.04)",
-};
-
-/** 하단 3개 피처 카드 전용 배경 — flat한 회색 유리 대신, 색상 없이 순수 블랙/화이트
- *  톤만으로 깊이를 준다. 상단은 미세하게 밝은 무채색 sheen, 하단으로 갈수록
- *  순수 블랙으로 가라앉는 그라디언트 + 은은한 하이라이트/그림자로 무게감을 만든다. */
+/** pill/카드 공용 배경 — flat한 회색 유리 대신, 색상 없이 순수 블랙/화이트 톤만으로
+ *  깊이를 준다. 상단은 미세하게 밝은 무채색 sheen, 하단으로 갈수록 순수 블랙으로
+ *  가라앉는 그라디언트 + 은은한 하이라이트/그림자로 무게감을 만든다.
+ *  box-shadow는 인라인 style이 아니라 클래스로 둬야 한다 — 인라인 style은 항상 CSS
+ *  클래스(:hover 포함)보다 우선 적용되므로, 여기 넣으면 hover:shadow-*가 절대 먹히지
+ *  않는다. */
 const FEATURE_CARD_STYLE: CSSProperties = {
   background:
     "linear-gradient(165deg, rgba(255,255,255,0.09) 0%, rgba(10,10,10,0.98) 42%, rgba(0,0,0,1) 100%)",
@@ -208,12 +201,13 @@ function Pill({ icon, label }: DiagramPillItem) {
   return (
     <div
       className={[
-        "group relative flex items-center gap-2.5 overflow-hidden rounded-[8px] px-5 py-4",
-        GLASS_CLASS,
-        "transition-[border-color,box-shadow] duration-300 ease-out hover:border-primary-txt/45",
-        "hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_0_24px_-4px_rgba(245,98,20,0.5)]",
+        "group relative flex items-center gap-2.5 overflow-hidden rounded-[8px] border border-white/[0.04] px-5 py-4",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_24px_48px_-24px_rgba(0,0,0,0.9)]",
+        "transition-[border-color,box-shadow] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        "hover:border-white/[0.24]",
+        "hover:shadow-[inset_0_1.5px_0_rgba(255,255,255,0.22),inset_0_0_40px_rgba(255,255,255,0.05),0_32px_64px_-24px_rgba(0,0,0,1)]",
       ].join(" ")}
-      style={GLASS_STYLE}
+      style={FEATURE_CARD_STYLE}
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center transition-transform duration-300 ease-out group-hover:scale-110">
         <Icon
