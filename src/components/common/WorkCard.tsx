@@ -83,15 +83,21 @@ export default function WorkCard({
     if (!el) return;
 
     if (prefersReducedMotion()) {
-      gsap.set(el, { yPercent: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(el, { yPercent: 0, scale: 1 });
       return;
     }
 
-    const hiddenState = { yPercent: 100, scale: 1.08, filter: "blur(8px)" };
+    // filter: blur()는 애니메이션 중(특히 scale/translate와 함께 매 프레임
+    // 값이 바뀔 때) 레이어를 계속 다시 래스터라이즈해야 해서 비용이 크다 —
+    // "My Works" 첫 진입 시 6장의 큰 썸네일이 한꺼번에 blur(8px)->blur(0px)를
+    // 재생하면서 상위 StaggerReveal의 3D rotateX와 겹쳐 버벅임의 원인이
+    // 됐다. blur 없이 yPercent/scale만으로도 "아래에서 차오르며 자리잡는"
+    // 느낌은 충분히 살아 있어서, blur를 완전히 빼고 transform만 남긴다.
+    const hiddenState = { yPercent: 100, scale: 1.08 };
     gsap.set(el, hiddenState);
 
     const revealIn = () => {
-      gsap.to(el, { yPercent: 0, scale: 1, filter: "blur(0px)", duration: 0.9, ease: "revealSpring" });
+      gsap.to(el, { yPercent: 0, scale: 1, duration: 0.9, ease: "revealSpring" });
     };
 
     const observer = new IntersectionObserver(
@@ -181,7 +187,7 @@ export default function WorkCard({
         "group [box-shadow:0_0_0_rgba(0,0,0,0)] hover:shadow-2xl transition-shadow duration-300",
       ].join(" ")}
     >
-      <div ref={thumbnailReveal ? revealRef : undefined} className={thumbnailReveal ? "will-change-[transform,filter]" : undefined}>
+      <div ref={thumbnailReveal ? revealRef : undefined} className={thumbnailReveal ? "will-change-transform" : undefined}>
         {useSharedImage ? (
           // layoutId는 이미지가 아니라 "빈" wrapper div에 건다. 3:2 썸네일 <-> 풀스크린 히어로처럼
           // 가로세로 비율이 달라지는 layoutId 전환에서, <motion.img>에 직접 layoutId를 걸면
