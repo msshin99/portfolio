@@ -179,7 +179,6 @@ const GLASS_STYLE: CSSProperties = {
 const FEATURE_CARD_STYLE: CSSProperties = {
   background:
     "linear-gradient(165deg, rgba(255,255,255,0.09) 0%, rgba(10,10,10,0.98) 42%, rgba(0,0,0,1) 100%)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.07), 0 24px 48px -24px rgba(0,0,0,0.9)",
 };
 
 function pct(value: number, total: number) {
@@ -631,15 +630,17 @@ function FeatureCard({ icon, heading, body }: FeatureCardItem) {
     <div
       className={[
         "group relative overflow-hidden rounded-2xl border border-white/[0.04] p-8 max-lg:p-7 max-sm:p-6",
-        "transition-colors duration-500 ease-out hover:border-primary-txt/50",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_24px_48px_-24px_rgba(0,0,0,0.9)]",
+        "transition-[border-color,box-shadow,transform] duration-500 ease-out",
+        "hover:-translate-y-1 hover:border-white/[0.16] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_40px_80px_-28px_rgba(0,0,0,0.95)]",
       ].join(" ")}
       style={FEATURE_CARD_STYLE}
     >
       {/* 참고 이미지처럼 카드 하단 전체가 부드럽게 밝아지는 큰 그라디언트 글로우 — 평소엔
-          숨어 있다가 호버 시 카드 아래쪽 대부분을 진하게 채우며 번진다. 색을 여러 단계로
-          나눠 중심은 진하게, 바깥으로 갈수록 부드럽게 빠지도록 해서 하드한 원이 아니라
-          매끈한 그라디언트로 읽히게 한다. */}
-      <span className="pointer-events-none absolute inset-x-[-30%] bottom-[-40%] h-full origin-bottom scale-y-75 opacity-0 blur-[60px] transition-[opacity,transform] duration-500 ease-out group-hover:scale-y-110 group-hover:opacity-100 [background:radial-gradient(ellipse_65%_75%_at_50%_100%,rgba(255,170,100,1)_0%,rgba(245,98,20,0.75)_30%,rgba(245,98,20,0.35)_55%,transparent_78%)]" />
+          숨어 있다가 호버 시 카드 아래쪽 대부분을 진하게 채우며 번진다. 컬러 없이 순수
+          화이트 톤만으로, 중심은 진하게 바깥으로 갈수록 부드럽게 빠지는 은은한 sheen으로
+          읽히게 한다. */}
+      <span className="pointer-events-none absolute inset-x-[-30%] bottom-[-40%] h-full origin-bottom scale-y-75 opacity-0 blur-[60px] transition-[opacity,transform] duration-500 ease-out group-hover:scale-y-110 group-hover:opacity-100 [background:radial-gradient(ellipse_65%_75%_at_50%_100%,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0.18)_30%,rgba(255,255,255,0.08)_55%,transparent_78%)]" />
 
       <div className="relative">
         <Icon
