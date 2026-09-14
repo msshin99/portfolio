@@ -453,8 +453,8 @@ export default function Hero3DLogo({ className = "" }: { className?: string }) {
           {/* margin을 줄일수록 카메라가 모델에 더 바짝 맞춰져 화면에서 차지하는
               크기가 커진다 — fit 거리가 margin에 거의 비례하므로, 0.95를
               1.2로 나눈 값(약 0.79)을 주면 화면상 크기가 대략 20% 커진다.
-              0.70으로 한 단계 더 낮춰 조금 더 크게 보이게 했다. */}
-          <Bounds fit clip margin={0.7}>
+              0.58로 한 단계 더 낮춰 조금 더 크게 보이게 했다. */}
+          <Bounds fit clip margin={0.58}>
             <Center>
               <LogoModel visibleRef={visibleRef} />
             </Center>
