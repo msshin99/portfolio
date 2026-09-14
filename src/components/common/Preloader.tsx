@@ -834,20 +834,19 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       // 읽는 동안 잔상으로 흐려 보이면 오히려 가독성을 해친다.
       master.call(() => { trailState.active = false; }, [], phase1End);
 
-      // Phase 2: 잠깐 정지 후 -> 정사각형 그리드로 재배열 (다시 잔상 on)
+      // Phase 2: 잠깐 정지 후 -> 정사각형 그리드로 재배열
       // from을 p.x(호출 시점엔 아직 화면 밖 시작 좌표)가 아니라 p.textX/textY로
       // 명시한다 — 실제로 이 트윈이 재생될 시점엔 Phase 1이 끝나 그 자리에
       // 있겠지만, 이 곡선 계산 자체는 재생 전(setup 시점)에 미리 해두기 때문.
-      // "MSSHIN" 글자가 흩어졌다 고리로 다시 뭉치는 전환 — 예전엔 intensity
-      // 1.8 + 오버슈트 바운스(back.out)라 너무 격하고 급하게 느껴졌다.
-      // intensity를 낮춰 곡선/흔들림 폭을 완만하게 줄이고, 도착 시 튕기지
-      // 않고 매끄럽게 감속만 하는 ease(power3.out)로 바꿔 훨씬 자연스럽게
-      // 자리를 잡도록 한다(duration/stagger도 TIMINGS에서 늘려 전체적으로
-      // 더 천천히 진행된다).
-      master.call(() => { trailState.active = true; }, [], holdEnd);
+      // "MSSHIN" 글자가 흩어졌다 고리로 다시 뭉치는 전환 — 잔상(사선으로 길게
+      // 끌리는 빛줄기)을 켜지 않고, intensity도 크게 낮춰 곡선으로 휘돌기보다
+      // 목표 지점을 향해 거의 바로 이동하는 것에 가깝게 만든다. 도착 시
+      // 튕기지 않고 매끄럽게 감속만 하는 ease(power3.out)로 자리를 잡는다
+      // (duration/stagger는 TIMINGS에서 늘려둔 값 그대로라 전환 자체는
+      // 천천히 진행된다).
       particles.forEach((p) => {
         const delay = holdEnd + Math.random() * timing.rearrangeStaggerMax;
-        flyAlongCurve(p, p.textX, p.textY, p.gridX, p.gridY, timing.rearrangeDuration, delay, 1.05, "power3.out");
+        flyAlongCurve(p, p.textX, p.textY, p.gridX, p.gridY, timing.rearrangeDuration, delay, 0.35, "power3.out");
         // 자리를 잡는 동시에 크기도 함께 바뀐다 — 크고 작은 점이 뒤섞인
         // 고리가 되어 균일한 점 무더기보다 훨씬 생동감 있게 보인다. 위치
         // 트윈의 back-ease(오버슈트)와 달리 크기는 그대로 자라거나
@@ -856,7 +855,6 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       });
       const phase2End = holdEnd + timing.rearrangeStaggerMax + timing.rearrangeDuration;
       const gridHoldEnd = phase2End + timing.gridHoldDuration;
-      master.call(() => { trailState.active = false; }, [], phase2End);
       // "MSSHIN" 정지 상태에서는 드리프트를 꺼서 얌전하게 두고("MSSHIN"을 읽는
       // 동안은 화려하게 움직이지 않아야 한다), MSSHIN -> 고리로 재배열되는 이
       // 전환이 시작되는 순간(holdEnd)부터 드리프트를 켠다 — 날아가는 궤적 위에
