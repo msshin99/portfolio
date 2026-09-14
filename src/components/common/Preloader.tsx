@@ -274,19 +274,24 @@ function buildFacePoints(width: number, height: number, targetCount: number): Fa
   // 얼굴만 정중앙에 놓으면 아래쪽 여백이 허전해 보인다.
   const fy = height * 0.4;
 
-  // 얼굴+머리카락 실루엣 경로 — 정수리에서 양옆으로 부풀었다가 턱으로 모이는
-  // 하나의 이어진 곡선. 이 경로로 클립을 걸어, 그 안을 평평한 흰색 한 장
-  // 대신 방향성 있는 명암(그라디언트)으로 채운다 — 참고 이미지처럼 빛을
-  // 받는 쪽은 크고 촘촘한 원으로, 그림자 쪽은 작고 성긴 원으로 갈리는
-  // 하프톤 느낌은 밝기 차이가 있어야만 나온다.
+  // 얼굴+머리카락 실루엣 — 참고 이미지를 따라, 정수리는 왼쪽으로 살짝
+  // 치우친 둥근 돔 모양으로 부풀리고, 오른쪽엔 귀(또는 헤어락)로 보이는
+  // 별도의 볼록한 덩어리를 붙이고, 턱은 완만한 U자가 아니라 뾰족하게
+  // 모이는 점으로 마무리한다.
   const faceHairPath = () => {
     octx.beginPath();
-    octx.moveTo(cx - s * 0.8, fy + s * 0.1);
-    octx.bezierCurveTo(cx - s * 1.0, fy - s * 0.55, cx - s * 0.45, fy - s * 1.05, cx, fy - s * 1.0);
-    octx.bezierCurveTo(cx + s * 0.45, fy - s * 1.05, cx + s * 1.0, fy - s * 0.55, cx + s * 0.8, fy + s * 0.1);
-    octx.bezierCurveTo(cx + s * 0.74, fy + s * 0.55, cx + s * 0.4, fy + s * 0.95, cx, fy + s * 1.05);
-    octx.bezierCurveTo(cx - s * 0.4, fy + s * 0.95, cx - s * 0.74, fy + s * 0.55, cx - s * 0.8, fy + s * 0.1);
+    octx.moveTo(cx - s * 0.3, fy + s * 0.62); // 턱 왼쪽 시작점
+    octx.bezierCurveTo(cx - s * 0.75, fy + s * 0.4, cx - s * 0.95, fy - s * 0.35, cx - s * 0.55, fy - s * 0.85);
+    octx.bezierCurveTo(cx - s * 0.3, fy - s * 1.15, cx + s * 0.15, fy - s * 1.12, cx + s * 0.4, fy - s * 0.78);
+    octx.bezierCurveTo(cx + s * 0.6, fy - s * 0.45, cx + s * 0.65, fy - s * 0.12, cx + s * 0.5, fy + s * 0.12);
+    octx.bezierCurveTo(cx + s * 0.42, fy + s * 0.38, cx + s * 0.16, fy + s * 0.55, cx - s * 0.02, fy + s * 0.65);
+    octx.bezierCurveTo(cx - s * 0.12, fy + s * 0.66, cx - s * 0.22, fy + s * 0.65, cx - s * 0.3, fy + s * 0.62);
     octx.closePath();
+  };
+  // 오른쪽 귀/헤어락 — 얼굴 본체와 살짝 겹치는 별도의 볼록한 타원.
+  const earPath = () => {
+    octx.beginPath();
+    octx.ellipse(cx + s * 0.63, fy + s * 0.05, s * 0.17, s * 0.23, -0.15, 0, Math.PI * 2);
   };
 
   octx.save();
@@ -304,42 +309,66 @@ function buildFacePoints(width: number, height: number, targetCount: number): Fa
   octx.fillStyle = lightGrad;
   octx.fillRect(cx - s * 1.2, fy - s * 1.3, s * 2.4, s * 2.6);
 
-  // 머리카락 — 정수리~양옆을 짙게 덮어서 얼굴보다 어두운 덩어리로 구분되게
-  // 한다(그 자체로도 빛 받는 쪽/그림자 쪽 명암을 살짝 준다).
-  const hairGrad = octx.createLinearGradient(cx - s * 0.9, fy - s, cx + s * 0.6, fy - s * 0.2);
-  hairGrad.addColorStop(0, "#555555");
+  // 머리카락 — 정수리~왼쪽 위를 짙게 덮어 얼굴보다 어두운 덩어리로
+  // 구분되게 한다.
+  const hairGrad = octx.createLinearGradient(cx - s * 0.9, fy - s, cx + s * 0.4, fy - s * 0.3);
+  hairGrad.addColorStop(0, "#666666");
   hairGrad.addColorStop(1, "#0a0a0a");
   octx.fillStyle = hairGrad;
   octx.beginPath();
-  octx.ellipse(cx, fy - s * 0.62, s * 0.92, s * 0.58, 0, Math.PI * 0.92, Math.PI * 2.08);
-  octx.fill();
-
-  // 두 눈 — 완전히 지우지 않고 짙은 회색으로만 눌러서, 점이 아예 없는
-  // 구멍이 아니라 유독 작고 성긴 점들로 "눈"이 읽히게 한다.
-  octx.fillStyle = "#1a1a1a";
-  for (const dir of [-1, 1]) {
-    octx.beginPath();
-    octx.ellipse(cx + dir * s * 0.27, fy - s * 0.03, s * 0.1, s * 0.06, 0, 0, Math.PI * 2);
-    octx.fill();
-  }
-  // 콧대 — 얼굴 중앙에 옅은 밝은 세로 띠를 살짝 얹어 입체감을 더한다.
-  octx.fillStyle = "rgba(255,255,255,0.35)";
-  octx.beginPath();
-  octx.ellipse(cx - s * 0.04, fy + s * 0.28, s * 0.07, s * 0.32, -0.08, 0, Math.PI * 2);
+  octx.ellipse(cx - s * 0.1, fy - s * 0.65, s * 0.85, s * 0.5, 0, Math.PI * 0.95, Math.PI * 2.05);
   octx.fill();
   octx.restore();
 
-  // 목 + 어깨 — 같은 방향의 빛을 받되 얼굴보다 좁은 명암 범위로, 옷의
-  // 질감처럼 좀 더 평평하게 그린다.
-  const neckTop = fy + s * 0.9;
-  const shoulderY = Math.min(height * 0.92, fy + s * 2.6);
+  // 귀/헤어락은 얼굴보다 한 단 어두운 톤으로 별도로 채운다 — 얼굴 덩어리와
+  // 겹치되 살짝 다른 명도라 참고 이미지처럼 곁가지로 붙어있는 인상을 준다.
+  octx.save();
+  earPath();
+  octx.clip();
+  const earGrad = octx.createLinearGradient(cx + s * 0.46, fy - s * 0.18, cx + s * 0.8, fy + s * 0.28);
+  earGrad.addColorStop(0, "#8a8a8a");
+  earGrad.addColorStop(1, "#151515");
+  octx.fillStyle = earGrad;
+  octx.fillRect(cx + s * 0.4, fy - s * 0.3, s * 0.5, s * 0.7);
+  octx.restore();
+
+  // 목 — 턱 끝에서 짧게 이어지는 가는 줄기. 참고 이미지처럼 아래 두 블록과는
+  // 눈에 띄게 끊어져 보이도록 짧게만 그린다. 아래 칼라/어깨 블록까지 포함한
+  // 전체 세로 배치는 s의 배수 대신 "칼라/어깨 각각 최대 이만큼"으로 한
+  // 번 더 min()을 걸어서, s가 뷰포트 높이에 비해 큰 정사각형/가로로 넓은
+  // 화면에서도 어깨 블록의 높이가 음수(=안 그려짐)가 되지 않게 한다.
+  const neckTop = fy + s * 0.63;
+  const neckBottom = fy + s * 0.85;
   octx.beginPath();
-  octx.moveTo(cx - s * 0.26, neckTop);
-  octx.lineTo(cx - s * 1.55, shoulderY);
-  octx.lineTo(cx + s * 1.55, shoulderY);
-  octx.lineTo(cx + s * 0.26, neckTop);
+  octx.moveTo(cx - s * 0.12, neckTop);
+  octx.lineTo(cx - s * 0.09, neckBottom);
+  octx.lineTo(cx + s * 0.09, neckBottom);
+  octx.lineTo(cx + s * 0.05, neckTop);
   octx.closePath();
-  const shoulderGrad = octx.createLinearGradient(cx - s * 1.2, neckTop, cx + s * 0.8, shoulderY);
+  octx.fillStyle = "#3a3a3a";
+  octx.fill();
+
+  // 칼라(collar) — 목 아래 살짝 간격을 두고 떨어진 작은 사각 블록.
+  const collarY0 = fy + s * 0.95;
+  const collarY1 = fy + s * 1.25;
+  octx.beginPath();
+  octx.roundRect(cx - s * 0.42, collarY0, s * 0.84, collarY1 - collarY0, s * 0.14);
+  const collarGrad = octx.createLinearGradient(cx - s * 0.42, collarY0, cx + s * 0.3, collarY1);
+  collarGrad.addColorStop(0, "#c9c9c9");
+  collarGrad.addColorStop(1, "#2a2a2a");
+  octx.fillStyle = collarGrad;
+  octx.fill();
+
+  // 어깨 — 칼라보다 한 번 더 간격을 두고 떨어진, 훨씬 넓은 아래쪽 블록.
+  // 시작점(shoulderY0)에 먼저 여유 있는 고정 높이를 더해 끝점을 구한 뒤에야
+  // 화면 하단으로 클램프한다 — 끝점만 독립적으로 클램프하면(예전 버전)
+  // 시작점이 그 클램프된 값보다 아래로 내려가 버려 높이가 음수가 되는
+  // 경우가 있었다.
+  const shoulderY0 = fy + s * 1.35;
+  const shoulderY1 = Math.min(height * 0.97, shoulderY0 + s * 0.7);
+  octx.beginPath();
+  octx.roundRect(cx - s * 1.05, shoulderY0, s * 2.1, Math.max(4, shoulderY1 - shoulderY0), s * 0.18);
+  const shoulderGrad = octx.createLinearGradient(cx - s * 1.05, shoulderY0, cx + s * 0.7, shoulderY1);
   shoulderGrad.addColorStop(0, "#cfcfcf");
   shoulderGrad.addColorStop(0.5, "#6b6b6b");
   shoulderGrad.addColorStop(1, "#181818");
@@ -347,11 +376,9 @@ function buildFacePoints(width: number, height: number, targetCount: number): Fa
   octx.fill();
 
   // ---- 밝기 기반 샘플링 ----
-  // 실루엣 가장자리를 딱딱한 경계로 자르지 않기 위해, 캔버스 전체를 격자로
-  // 훑으면서 완전히 빈(알파 0) 배경만 걸러내고 나머지는 밝기(intensity)를
-  // 그대로 들고 간다 — 배경과 맞닿는 가장자리일수록 자연히 옅고 작은
-  // 점만 남아, 참고 이미지처럼 경계가 또렷한 선 대신 점점 옅어지는
-  // 느낌을 낸다.
+  // 참고 이미지처럼 흔들림 없는 반듯한 격자를 그대로 쓴다(지터 없음) —
+  // 완전히 빈(알파 0) 배경만 걸러내고 나머지는 밝기(intensity)를 그대로
+  // 들고 가서, 가장자리가 하드 엣지 대신 점점 옅어지는 느낌을 낸다.
   const { data } = octx.getImageData(0, 0, width, height);
   const step = Math.max(2, Math.round(Math.min(width, height) / 70));
   const candidates: { x: number; y: number; intensity: number }[] = [];
@@ -363,11 +390,7 @@ function buildFacePoints(width: number, height: number, targetCount: number): Fa
       const luminance = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) / 255;
       const intensity = luminance * (a / 255);
       if (intensity < 0.04) continue;
-      candidates.push({
-        x: x + (Math.random() - 0.5) * step * 0.5,
-        y: y + (Math.random() - 0.5) * step * 0.5,
-        intensity,
-      });
+      candidates.push({ x, y, intensity });
     }
   }
 
