@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef } from "react";
 import type { MutableRefObject, RefObject } from "react";
 import { gsap, prefersReducedMotion } from "../../lib/gsap";
 import Hero3DLogo from "./Hero3DLogo";
@@ -386,7 +386,16 @@ export default function Hero({
   // 같은 원리로 그 지점에서 글자들이 물결치며 리플이 퍼져나간다.
   useHeroWaveTitle(statementRef, statementCharsRef, readyToReveal);
 
-  useEffect(() => {
+  // useEffect가 아니라 useLayoutEffect를 쓴다 — useEffect는 브라우저가 이미
+  // 한 프레임을 페인트한 "뒤"에 실행돼서, 로고가 마운트되자마자 잠깐(스케일
+  // 1의 자연스러운 크기로) 그대로 보였다가 GSAP가 .from()의 시작값(scale
+  // 0.72, opacity 0)을 뒤늦게 적용하는 순간 작은 크기로 순간 이동하듯
+  // 튀고, 그 다음에야 다시 커지는 애니메이션이 시작됐다 — "작은 형태에서
+  // 갑자기 커진다"는 인상은 이 애니메이션 자체가 아니라 이 초기 깜빡임
+  // 때문이었다. useLayoutEffect는 페인트 전에 동기적으로 실행되므로, 숨김
+  // 시작값이 첫 페인트에 곧바로 반영되어 그런 깜빡임 없이 한 번에 매끄럽게
+  // 커지는 애니메이션만 보인다.
+  useLayoutEffect(() => {
     // Preloader처럼 화면을 한동안 가리는 것과 같이 쓰일 때, 그게 실제로
     // 콘텐츠를 드러내기 전이면 아직 재생하지 않는다 — 안 그러면 아무도 못
     // 보는 프리로더 뒤에서 이 애니메이션이 다 끝나버리거나, 반대로 이미 다
@@ -407,17 +416,19 @@ export default function Hero({
       // 텍스트는 3D 로고에 호버해서 웨이브 인터랙션을 걸 때도 흔들리지 않도록,
       // 진입 애니메이션 이후에는 위치를 그대로 고정해둔다(마우스 패럴랙스 없음).
       // 인트로가 끝나고 처음 드러나는 화면이라 좀 더 임팩트가 필요했다 — 귀퉁이
-      // 텍스트의 이동 거리를 키우고, 로고는 훨씬 작은 크기에서 back-ease로
-      // 살짝 튕기듯 커지게 해서 무게감을 더했다. 가장 큰 스테이트먼트 타이틀은
-      // 블록 전체가 아니라 글자 하나하나가 아래에서 블러가 걷히며 튀어오르는
-      // 순서대로 등장해서(statementCharsRef), 화면에서 가장 시선을 끄는 요소가
-      // 확실한 존재감으로 "터지듯" 나타나도록 했다.
+      // 텍스트의 이동 거리를 키웠다. 로고는 back-ease의 오버슈트(최종 크기보다
+      // 한번 더 커졌다가 줄어드는 튕김)가 "크기가 갑자기 또 바뀐다"는 인상을
+      // 줘서, 오버슈트 없이 매끄럽게 감속만 하는 ease(power3.out)로 바꿔
+      // 커지는 동안 크기가 한 방향으로만 안정적으로 변하도록 했다. 가장 큰
+      // 스테이트먼트 타이틀은 블록 전체가 아니라 글자 하나하나가 아래에서
+      // 블러가 걷히며 튀어오르는 순서대로 등장해서(statementCharsRef), 화면에서
+      // 가장 시선을 끄는 요소가 확실한 존재감으로 "터지듯" 나타나도록 했다.
       const statementChars = statementCharsRef.current.filter((el): el is HTMLSpanElement => !!el);
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
       tl.from([labelRef.current, taglineRef.current], { opacity: 0, y: -32, duration: 1, stagger: 0.12 })
         .from(
           logoWrapRef.current,
-          { opacity: 0, scale: 0.72, duration: 1.6, ease: "back.out(1.5)" },
+          { opacity: 0, scale: 0.72, duration: 1.6, ease: "power3.out" },
           "-=0.6",
         )
         .from(
