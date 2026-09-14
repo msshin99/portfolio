@@ -31,6 +31,13 @@ const PARTICLE_COLOR = "#e9e6dd";
  *  옅게 겹쳐 칠해서 짧은 잔상(trail)을 만든다 — 알파가 낮을수록 꼬리가 길게 남는다. */
 const BG_TRAIL_COLOR = "rgba(5,5,5,0.17)";
 
+/** 마우스 인터랙션(밀어내기+스프링 복귀) 파라미터. 반지름 안에 들어온
+ *  파티클만 밀려나고, 스프링 상수가 클수록 더 빨리·더 탱탱하게 제자리로
+ *  돌아온다. */
+const REPEL_RADIUS = 140;
+const REPEL_STRENGTH = 2600;
+const SPRING_K = 90;
+
 interface IntroTiming {
   /** 파티클 하나가 글자 모양으로 모이는 데 걸리는 시간(초) */
   gatherDuration: number;
@@ -272,6 +279,14 @@ interface Particle extends Point {
   gridX: number;
   gridY: number;
   radius: number;
+  // 마우스가 가까이 오면 밀려났다가 스프링처럼 되돌아오는 인터랙티브 변위.
+  // GSAP가 제어하는 "목표 위치"(x, y)와는 별개로 그리기 직전에만 더해지는
+  // 오프셋이라, 어떤 애니메이션 단계(gather/hold/grid)에서도 목표 위치 자체를
+  // 어긋내지 않고 그 위에 살짝 얹히는 효과를 낼 수 있다.
+  dispX: number;
+  dispY: number;
+  velX: number;
+  velY: number;
 }
 
 /** 구멍이 뚫리는 순간 터져나가는 불꽃 파편 하나. 물리 시뮬레이션이라 할 것도 없이
@@ -355,6 +370,19 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
     const mode: "first" | "returning" = alreadyPlayed() ? "returning" : "first";
     const timing = TIMINGS[mode];
 
+    // 마우스가 다가오면 근처 파티클이 밀려났다가 스프링처럼 제자리로 돌아오는
+    // 인터랙티브 반응. 캔버스 자체는 pointer-events-none(아래 배경 클릭을
+    // 막지 않기 위해)이지만, window에 건 리스너는 그와 무관하게 커서 좌표를
+    // 계속 받아올 수 있다. active가 true가 되기 전(마우스를 아직 움직이지
+    // 않은 상태)에는 원점(0,0)에 반응해버리지 않도록 가드한다.
+    const mouse = { x: 0, y: 0, active: false };
+    const handleMouseMove = (e: MouseEvent) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      mouse.active = true;
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+
     const finish = () => {
       markPlayed();
       setVisible(false);
@@ -376,17 +404,50 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         ctx.fillRect(0, 0, width, height);
       }
 
+      // 인터랙티브 변위 갱신 — 마우스가 가까이 오면 파티클이 밀려나고,
+      // 멀어지면 스프링처럼 제자리(dispX/dispY = 0)로 되돌아온다. 캔버스는
+      // pointer-events-none이라 클릭은 그대로 아래 페이지로 통과하지만,
+      // 커서 위치는 window 리스너로 계속 받아오므로 시각적 반응은 자연스럽게
+      // 살아있다. heroParticle은 구멍 뚫기 기준점이라 반응에서 제외해 그
+      // 메커니즘만은 항상 예측 가능하게 둔다.
+      if (mouse.active) {
+        const dt = Math.min(deltaTime, 48) / 1000;
+        const dampFactor = Math.pow(0.86, dt * 60);
+        for (const p of particles) {
+          if (p === heroParticle) continue;
+          const px = p.x + p.dispX;
+          const py = p.y + p.dispY;
+          const mdx = px - mouse.x;
+          const mdy = py - mouse.y;
+          const distSq = mdx * mdx + mdy * mdy;
+          if (distSq < REPEL_RADIUS * REPEL_RADIUS) {
+            const dist = Math.sqrt(distSq) || 1;
+            const force = (1 - dist / REPEL_RADIUS) * REPEL_STRENGTH;
+            p.velX += (mdx / dist) * force * dt;
+            p.velY += (mdy / dist) * force * dt;
+          }
+          // 스프링 — 밀려난 만큼 원위치로 되돌아오려는 힘.
+          p.velX += -SPRING_K * p.dispX * dt;
+          p.velY += -SPRING_K * p.dispY * dt;
+          p.velX *= dampFactor;
+          p.velY *= dampFactor;
+          p.dispX += p.velX * dt;
+          p.dispY += p.velY * dt;
+        }
+      }
+
       // 그리드가 다 모인 뒤 짧게 나타났다 사라지는 별자리 연결선. 격자 인접
       // 관계는 setupAndPlay에서 미리 계산해둔 gridLines를 그대로 쓰고, 살아있는
-      // 파티클의 "현재" 좌표(x,y)를 따라 그려서 애니메이션 중에도 자연스럽다.
+      // 파티클의 "현재" 좌표(변위 포함)를 따라 그려서 애니메이션 중에도, 마우스
+      // 반응 중에도 자연스럽게 이어진다.
       if (lineState.alpha > 0.002) {
         ctx.save();
         ctx.strokeStyle = `rgba(233,230,221,${lineState.alpha})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
         for (const [a, b] of gridLines) {
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
+          ctx.moveTo(a.x + a.dispX, a.y + a.dispY);
+          ctx.lineTo(b.x + b.dispX, b.y + b.dispY);
         }
         ctx.stroke();
         ctx.restore();
@@ -406,7 +467,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         if (p === heroParticle && holeState.active) continue;
         ctx.beginPath();
         if (glowOn) ctx.shadowBlur = p.radius * 2.4;
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.arc(p.x + p.dispX, p.y + p.dispY, p.radius, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.shadowBlur = 0;
@@ -560,6 +621,10 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 끊겨 보였다. 파티클 개수(getParticleCount)를 늘려 윤곽선 밀도를
           // 높이고, 반지름도 한 단계 더 키워 점 하나하나가 더 진하게 보이도록 했다.
           radius: 2.1 + Math.random() * 1.4,
+          dispX: 0,
+          dispY: 0,
+          velX: 0,
+          velY: 0,
         };
       });
 
@@ -754,6 +819,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
 
     return () => {
       cancelled = true;
+      window.removeEventListener("mousemove", handleMouseMove);
       gsap.ticker.remove(render);
       master.kill();
       subtitleTl?.kill();
