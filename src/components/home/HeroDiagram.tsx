@@ -207,13 +207,7 @@ function Pill({ icon, label }: DiagramPillItem) {
       ].join(" ")}
       style={GLASS_STYLE}
     >
-      <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-transform duration-300 ease-out group-hover:scale-110"
-        style={{
-          background: "linear-gradient(160deg, rgba(245,98,20,0.22) 0%, rgba(245,98,20,0.06) 100%)",
-          boxShadow: "inset 0 0 0 1px rgba(245,98,20,0.3), inset 0 1px 1px rgba(255,255,255,0.08)",
-        }}
-      >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center transition-transform duration-300 ease-out group-hover:scale-110">
         <Icon
           size={17}
           strokeWidth={1.75}
