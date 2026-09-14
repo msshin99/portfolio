@@ -236,17 +236,18 @@ export default function Home() {
             description={introDescription}
           />
           <div className="bottom">
-            {/* delay=1.6은 위 IntroTop 타이틀 진입 타임라인(라벨 0.6s + 단어
-                stagger 약 0.9s + 문단 페이드 0.7s, 서로 겹치며 총 약 1.55s)이
-                다 끝난 뒤에야 키워드가 나타나기 시작하도록 맞춘 값이다 —
-                타이틀과 키워드가 동시에 뜨는 대신, 타이틀이 완전히 자리잡은
-                다음 01→02→03→04 순서로 하나씩 나타난다. */}
+            {/* 원래 delay=1.6은 위 IntroTop 타이틀 진입 타임라인이 완전히 다
+                끝난 뒤에야 키워드가 나타나기 시작하도록 맞춘 값이었는데,
+                타이틀이 다 뜬 뒤로도 한참 정적이 흐르다 키워드가 나타나서
+                "늦게 나온다"는 인상을 줬다 — 타이틀 문단이 아직 페이드인되는
+                마지막 구간(꼬리)과 살짝 겹치도록 당겨서, 타이틀 → 키워드가
+                끊김 없이 이어지는 한 호흡처럼 보이게 한다. */}
             <StaggerReveal
               as="ul"
               className="keyword grid grid-cols-4 max-lg:grid-cols-2 max-sm:grid-cols-1"
               y={40}
-              delay={1.6}
-              stagger={0.15}
+              delay={1.05}
+              stagger={0.12}
             >
               {resolvedKeywords.map((item, i) => (
                 <KeywordCard key={item.num} item={item} index={i} />
