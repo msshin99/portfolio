@@ -631,11 +631,17 @@ function FeatureCard({ icon, heading, body }: FeatureCardItem) {
       className={[
         "group relative overflow-hidden rounded-2xl border border-white/[0.04] p-8 max-lg:p-7 max-sm:p-6",
         "shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_24px_48px_-24px_rgba(0,0,0,0.9)]",
-        "transition-[border-color,box-shadow,transform] duration-500 ease-out",
-        "hover:-translate-y-1 hover:border-white/[0.16] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_40px_80px_-28px_rgba(0,0,0,0.95)]",
+        "transition-[border-color,box-shadow,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        "hover:-translate-y-1.5 hover:scale-[1.012] hover:border-white/[0.22]",
+        "hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_48px_96px_-32px_rgba(0,0,0,1)]",
       ].join(" ")}
       style={FEATURE_CARD_STYLE}
     >
+      {/* 고급 소재(유리/메탈) 표면에 빛이 스치듯, 호버 시 카드를 대각선으로 가로지르는
+          아주 옅은 화이트 스윕 하이라이트 — 컬러 없이 "빛이 표면을 스친다"는 감각만으로
+          질감의 고급스러움을 더한다. */}
+      <span className="pointer-events-none absolute inset-0 -translate-x-[120%] skew-x-[-18deg] bg-gradient-to-r from-transparent via-white/[0.07] to-transparent transition-transform duration-[1100ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-[120%]" />
+
       {/* 참고 이미지처럼 카드 하단 전체가 부드럽게 밝아지는 큰 그라디언트 글로우 — 평소엔
           숨어 있다가 호버 시 카드 아래쪽 대부분을 진하게 채우며 번진다. 컬러 없이 순수
           화이트 톤만으로, 중심은 진하게 바깥으로 갈수록 부드럽게 빠지는 은은한 sheen으로
