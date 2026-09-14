@@ -200,7 +200,7 @@ function Pill({ icon, label }: DiagramPillItem) {
   return (
     <div
       className={[
-        "group relative flex items-center gap-4 overflow-hidden rounded-[8px] px-5 py-4",
+        "group relative flex items-center gap-2.5 overflow-hidden rounded-[8px] px-5 py-4",
         GLASS_CLASS,
         "transition-[border-color,box-shadow] duration-300 ease-out hover:border-primary-txt/45",
         "hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_0_24px_-4px_rgba(245,98,20,0.5)]",
@@ -209,7 +209,7 @@ function Pill({ icon, label }: DiagramPillItem) {
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center transition-transform duration-300 ease-out group-hover:scale-110">
         <Icon
-          size={17}
+          size={21}
           strokeWidth={1.75}
           className="text-white transition-[filter] duration-300 ease-out group-hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.8)]"
         />
