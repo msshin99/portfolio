@@ -299,6 +299,13 @@ interface Particle extends Point {
   dispY: number;
   velX: number;
   velY: number;
+  // 성긴 고리가 자리잡은 뒤(gridHold 구간) 은은하게 제자리를 맴도는
+  // 앰비언트 드리프트용 파라미터 — 파티클마다 위상/속도/진폭이 달라야
+  // 다같이 "쿵쿵" 맞춰 움직이는 게 아니라 각자 다른 리듬으로 떠다니는
+  // 것처럼 보인다.
+  driftPhase: number;
+  driftFreq: number;
+  driftAmp: number;
 }
 
 /** 구멍이 뚫리는 순간 터져나가는 불꽃 파편 하나. 물리 시뮬레이션이라 할 것도 없이
@@ -400,7 +407,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       setVisible(false);
     };
 
-    const render = (_time: number, deltaTime: number) => {
+    const render = (time: number, deltaTime: number) => {
       // trailState.active인 동안(파티클이 실제로 움직이는 gather/rearrange 구간)엔
       // 화면을 완전히 지우지 않고 반투명한 배경을 겹쳐 칠한다 — 이전 프레임 잔상이
       // 옅게 남아 파티클마다 짧은 꼬리(comet trail)를 끌며 움직이는 것처럼 보인다.
@@ -469,8 +476,18 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       ctx.fillStyle = PARTICLE_COLOR;
       for (const p of particles) {
         if (p === heroParticle && holeState.active) continue;
+        // 앰비언트 드리프트 — 파티클마다 다른 위상/속도로 작은 원을 그리며
+        // 제자리를 맴돈다. dispX/dispY(마우스 반응용 스프링 변위)와는 별개
+        // 레이어라 서로 간섭하지 않고 그대로 더해진다.
+        let driftX = 0;
+        let driftY = 0;
+        if (driftState.active) {
+          const a = time * p.driftFreq + p.driftPhase;
+          driftX = Math.cos(a) * p.driftAmp;
+          driftY = Math.sin(a) * p.driftAmp;
+        }
         ctx.beginPath();
-        ctx.arc(p.x + p.dispX, p.y + p.dispY, p.radius, 0, Math.PI * 2);
+        ctx.arc(p.x + p.dispX + driftX, p.y + p.dispY + driftY, p.radius, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -560,6 +577,11 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
     const flashState = { opacity: 0 };
     // gather/rearrange 구간에서만 켜는 잔상 모드 스위치.
     const trailState = { active: false };
+    // 성긴 고리가 자리잡은 뒤(gridHold 구간)에만 켜는 앰비언트 드리프트
+    // 스위치 — 완성된 형태가 죽은 듯 딱 멈춰있지 않고 은은하게 살아
+    // 움직이게 한다. 텍스트가 떠 있는 hold 구간에는 끄고 그대로 둬서
+    // "MSSHIN" 가독성은 건드리지 않는다.
+    const driftState = { active: false };
     // 그리드 완성 직후 짧게 나타났다 사라지는 별자리 연결선의 불투명도.
     const lineState = { alpha: 0 };
     // 격자 인접 쌍(같은 행의 오른쪽 이웃 + 같은 열의 아래쪽 이웃)만 이어서, 모든
@@ -622,6 +644,11 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           dispY: 0,
           velX: 0,
           velY: 0,
+          driftPhase: Math.random() * Math.PI * 2,
+          driftFreq: 0.6 + Math.random() * 1.1,
+          // 처음엔 2~9px로 뒀는데 육안으로는 거의 안 보일 만큼 은은해서,
+          // "살아있다"는 느낌이 확실히 들도록 진폭을 키웠다.
+          driftAmp: 5 + Math.random() * 14,
         };
       });
 
@@ -727,6 +754,9 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       const phase2End = holdEnd + timing.rearrangeStaggerMax + timing.rearrangeDuration;
       const gridHoldEnd = phase2End + timing.gridHoldDuration;
       master.call(() => { trailState.active = false; }, [], phase2End);
+      // 성긴 고리가 자리잡고 나면(구멍이 뚫리기 전까지) 은은하게 맴도는
+      // 드리프트를 켠다 — 가만히 멈춰있지 않고 살아있는 느낌을 준다.
+      master.call(() => { driftState.active = true; }, [], phase2End);
 
       // 그리드가 다 모인 직후 ~ 구멍이 뚫리기 직전까지, 파티클들이 서로 이어진
       // 회로처럼 잠깐 반짝였다 사라진다 — 그리드로의 재배열이 "그냥 흩어져
@@ -744,6 +774,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       const holeRadiusTarget = Math.hypot(width, height);
       master.call(() => {
         holeState.active = true;
+        driftState.active = false;
         // 구멍이 뚫리기 시작하는 바로 그 지점에서 불꽃 파편이 사방으로 튄다 —
         // 기존 방사형 flash와 겹쳐, 단순히 "사라짐"이 아니라 "터지며 드러남"이
         // 되도록 임팩트를 더한다.
