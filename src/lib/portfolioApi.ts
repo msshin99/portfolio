@@ -142,10 +142,15 @@ export function mapRowToPortfolioDetail(row: PortfolioRow): PortfolioDetail {
  *  큰 비주얼 이미지(mapRowToPortfolioDetail의 visual/mainImage)에는 적용하지 않는다 —
  *  거긴 원래도 크게 보여줘야 하는 자리라 원본 그대로 쓴다.
  */
+/** resize=contain을 반드시 같이 줘야 한다 — width만 주고 resize를 생략하면 Supabase
+ *  변환 엔드포인트가 비율을 유지한 채 축소하는 게 아니라, 원본 높이는 그대로 둔 채
+ *  가로만 요청한 값으로 센터 크롭해버린다(실측: 3840x1960 원본에 width=1600만 주면
+ *  1600x1960으로 돌아옴 — 양옆이 통째로 잘려나간 크롭본). resize=contain을 추가하면
+ *  같은 width 기준으로 세로도 비율에 맞게 축소된(1600x817) 정상적인 썸네일을 준다. */
 function toThumbnailUrl(url: string, width: number): string {
   if (!url.includes("/storage/v1/object/public/")) return url;
   const base = url.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/");
-  return `${base}?width=${width}&quality=75`;
+  return `${base}?width=${width}&quality=75&resize=contain`;
 }
 
 /** WorkCard 그리드(리스트/메인/Related Projects)에 쓰는 WorkItem 모양으로 변환. 카드가
