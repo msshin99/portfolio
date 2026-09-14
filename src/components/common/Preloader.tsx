@@ -500,12 +500,18 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         if (driftState.active) {
           const ax = time * p.driftFreq + p.driftPhase;
           const ay = time * p.driftFreq * 0.63 + p.driftPhase * 1.9 + 2.1;
-          driftX = Math.cos(ax) * p.driftAmp;
-          driftY = Math.sin(ay) * p.driftAmp * 0.85;
-          // 위치와 별개로 크기도 ±25% 정도 일렁여서, 떠다니기만 하는 게
-          // 아니라 반짝이는 느낌까지 더한다 — 위치 드리프트와 주파수가
-          // 달라 서로 어긋난 리듬으로 겹친다.
-          twinkle = 1 + Math.sin(time * p.twinkleFreq + p.twinklePhase) * 0.32;
+          // 큰 흐름(리사주 경로) 위에 훨씬 빠르고 작은 2차 흔들림을 얹는다 —
+          // 매끈한 사인파 하나만으로는 여전히 "기계적으로 진동한다"는 인상을
+          // 줘서, 주파수/위상이 서로 어긋난 잔떨림을 더해 실제 입자가 미세하게
+          // 흔들리며 떠다니는 것처럼 불규칙하게 보이게 한다.
+          const jitterX = Math.sin(time * p.driftFreq * 2.7 + p.driftPhase * 3.1) * p.driftAmp * 0.22;
+          const jitterY = Math.cos(time * p.driftFreq * 3.4 + p.driftPhase * 2.3) * p.driftAmp * 0.22;
+          driftX = Math.cos(ax) * p.driftAmp + jitterX;
+          driftY = Math.sin(ay) * p.driftAmp * 0.85 + jitterY;
+          // 위치와 별개로 크기도 일렁여서, 떠다니기만 하는 게 아니라 반짝이는
+          // 느낌까지 더한다 — 위치 드리프트와 주파수가 달라 서로 어긋난
+          // 리듬으로 겹친다.
+          twinkle = 1 + Math.sin(time * p.twinkleFreq + p.twinklePhase) * 0.4;
         }
         ctx.beginPath();
         ctx.arc(p.x + p.dispX + driftX, p.y + p.dispY + driftY, p.radius * twinkle, 0, Math.PI * 2);
@@ -687,7 +693,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           driftFreq: 0.8 + Math.random() * 1.8,
           // 거리 기반 driftScale(0.7~3.4배)을 곱해 고리 바깥의 이탈 점들이
           // 눈에 띄게 더 크게, 더 빠르게 흔들리도록 진폭을 한 단계 더 키웠다.
-          driftAmp: (11 + Math.random() * 27) * driftScale,
+          driftAmp: (13 + Math.random() * 30) * driftScale,
           twinklePhase: Math.random() * Math.PI * 2,
           twinkleFreq: 1.0 + Math.random() * 2.0,
         };
