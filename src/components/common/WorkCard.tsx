@@ -195,55 +195,37 @@ export default function WorkCard({
           // 자동으로 걸어버려서, 사진 자체는 항상 원래(풀스크린) 크기 그대로 있고 부모 박스가
           // 커지는 만큼만 "구멍"으로 더 보이는 것처럼 되어버린다 — 즉 "사진이 커지는" 게 아니라
           // "이미 꽉 찬 사진을 보는 창이 넓어지는" 것처럼 보여서 핵심 전환 모션 자체가 깨진다.
-          // object-contain(잘림 없음)은 세로로 긴 원본일수록 좌우 여백이 커서 콘텐츠가
-          // 작게 떠 보였고, object-cover(여백 없음)는 반대로 그 세로로 긴 원본을 크게
-          // 확대해 일부만 보여줘 "확대된" 인상을 줬다 — 원본 비율이 프로젝트마다 제각각
-          //이라 어느 쪽으로도 모든 이미지에 맞지 않았다. 그래서 둘을 합친다: 같은
-          // 이미지를 뒤에 흐릿하게 꽉 채워 깔고(backdrop), 그 위에 원본 그대로(잘림 없이)
-          // object-contain으로 얹는다. 여백이 생기는 자리도 같은 사진의 색감이 번진
-          // 배경이 채우므로, 잘리지도 않고 빈 공간처럼 보이지도 않는다.
+          // object-contain으로 원본 비율을 그대로 유지해 잘리는 부분 없이 이미지 전체를
+          // 보여준다. 남는 여백은 뒤에 다른 걸 깔지 않고 카드와 같은 톤(bg-white/5)으로만
+          // 채운다.
           <motion.div
             layoutId={handedOff ? undefined : layoutId}
             animate={{ opacity: handedOff ? 0 : 1 }}
             transition={{ duration: 0 }}
-            className="relative w-full aspect-[3/2] max-w-full overflow-hidden bg-white/5"
+            className="w-full aspect-[3/2] max-w-full bg-white/5"
           >
-            <img
-              aria-hidden="true"
-              src={item.image}
-              alt=""
-              className="absolute inset-0 h-full w-full scale-110 object-cover object-top blur-2xl brightness-[0.45] saturate-150"
-            />
             <img
               ref={thumbnailReveal ? tiltRef : undefined}
               src={item.image}
               alt={item.title}
               className={
                 thumbnailReveal
-                  ? "relative h-full w-full object-contain block will-change-transform"
-                  : "relative h-full w-full object-contain block transition-transform duration-500 ease-out group-hover:scale-110"
+                  ? "w-full h-full object-contain block will-change-transform"
+                  : "w-full h-full object-contain block transition-transform duration-500 ease-out group-hover:scale-110"
               }
             />
           </motion.div>
         ) : (
-          <div className="relative w-full aspect-[3/2] max-w-full overflow-hidden rounded-md bg-white/5 max-lg:rounded-sm">
-            <img
-              aria-hidden="true"
-              src={item.image}
-              alt=""
-              className="absolute inset-0 h-full w-full scale-110 object-cover object-top blur-2xl brightness-[0.45] saturate-150"
-            />
-            <img
-              ref={thumbnailReveal ? tiltRef : undefined}
-              src={item.image}
-              alt={item.title}
-              className={
-                thumbnailReveal
-                  ? "relative h-full w-full object-contain block will-change-transform"
-                  : "relative h-full w-full object-contain block transition-transform duration-500 ease-out group-hover:scale-110"
-              }
-            />
-          </div>
+          <img
+            ref={thumbnailReveal ? tiltRef : undefined}
+            src={item.image}
+            alt={item.title}
+            className={
+              thumbnailReveal
+                ? "rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-contain max-w-full bg-white/5 will-change-transform"
+                : "rounded-md max-lg:rounded-sm w-full aspect-[3/2] object-contain max-w-full bg-white/5 transition-transform duration-500 ease-out group-hover:scale-110"
+            }
+          />
         )}
       </div>
       <span
