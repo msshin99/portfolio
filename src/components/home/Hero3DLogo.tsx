@@ -425,6 +425,13 @@ export default function Hero3DLogo({ className = "" }: { className?: string }) {
 
   return (
     <div ref={containerRef} className={["absolute inset-0", className].join(" ")}>
+      {/* 로고 지오메티리 자체(사각 모서리에서 뻗어 나온 스파이크/스우시 장식이
+          좌우 비대칭)를 Bounds/Center가 "바운딩 박스" 기준으로 가운데
+          맞추다 보니, 실제로 눈에 읽히는 워드마크 획 덩어리는 화면 중심보다
+          왼쪽에 치우쳐 보였다 — Bounds가 매번 그 바운딩 박스 중심으로
+          되돌리려 하므로 3D 트랜스폼으로는 보정이 상쇄돼버려서, 이미 렌더된
+          캔버스 자체를 2D로 살짝 오른쪽으로 밀어 시각적 중심을 맞춘다. */}
+      <div className="absolute inset-0" style={{ transform: "translateX(14.5%)" }}>
       <Canvas
         dpr={[1, 1.5]}
         camera={{ position: [0, 0, 8.5], fov: 34 }}
@@ -477,6 +484,7 @@ export default function Hero3DLogo({ className = "" }: { className?: string }) {
           <ToneMapping mode={ToneMappingMode.REINHARD2} whitePoint={3} middleGrey={0.9} />
         </EffectComposer>
       </Canvas>
+      </div>
       <LoaderOverlay />
     </div>
   );
