@@ -523,7 +523,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 도는 티가 나지 않을 정도로만 느껴지게 한다.
           const rdx = p.x - width / 2;
           const rdy = p.y - height / 2;
-          const angle = time * RING_ROTATION_SPEED;
+          const angle = (time - ringRotationState.startTime) * RING_ROTATION_SPEED;
           const cosA = Math.cos(angle);
           const sinA = Math.sin(angle);
           driftX += rdx * cosA - rdy * sinA - rdx;
@@ -632,7 +632,13 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
     // 도는 것처럼 비스듬히 밀려 보인다(사선처럼 보이는 원인이었다). 점들이
     // 고리에 다 도착한 뒤(phase2End)부터만 회전을 켜서, 전환 중에는 순수하게
     // 목적지를 향해서만 움직이게 한다.
-    const ringRotationState = { active: false };
+    // startTime은 회전이 켜지는 그 순간의 절대 시계값(time)을 기록해둔다 — 회전각을
+    // time(절대 시계) 그대로 쓰면, 회전이 늦게(phase2End) 켜지는 만큼 켜지는 그
+    // 순간 이미 몇십 도 회전한 각도로 시작해버려서, 켜지자마자 고리 전체가 그
+    // 각도만큼 한 번에 "픽" 튀어 보이는 문제가 있었다(마치 다른 원이 하나 더
+    // 겹쳐 나타나는 것처럼 보인 원인). 활성화 시점부터 경과한 시간만 각도에
+    // 반영해야 0도(제자리)에서부터 매끄럽게 돌기 시작한다.
+    const ringRotationState = { active: false, startTime: 0 };
     // 그리드 완성 직후 짧게 나타났다 사라지는 별자리 연결선의 불투명도.
     const lineState = { alpha: 0 };
     // 격자 인접 쌍(같은 행의 오른쪽 이웃 + 같은 열의 아래쪽 이웃)만 이어서, 모든
@@ -869,7 +875,16 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       // 고리 "전체 회전"은 점들이 실제로 고리에 다 도착한 뒤(phase2End)에만
       // 켠다 — 날아가는 도중에 켜면 이동 중인 좌표까지 회전이 얹혀서 원래는
       // 사방에서 모여드는 모양이 한쪽으로 쏠려 도는 사선처럼 보인다.
-      master.call(() => { ringRotationState.active = true; }, [], phase2End);
+      master.call(
+        () => {
+          ringRotationState.active = true;
+          // 이 순간의 절대 시계값을 기준점으로 잡아, 회전각이 여기서부터
+          // 0으로 시작해 서서히 늘어나게 한다(위 render의 angle 계산 참고).
+          ringRotationState.startTime = gsap.ticker.time;
+        },
+        [],
+        phase2End,
+      );
 
       // 그리드가 다 모인 직후 ~ 구멍이 뚫리기 직전까지, 파티클들이 서로 이어진
       // 회로처럼 잠깐 반짝였다 사라진다 — 그리드로의 재배열이 "그냥 흩어져
