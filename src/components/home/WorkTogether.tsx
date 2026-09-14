@@ -79,45 +79,16 @@ export default function WorkTogether({ text = DEFAULT_WORK_TOGETHER_TEXT }: { te
 
     const tweens = [scrollTween, waveTween, glowTween];
 
-    // 사용자가 스크롤하는 순간, 그 방향/속도에 비례해서 문구가 기존 흐름 위에
-    // 순간적으로 더 밀렸다가(관성처럼) 서서히 원래 속도로 돌아온다 — 스크롤을
-    // 내리면 이미 흐르던 방향(왼쪽)으로 더 세게 밀리고, 올리면 반대로 잠깐
-    // 밀린다. 무한 루프(xPercent)와는 다른 축(x, px)에 얹으므로 서로 간섭하지
-    // 않는다 — 입장 애니메이션과 같은 축을 공유하므로, 입장이 끝난 뒤에만
-    // 활성화한다.
-    let lastScrollY = window.scrollY;
-    let boost = 0;
-    let scrollActive = false;
-    const setBoost = gsap.quickTo(track, "x", { duration: 0.5, ease: "power3.out" });
-
-    const handleScroll = () => {
-      const currentY = window.scrollY;
-      boost = gsap.utils.clamp(-500, 500, boost + (currentY - lastScrollY) * -4);
-      lastScrollY = currentY;
-    };
-
-    const decay = () => {
-      if (!scrollActive || Math.abs(boost) < 0.5) return;
-      boost *= 0.92;
-      setBoost(boost);
-    };
-    gsap.ticker.add(decay);
-
-    const activateScrollReaction = () => {
-      lastScrollY = window.scrollY;
-      scrollActive = true;
-      window.addEventListener("scroll", handleScroll, { passive: true });
-    };
-
     let hasEntered = false;
 
     // 스크롤로 화면 밖에 나가 있는 동안엔 세 트윈을 전부 멈춰서 불필요한
-    // 리소스 소모를 막는다(Hero3DLogo/HeroEmbers/Footer와 같은 원칙).
+    // 리소스 소모를 막는다(Hero3DLogo/HeroEmbers/Footer와 같은 원칙). 스크롤
+    // 입력 자체에 반응해서 움직이는 게 아니라, 화면에 들어오는 시점에 맞춰
+    // 자동으로(사용자의 스크롤 동작과 무관하게) 화면 밖에서 흘러들어와 계속
+    // 흐르게 한다.
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) {
         tweens.forEach((t) => t.pause());
-        scrollActive = false;
-        window.removeEventListener("scroll", handleScroll);
         return;
       }
       if (!hasEntered) {
@@ -126,22 +97,16 @@ export default function WorkTogether({ text = DEFAULT_WORK_TOGETHER_TEXT }: { te
           x: 0,
           duration: 1.4,
           ease: "power3.out",
-          onComplete: () => {
-            tweens.forEach((t) => t.play());
-            activateScrollReaction();
-          },
+          onComplete: () => tweens.forEach((t) => t.play()),
         });
         return;
       }
       tweens.forEach((t) => t.play());
-      activateScrollReaction();
     });
     observer.observe(section);
 
     return () => {
       observer.disconnect();
-      window.removeEventListener("scroll", handleScroll);
-      gsap.ticker.remove(decay);
       tweens.forEach((t) => t.kill());
     };
   }, [text]);
