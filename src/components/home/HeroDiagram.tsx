@@ -645,9 +645,11 @@ function FeatureCard({ icon, heading, body }: FeatureCardItem) {
         />
         {/* heading은 여전히 [줄1, 줄2] 배열로 받지만(다른 곳에서 2줄로 쓸 수도
             있으니 데이터 구조는 그대로 둔다), 여기서는 <br/> 없이 한 줄로
-            이어붙여서 렌더링한다. */}
+            이어붙여서 렌더링한다. 관리자가 둘째 줄을 비워뒀다면(한 줄짜리
+            제목) filter(Boolean)으로 빈 문자열을 걸러내 불필요한 공백이
+            남지 않게 한다. */}
         <h3 className="mt-8 font-ko text-xl leading-7 font-medium text-white max-sm:text-lg max-sm:leading-6">
-          {heading.join(" ")}
+          {heading.filter(Boolean).join(" ")}
         </h3>
         {/* 제목(흰색)보다 한 단계 낮은 계층으로 읽히도록 흰색 70% 불투명도로
             내린다 — 회색 계열(text-secondary-txt) 대신 흰색 베이스를 써야

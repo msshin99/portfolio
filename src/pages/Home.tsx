@@ -43,7 +43,7 @@ import {
   DEFAULT_SKILLS_TITLE,
 } from "../data/siteDefaults";
 import { usePortfolios, mapRowToWorkItem } from "../lib/portfolioApi";
-import { useSiteContent, getSiteText, getSiteImage } from "../lib/siteContentApi";
+import { useSiteContent, getSiteText, getSiteTextOptional, getSiteImage } from "../lib/siteContentApi";
 
 const DEFAULT_INTRO_HEADING_KO =
   "디자인은 사람을 움직이고, 사람은 세상을 움직입니다. 디자인은 보이는 것이 아니라 느끼고, 기억하고, 연결되는 것입니다.";
@@ -100,7 +100,10 @@ function resolveHeroFeatures(siteContent: Parameters<typeof getSiteText>[0]): Fe
       icon: resolveFeatureIcon(iconText, item.icon),
       heading: [
         getSiteText(siteContent, `hero_feature_${n}_heading1`, item.heading[0]),
-        getSiteText(siteContent, `hero_feature_${n}_heading2`, item.heading[1]),
+        // heading2는 "둘째 줄"이 없는 한 줄짜리 제목도 허용해야 해서, 관리자가
+        // 일부러 비워 저장했다면 예전 기본 문구로 되돌아가지 않고 빈 문자열을
+        // 그대로 쓴다(getSiteTextOptional 참고).
+        getSiteTextOptional(siteContent, `hero_feature_${n}_heading2`, item.heading[1]),
       ],
       body: getSiteText(siteContent, `hero_feature_${n}_body`, item.body),
     };

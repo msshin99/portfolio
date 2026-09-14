@@ -73,6 +73,19 @@ export function getSiteText(rows: SiteContentRow[] | null, key: string, fallback
   return row?.value_text?.trim() ? row.value_text : fallback;
 }
 
+/** getSiteText와 같지만, 원래 비어있어도 되는(선택적) 필드에 쓴다 — 관리자가
+ *  명시적으로 값을 지우고 저장했다면(row는 존재하지만 value_text가 빈
+ *  문자열) 그 의도를 그대로 존중해 빈 문자열을 반환하고, row 자체가 아직
+ *  없으면(한 번도 안 건드린 상태) fallback을 보여준다. getSiteText는 이
+ *  두 경우를 구분하지 않고 둘 다 fallback으로 되돌려서, "제목 둘째 줄"처럼
+ *  일부러 비워두고 싶은 필드를 지워도 예전 기본 문구가 계속 따라붙는
+ *  문제가 있었다. */
+export function getSiteTextOptional(rows: SiteContentRow[] | null, key: string, fallback: string): string {
+  const row = rows?.find((r) => r.key === key);
+  if (!row) return fallback;
+  return row.value_text ?? "";
+}
+
 export function getSiteImage(rows: SiteContentRow[] | null, key: string, fallback: string): string {
   const row = rows?.find((r) => r.key === key);
   return row?.value_image_url?.trim() ? row.value_image_url : fallback;
