@@ -764,11 +764,10 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       };
 
       // Phase 1: 화면 밖 -> 글자 모양으로 모임 (파티클마다 랜덤 stagger)
-      // 파티클이 화면 밖에서 날아드는 이 구간은 잔상(trail)을 켜서, 쏟아져
-      // 들어오는 궤적 자체가 짧은 빛줄기처럼 보이게 한다. 사용자에게 처음
-      // 보이는 화면이라 너무 강한 인상을 주지 않도록, intensity를 낮추고
-      // (곡선 굴곡/흔들림 폭을 줄임) 착지 바운스도 완만한 ease로 눌러둔다.
-      master.call(() => { trailState.active = true; }, [], 0);
+      // 사용자에게 처음 보이는 화면이라 정신없이 화려해 보이지 않도록, 잔상
+      // (빛줄기) 자체를 켜지 않고, 곡선 굴곡/흔들림 폭(intensity)도 크게
+      // 낮췄다. 착지도 튕기지 않고 매끄럽게 감속만 하는 ease로 조용히
+      // 자리를 잡는다.
       particles.forEach((p) => {
         flyAlongCurve(
           p,
@@ -778,8 +777,8 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           p.textY,
           timing.gatherDuration,
           Math.random() * timing.gatherStaggerMax,
-          0.6,
-          "back.out(1.15)"
+          0.3,
+          "power2.out"
         );
       });
       const phase1End = timing.gatherStaggerMax + timing.gatherDuration;
