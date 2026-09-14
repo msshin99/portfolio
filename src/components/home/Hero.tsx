@@ -416,19 +416,20 @@ export default function Hero({
       // 텍스트는 3D 로고에 호버해서 웨이브 인터랙션을 걸 때도 흔들리지 않도록,
       // 진입 애니메이션 이후에는 위치를 그대로 고정해둔다(마우스 패럴랙스 없음).
       // 인트로가 끝나고 처음 드러나는 화면이라 좀 더 임팩트가 필요했다 — 귀퉁이
-      // 텍스트의 이동 거리를 키웠다. 로고는 back-ease의 오버슈트(최종 크기보다
-      // 한번 더 커졌다가 줄어드는 튕김)가 "크기가 갑자기 또 바뀐다"는 인상을
-      // 줘서, 오버슈트 없이 매끄럽게 감속만 하는 ease(power3.out)로 바꿔
-      // 커지는 동안 크기가 한 방향으로만 안정적으로 변하도록 했다. 가장 큰
-      // 스테이트먼트 타이틀은 블록 전체가 아니라 글자 하나하나가 아래에서
-      // 블러가 걷히며 튀어오르는 순서대로 등장해서(statementCharsRef), 화면에서
-      // 가장 시선을 끄는 요소가 확실한 존재감으로 "터지듯" 나타나도록 했다.
+      // 텍스트의 이동 거리를 키웠다. 로고는 scale을 아예 애니메이션하지 않는다
+      // — 작은 크기에서 시작해 커지는 스케일업은(오버슈트를 없앤 뒤에도) 크기
+      // 자체가 계속 바뀌는 동안이 "작아졌다 갑자기 커진다"는 인상을 줘서,
+      // 처음부터 최종 크기 그대로 두고 opacity 페이드인만으로 등장하게 했다
+      // — 크기는 한 번도 바뀌지 않고 그대로 유지된다. 가장 큰 스테이트먼트
+      // 타이틀은 블록 전체가 아니라 글자 하나하나가 아래에서 블러가 걷히며
+      // 튀어오르는 순서대로 등장해서(statementCharsRef), 화면에서 가장 시선을
+      // 끄는 요소가 확실한 존재감으로 "터지듯" 나타나도록 했다.
       const statementChars = statementCharsRef.current.filter((el): el is HTMLSpanElement => !!el);
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
       tl.from([labelRef.current, taglineRef.current], { opacity: 0, y: -32, duration: 1, stagger: 0.12 })
         .from(
           logoWrapRef.current,
-          { opacity: 0, scale: 0.72, duration: 1.6, ease: "power3.out" },
+          { opacity: 0, duration: 1.6, ease: "power3.out" },
           "-=0.6",
         )
         .from(
