@@ -38,14 +38,13 @@ const REPEL_RADIUS = 140;
 const REPEL_STRENGTH = 2600;
 const SPRING_K = 90;
 
-/** 두 번째 형태(별) 관련 상수 — 링 개수, 별 꼭짓점 개수, 안쪽/바깥쪽 반지름
- *  비율. 별 모양(star OUTLINE)은 꼭짓점을 건너뛰며 잇는 별 다각형(star
- *  polygon)과 달리 바깥/안쪽 점을 번갈아 순서대로 잇기만 해서 선이 서로
- *  교차하지 않는다 — 화려하면서도 난해해 보이지 않는 별 모양을 원한다는
- *  피드백에 따른 선택. */
-const STAR_RING_COUNT = 4;
-const STAR_POINTS = 5;
-const STAR_INNER_RATIO = 0.46;
+/** 두 번째 형태(성긴 고리)의 반지름 비율과, 반지름을 얼마나 흐트러뜨릴지(성김
+ *  정도)를 정하는 상수. */
+const SCATTER_RING_RADIUS_RATIO = 0.3;
+const SCATTER_RING_JITTER = 0.22;
+/** 이 확률로 훨씬 멀리 떨어진 "이탈" 점을 하나씩 섞어서, 고리 바깥으로
+ *  드문드문 흩어진 참고 이미지 특유의 성긴 느낌을 낸다. */
+const SCATTER_RING_OUTLIER_CHANCE = 0.06;
 
 interface IntroTiming {
   /** 파티클 하나가 글자 모양으로 모이는 데 걸리는 시간(초) */
@@ -244,73 +243,29 @@ function sampleN<T>(arr: T[], n: number): T[] {
   return copy.slice(0, n);
 }
 
-/** 정n각별의 둘레 위의 한 점을 반환한다 — t는 둘레를 한 바퀴 도는 비율(0~1).
- *  꼭짓점을 건너뛰며 잇는 별 다각형(star polygon, 오각별 {5/2} 같은)과 달리
- *  바깥쪽(outerR)과 안쪽(innerR) 점을 번갈아 "순서대로" 잇기만 한다 — 흔히
- *  아는 매끈한 별 모양(★) 하나가 그려질 뿐, 선이 스스로 교차하지 않아
- *  아무리 겹쳐도 복잡해 보이지 않는다. */
-function starOutlinePoint(
-  cx: number,
-  cy: number,
-  outerR: number,
-  innerR: number,
-  points: number,
-  rotation: number,
-  t: number
-): Point {
-  const totalVerts = points * 2;
-  const seg = Math.floor(t * totalVerts) % totalVerts;
-  const segT = t * totalVerts - Math.floor(t * totalVerts);
-  const angleStep = Math.PI / points;
-  const r1 = seg % 2 === 0 ? outerR : innerR;
-  const r2 = (seg + 1) % 2 === 0 ? outerR : innerR;
-  const a1 = rotation + seg * angleStep;
-  const a2 = rotation + (seg + 1) * angleStep;
-  const x1 = cx + Math.cos(a1) * r1;
-  const y1 = cy + Math.sin(a1) * r1;
-  const x2 = cx + Math.cos(a2) * r2;
-  const y2 = cy + Math.sin(a2) * r2;
-  return { x: x1 + (x2 - x1) * segT, y: y1 + (y2 - y1) * segT };
-}
-
-/** count를 STAR_RING_COUNT개의 겹(별 크기)로 나눠 배분한다 — 바깥 겹일수록
- *  둘레가 기니까 더 많은 점을 배정한다. buildStarPoints와 별자리 연결선
- *  계산 양쪽에서 같은 배분을 써야 겹 경계가 어긋나지 않는다. */
-function computeStarRingSizes(count: number): number[] {
-  const sizes: number[] = [];
-  let remaining = count;
-  const totalWeight = (STAR_RING_COUNT * (STAR_RING_COUNT + 1)) / 2;
-  for (let ring = 1; ring <= STAR_RING_COUNT; ring++) {
-    if (ring === STAR_RING_COUNT) {
-      sizes.push(Math.max(1, remaining));
-      break;
-    }
-    const n = Math.max(6, Math.round((ring / totalWeight) * count));
-    sizes.push(n);
-    remaining -= n;
-  }
-  return sizes;
-}
-
-/** 파티클 개수만큼 화면 중앙에 겹겹이 포개진 매끈한 별(★) 좌표를 배치한다.
- *  꼭짓점을 건너뛰며 잇는 별 다각형(오각별·칠각별 등)은 화려하지만 선이
- *  스스로 교차해 난해해 보인다는 피드백을 받아, 아주 단순한 5각 별
- *  윤곽선을 크기만 다르게 여러 겹 겹치는 방식으로 되돌렸다 — 화려함은
- *  겹의 개수로, 명료함은 교차 없는 별 윤곽선으로 확보한다. 모든 겹이 같은
- *  회전(정오 방향으로 한 꼭짓점)을 공유해 축이 어긋나지 않는다. */
-function buildStarPoints(count: number, width: number, height: number): Point[] {
+/** 파티클 개수만큼 화면 중앙에 성긴 고리(scattered ring) 좌표를 배치한다.
+ *  참고 이미지처럼 딱 떨어지는 도형이 아니라, 반지름을 중심으로 안개처럼
+ *  흐트러진 점들이 대략 원형 띠를 이루고 드문드문 이탈한 점들이 바깥으로
+ *  흩어져 있는 유기적인 느낌을 낸다. 각도는 완전히 무작위라 별자리
+ *  연결선을 그릴 순서 자체가 없다(setupAndPlay에서 이 형태일 땐
+ *  gridLines를 비워둔다). */
+function buildScatterRingPoints(count: number, width: number, height: number): Point[] {
   const cx = width / 2;
   const cy = height / 2;
-  const maxOuter = Math.min(width, height) * 0.42;
-  const sizes = computeStarRingSizes(count);
+  const baseR = Math.min(width, height) * SCATTER_RING_RADIUS_RATIO;
   const points: Point[] = [];
-  sizes.forEach((n, ringIdx) => {
-    const outerR = ((ringIdx + 1) / STAR_RING_COUNT) * maxOuter;
-    const innerR = outerR * STAR_INNER_RATIO;
-    for (let j = 0; j < n; j++) {
-      points.push(starOutlinePoint(cx, cy, outerR, innerR, STAR_POINTS, -Math.PI / 2, j / n));
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    // 균등분포 네 개를 더해 대략 정규분포에 가까운 흔들림을 만든다 —
+    // 고리 반지름 주변에 점들이 몰리되, 완전히 균일하게 퍼지지는 않는다.
+    const wobble = (Math.random() + Math.random() + Math.random() + Math.random() - 2) / 2;
+    let offset = wobble * baseR * SCATTER_RING_JITTER;
+    if (Math.random() < SCATTER_RING_OUTLIER_CHANCE) {
+      offset += (Math.random() < 0.5 ? -1 : 1) * baseR * (0.35 + Math.random() * 0.55);
     }
-  });
+    const r = Math.max(baseR * 0.06, baseR + offset);
+    points.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
+  }
   return points;
 }
 
@@ -638,7 +593,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       if (cancelled) return;
       const count = getParticleCount(width);
       const { points: textPoints, textBottom } = buildTextPoints(TEXT, width, height, count);
-      const gridPoints = buildStarPoints(count, width, height);
+      const gridPoints = buildScatterRingPoints(count, width, height);
 
       // 서브 문구를 퍼센트 기반 고정 위치가 아니라, 실제로 그려진 "MSSHIN" 글자
       // 실루엣 바로 아래 30px 지점에 둔다.
@@ -677,21 +632,10 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         return d < dc ? p : closest;
       }, particles[0]);
 
-      // 별자리 연결선 쌍을 미리 계산해둔다 — 각 겹에 속한 점들을 그 겹
-      // 안에서만 순서대로 잇고 마지막 점을 다시 첫 점과 이어 닫힌 별
-      // 윤곽선을 만든다. 겹을 넘나드는 선은 두지 않아서, 겹겹이 포개진
-      // 별들이 교차 없이 또렷하게 겹쳐 보인다.
-      const starRingSizes = computeStarRingSizes(count);
+      // 성긴 고리는 각도가 완전히 무작위라 "인접한 점"이라는 개념 자체가
+      // 없다 — 별자리 연결선 없이 순수하게 점들만으로 안개 같은 띠가
+      // 드러나게 한다.
       gridLines = [];
-      let starRingOffset = 0;
-      starRingSizes.forEach((n) => {
-        for (let j = 0; j < n; j++) {
-          const a = particles[starRingOffset + j];
-          const b = particles[starRingOffset + ((j + 1) % n)];
-          gridLines.push([a, b]);
-        }
-        starRingOffset += n;
-      });
 
       gsap.ticker.add(render);
 
