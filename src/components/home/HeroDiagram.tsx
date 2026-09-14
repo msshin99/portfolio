@@ -630,8 +630,7 @@ function FeatureCard({ icon, heading, body }: FeatureCardItem) {
   return (
     <div
       className={[
-        "group relative overflow-hidden rounded-2xl p-8 max-lg:p-7 max-sm:p-6",
-        GLASS_CLASS,
+        "group relative overflow-hidden rounded-2xl border border-white/[0.04] p-8 max-lg:p-7 max-sm:p-6",
         "transition-colors duration-500 ease-out hover:border-primary-txt/50",
       ].join(" ")}
       style={FEATURE_CARD_STYLE}
