@@ -793,7 +793,10 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
         // 달라 어떤 건 거의 반 바퀴 휘돌고 어떤 건 상대적으로 완만하게 날아온다.
         const bulge = bulgeSign * (0.3 + Math.random() * 0.8) * dist * intensity;
         const wobbleAmp = (0.06 + Math.random() * 0.16) * dist * intensity;
-        const wobbleFreq = 2 + Math.random() * 3.5;
+        // 예전엔 2~5.5 사이라 경로 하나에 흔들림이 여러 번 겹쳐 잘게 잔물결치듯
+        // 보였다 — 1~2.2로 낮춰서 물 흐르듯 한 번의 완만한 S자 굴곡만 그리며
+        // 지나가게 한다.
+        const wobbleFreq = 1 + Math.random() * 1.2;
         const ctrlX = (fromX + toX) / 2 + perpX * bulge;
         const ctrlY = (fromY + toY) / 2 + perpY * bulge;
         const proxy = { t: 0 };
@@ -857,7 +860,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       // 천천히 진행된다).
       particles.forEach((p) => {
         const delay = holdEnd + Math.random() * timing.rearrangeStaggerMax;
-        flyAlongCurve(p, p.textX, p.textY, p.gridX, p.gridY, timing.rearrangeDuration, delay, 0.35, "power3.out");
+        flyAlongCurve(p, p.textX, p.textY, p.gridX, p.gridY, timing.rearrangeDuration, delay, 0.42, "sine.inOut");
         // 자리를 잡는 동시에 크기도 함께 바뀐다 — 크고 작은 점이 뒤섞인
         // 고리가 되어 균일한 점 무더기보다 훨씬 생동감 있게 보인다. 위치
         // 트윈의 back-ease(오버슈트)와 달리 크기는 그대로 자라거나
