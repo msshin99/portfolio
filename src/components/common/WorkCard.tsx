@@ -90,13 +90,17 @@ export default function WorkCard({
     const hiddenState = { yPercent: 100, scale: 1.08, filter: "blur(8px)" };
     gsap.set(el, hiddenState);
 
+    const revealIn = () => {
+      gsap.to(el, { yPercent: 0, scale: 1, filter: "blur(0px)", duration: 0.9, ease: "revealSpring" });
+    };
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) {
           gsap.set(el, hiddenState);
           return;
         }
-        gsap.to(el, { yPercent: 0, scale: 1, filter: "blur(0px)", duration: 0.9, ease: "revealSpring" });
+        revealIn();
 
         // 모바일에서는 한 번 나타난 뒤로는 다시 숨기지 않는다 — 옵저버를 아예
         // 끊어서, 스크롤을 내렸다가 다시 올릴 때 재생 대기 없이 항상 보이게 한다.
@@ -110,7 +114,25 @@ export default function WorkCard({
     );
     observer.observe(el);
 
-    return () => observer.disconnect();
+    // 안전장치: "My Works" 첫 줄처럼 마운트 시점에 상위 StaggerReveal의 3D rotateX
+    // 틸트 애니메이션이 같은 순간 진행 중이면, 이 요소가 실제로는 화면에 들어와
+    // 있는데도 IntersectionObserver가 그 이후로 다시는 콜백을 전달하지 않는 경우가
+    // 관찰됐다(브라우저가 3D transform 컨텍스트 안에서 교차 판정을 갱신하지 못하는
+    // 것으로 보임) — 그 결과 썸네일이 아래로 밀려나고 확대·흐려진 숨김 상태로 영구히
+    // 멈춰, 마치 이미지가 잘려 보이는 것 같은 버그로 나타났다. 마운트 직후 몇 차례
+    // 좌표를 직접 검사해 observer가 놓친 경우를 보정한다.
+    const fallbackTimers = [300, 900, 2000].map((delay) =>
+      window.setTimeout(() => {
+        if (gsap.getProperty(el, "yPercent") === 0) return;
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight + 400 && rect.bottom > 0) revealIn();
+      }, delay),
+    );
+
+    return () => {
+      observer.disconnect();
+      fallbackTimers.forEach((id) => window.clearTimeout(id));
+    };
   }, [thumbnailReveal]);
 
   // 클릭한 순간 이 카드는 layoutId 공유 그룹에서 스스로 "이탈"한다 — 배경 리스트는 모달이 뜬
