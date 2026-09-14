@@ -38,6 +38,11 @@ const REPEL_RADIUS = 140;
 const REPEL_STRENGTH = 2600;
 const SPRING_K = 90;
 
+/** 얼굴 형태의 하프톤 반지름 범위 — 그림자(어두운 곳)는 MIN, 빛을 받는
+ *  부분(밝은 곳)은 MAX에 가깝게 그린다. */
+const FACE_MIN_RADIUS = 0.6;
+const FACE_MAX_RADIUS = 5.2;
+
 interface IntroTiming {
   /** 파티클 하나가 글자 모양으로 모이는 데 걸리는 시간(초) */
   gatherDuration: number;
@@ -247,15 +252,21 @@ function sampleN<T>(arr: T[], n: number): T[] {
  *  채운다 — 텍스트는 내부를 채우면 굵은 글씨가 뭉뚱그려진 블록처럼
  *  보였지만, 얼굴처럼 폭이 계속 변하는 유기적 형태는 내부를 채워야
  *  참고 이미지처럼 "점으로 빼곡한 초상화"에 가까워진다. */
-function buildFacePoints(width: number, height: number, targetCount: number): Point[] {
+interface FacePointsResult {
+  points: Point[];
+  /** 각 점에 대응하는 0~1 밝기 — 하프톤처럼 밝을수록(빛을 받은 쪽) 큰 원,
+   *  어두울수록(그림자) 작은 원으로 그리는 데 쓴다. points와 같은 인덱스로 짝지어진다. */
+  intensities: number[];
+}
+
+function buildFacePoints(width: number, height: number, targetCount: number): FacePointsResult {
   const off = document.createElement("canvas");
   off.width = width;
   off.height = height;
   const octx = off.getContext("2d");
-  if (!octx) return [];
+  if (!octx) return { points: [], intensities: [] };
 
   octx.clearRect(0, 0, width, height);
-  octx.fillStyle = "#fff";
 
   const cx = width / 2;
   const s = Math.min(width, height) * 0.34;
@@ -263,18 +274,63 @@ function buildFacePoints(width: number, height: number, targetCount: number): Po
   // 얼굴만 정중앙에 놓으면 아래쪽 여백이 허전해 보인다.
   const fy = height * 0.4;
 
-  // 머리카락 + 얼굴 윤곽 — 정수리에서 양옆으로 부풀었다가 턱으로 모이는
-  // 하나의 이어진 실루엣.
+  // 얼굴+머리카락 실루엣 경로 — 정수리에서 양옆으로 부풀었다가 턱으로 모이는
+  // 하나의 이어진 곡선. 이 경로로 클립을 걸어, 그 안을 평평한 흰색 한 장
+  // 대신 방향성 있는 명암(그라디언트)으로 채운다 — 참고 이미지처럼 빛을
+  // 받는 쪽은 크고 촘촘한 원으로, 그림자 쪽은 작고 성긴 원으로 갈리는
+  // 하프톤 느낌은 밝기 차이가 있어야만 나온다.
+  const faceHairPath = () => {
+    octx.beginPath();
+    octx.moveTo(cx - s * 0.8, fy + s * 0.1);
+    octx.bezierCurveTo(cx - s * 1.0, fy - s * 0.55, cx - s * 0.45, fy - s * 1.05, cx, fy - s * 1.0);
+    octx.bezierCurveTo(cx + s * 0.45, fy - s * 1.05, cx + s * 1.0, fy - s * 0.55, cx + s * 0.8, fy + s * 0.1);
+    octx.bezierCurveTo(cx + s * 0.74, fy + s * 0.55, cx + s * 0.4, fy + s * 0.95, cx, fy + s * 1.05);
+    octx.bezierCurveTo(cx - s * 0.4, fy + s * 0.95, cx - s * 0.74, fy + s * 0.55, cx - s * 0.8, fy + s * 0.1);
+    octx.closePath();
+  };
+
+  octx.save();
+  faceHairPath();
+  octx.clip();
+
+  // 왼쪽 위에서 빛이 들어와 오른쪽 아래로 갈수록 그림자가 지는 방향성 조명 —
+  // 흰색(가장 밝음) -> 회색 -> 검정(가장 어두움) 순으로, 얼굴 전체에 걸쳐
+  // 큰 명암 대비를 만든다.
+  const lightGrad = octx.createLinearGradient(cx - s * 0.9, fy - s * 1.1, cx + s * 0.5, fy + s * 0.9);
+  lightGrad.addColorStop(0, "#ffffff");
+  lightGrad.addColorStop(0.45, "#aaaaaa");
+  lightGrad.addColorStop(0.75, "#444444");
+  lightGrad.addColorStop(1, "#0a0a0a");
+  octx.fillStyle = lightGrad;
+  octx.fillRect(cx - s * 1.2, fy - s * 1.3, s * 2.4, s * 2.6);
+
+  // 머리카락 — 정수리~양옆을 짙게 덮어서 얼굴보다 어두운 덩어리로 구분되게
+  // 한다(그 자체로도 빛 받는 쪽/그림자 쪽 명암을 살짝 준다).
+  const hairGrad = octx.createLinearGradient(cx - s * 0.9, fy - s, cx + s * 0.6, fy - s * 0.2);
+  hairGrad.addColorStop(0, "#555555");
+  hairGrad.addColorStop(1, "#0a0a0a");
+  octx.fillStyle = hairGrad;
   octx.beginPath();
-  octx.moveTo(cx - s * 0.8, fy + s * 0.1);
-  octx.bezierCurveTo(cx - s * 1.0, fy - s * 0.55, cx - s * 0.45, fy - s * 1.05, cx, fy - s * 1.0);
-  octx.bezierCurveTo(cx + s * 0.45, fy - s * 1.05, cx + s * 1.0, fy - s * 0.55, cx + s * 0.8, fy + s * 0.1);
-  octx.bezierCurveTo(cx + s * 0.74, fy + s * 0.55, cx + s * 0.4, fy + s * 0.95, cx, fy + s * 1.05);
-  octx.bezierCurveTo(cx - s * 0.4, fy + s * 0.95, cx - s * 0.74, fy + s * 0.55, cx - s * 0.8, fy + s * 0.1);
-  octx.closePath();
+  octx.ellipse(cx, fy - s * 0.62, s * 0.92, s * 0.58, 0, Math.PI * 0.92, Math.PI * 2.08);
   octx.fill();
 
-  // 목 + 어깨 — 얼굴 아래에서 화면 하단까지 사다리꼴로 넓어지며 이어진다.
+  // 두 눈 — 완전히 지우지 않고 짙은 회색으로만 눌러서, 점이 아예 없는
+  // 구멍이 아니라 유독 작고 성긴 점들로 "눈"이 읽히게 한다.
+  octx.fillStyle = "#1a1a1a";
+  for (const dir of [-1, 1]) {
+    octx.beginPath();
+    octx.ellipse(cx + dir * s * 0.27, fy - s * 0.03, s * 0.1, s * 0.06, 0, 0, Math.PI * 2);
+    octx.fill();
+  }
+  // 콧대 — 얼굴 중앙에 옅은 밝은 세로 띠를 살짝 얹어 입체감을 더한다.
+  octx.fillStyle = "rgba(255,255,255,0.35)";
+  octx.beginPath();
+  octx.ellipse(cx - s * 0.04, fy + s * 0.28, s * 0.07, s * 0.32, -0.08, 0, Math.PI * 2);
+  octx.fill();
+  octx.restore();
+
+  // 목 + 어깨 — 같은 방향의 빛을 받되 얼굴보다 좁은 명암 범위로, 옷의
+  // 질감처럼 좀 더 평평하게 그린다.
   const neckTop = fy + s * 0.9;
   const shoulderY = Math.min(height * 0.92, fy + s * 2.6);
   octx.beginPath();
@@ -283,55 +339,43 @@ function buildFacePoints(width: number, height: number, targetCount: number): Po
   octx.lineTo(cx + s * 1.55, shoulderY);
   octx.lineTo(cx + s * 0.26, neckTop);
   octx.closePath();
+  const shoulderGrad = octx.createLinearGradient(cx - s * 1.2, neckTop, cx + s * 0.8, shoulderY);
+  shoulderGrad.addColorStop(0, "#cfcfcf");
+  shoulderGrad.addColorStop(0.5, "#6b6b6b");
+  shoulderGrad.addColorStop(1, "#181818");
+  octx.fillStyle = shoulderGrad;
   octx.fill();
 
-  // 두 눈 자리는 파내서 점이 찍히지 않는 작은 빈틈으로 남긴다.
-  octx.save();
-  octx.globalCompositeOperation = "destination-out";
-  for (const dir of [-1, 1]) {
-    octx.beginPath();
-    octx.ellipse(cx + dir * s * 0.27, fy - s * 0.05, s * 0.09, s * 0.055, 0, 0, Math.PI * 2);
-    octx.fill();
-  }
-  octx.restore();
-
+  // ---- 밝기 기반 샘플링 ----
+  // 실루엣 가장자리를 딱딱한 경계로 자르지 않기 위해, 캔버스 전체를 격자로
+  // 훑으면서 완전히 빈(알파 0) 배경만 걸러내고 나머지는 밝기(intensity)를
+  // 그대로 들고 간다 — 배경과 맞닿는 가장자리일수록 자연히 옅고 작은
+  // 점만 남아, 참고 이미지처럼 경계가 또렷한 선 대신 점점 옅어지는
+  // 느낌을 낸다.
   const { data } = octx.getImageData(0, 0, width, height);
-  const ALPHA_THRESHOLD = 120;
-  const isSolid = (x: number, y: number) => {
-    if (x < 0 || x >= width || y < 0 || y >= height) return false;
-    return data[(y * width + x) * 4 + 3] > ALPHA_THRESHOLD;
-  };
-
-  // 실루엣 내부를 고르게 채우는 격자 샘플링 — step을 이분 탐색으로
-  // targetCount에 가장 가까운 값으로 맞춘다(buildTextPoints와 같은 기법).
-  const collectAtStep = (step: number): Point[] => {
-    const pts: Point[] = [];
-    for (let y = 0; y < height; y += step) {
-      for (let x = 0; x < width; x += step) {
-        if (isSolid(x, y)) pts.push({ x, y });
-      }
+  const step = Math.max(2, Math.round(Math.min(width, height) / 70));
+  const candidates: { x: number; y: number; intensity: number }[] = [];
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
+      const i = (y * width + x) * 4;
+      const a = data[i + 3];
+      if (a < 10) continue;
+      const luminance = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) / 255;
+      const intensity = luminance * (a / 255);
+      if (intensity < 0.04) continue;
+      candidates.push({
+        x: x + (Math.random() - 0.5) * step * 0.5,
+        y: y + (Math.random() - 0.5) * step * 0.5,
+        intensity,
+      });
     }
-    return pts;
-  };
-
-  let lo = 1;
-  let hi = Math.max(2, Math.round(Math.min(width, height) / 3));
-  let best = collectAtStep(Math.max(1, Math.round(Math.min(width, height) / 60)));
-  for (let i = 0; i < 18; i++) {
-    const step = Math.max(1, Math.round((lo + hi) / 2));
-    const pts = collectAtStep(step);
-    if (pts.length === 0) {
-      hi = step;
-      continue;
-    }
-    best = pts;
-    if (pts.length > targetCount) lo = step + 1;
-    else hi = step;
-    if (Math.abs(pts.length - targetCount) <= Math.max(2, targetCount * 0.03)) break;
-    if (lo >= hi) break;
   }
 
-  return sampleN(best, targetCount);
+  const picked = sampleN(candidates, targetCount);
+  return {
+    points: picked.map((c) => ({ x: c.x, y: c.y })),
+    intensities: picked.map((c) => c.intensity),
+  };
 }
 
 /** 파티클의 시작 위치 — 화면 네 변 중 하나를 골라 그 바깥쪽 화면 밖 어딘가에 둔다. */
@@ -356,6 +400,9 @@ interface Particle extends Point {
   gridX: number;
   gridY: number;
   radius: number;
+  /** 얼굴 형태로 모일 때 이 점이 맡아야 할 하프톤 반지름(밝을수록 큰 원) —
+   *  rearrange 단계에서 radius를 이 값으로 함께 트윈한다. */
+  faceRadius: number;
   // 마우스가 가까이 오면 밀려났다가 스프링처럼 되돌아오는 인터랙티브 변위.
   // GSAP가 제어하는 "목표 위치"(x, y)와는 별개로 그리기 직전에만 더해지는
   // 오프셋이라, 어떤 애니메이션 단계(gather/hold/grid)에서도 목표 위치 자체를
@@ -658,7 +705,7 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       if (cancelled) return;
       const count = getParticleCount(width);
       const { points: textPoints, textBottom } = buildTextPoints(TEXT, width, height, count);
-      const gridPoints = buildFacePoints(width, height, count);
+      const face = buildFacePoints(width, height, count);
 
       // 서브 문구를 퍼센트 기반 고정 위치가 아니라, 실제로 그려진 "MSSHIN" 글자
       // 실루엣 바로 아래 30px 지점에 둔다.
@@ -669,7 +716,8 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
 
       particles = textPoints.map((tp, i) => {
         const start = randomOffscreenPoint(width, height);
-        const gp = gridPoints[i];
+        const gp = face.points[i];
+        const intensity = face.intensities[i] ?? 0.5;
         return {
           x: start.x,
           y: start.y,
@@ -683,6 +731,9 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
           // 끊겨 보였다. 파티클 개수(getParticleCount)를 늘려 윤곽선 밀도를
           // 높이고, 반지름도 한 단계 더 키워 점 하나하나가 더 진하게 보이도록 했다.
           radius: 2.1 + Math.random() * 1.4,
+          // 하프톤 반지름 — 빛을 받는 밝은 부분은 크게, 그림자는 작게. 참고
+          // 이미지의 원 크기 대비를 흉내내려 범위를 꽤 넓게 잡았다.
+          faceRadius: FACE_MIN_RADIUS + intensity * (FACE_MAX_RADIUS - FACE_MIN_RADIUS),
           dispX: 0,
           dispY: 0,
           velX: 0,
@@ -790,16 +841,13 @@ export default function Preloader({ subtitle = DEFAULT_SUBTITLE, onFinish }: Pre
       // 재조립되는" 느낌을 낸다.
       master.call(() => { trailState.active = true; }, [], holdEnd);
       particles.forEach((p) => {
-        flyAlongCurve(
-          p,
-          p.textX,
-          p.textY,
-          p.gridX,
-          p.gridY,
-          timing.rearrangeDuration,
-          holdEnd + Math.random() * timing.rearrangeStaggerMax,
-          1.8
-        );
+        const delay = holdEnd + Math.random() * timing.rearrangeStaggerMax;
+        flyAlongCurve(p, p.textX, p.textY, p.gridX, p.gridY, timing.rearrangeDuration, delay, 1.8);
+        // 자리를 잡는 동시에 하프톤 반지름으로도 함께 자란다 — 빛을 받는
+        // 부분은 크게, 그림자는 작게 커져서 얼굴이 "조립되며 드러나는"
+        // 느낌을 준다. 위치 트윈의 back-ease(살짝 오버슈트)와 달리 반지름은
+        // 그대로 커지기만 해야 자연스러워 별도로 power2.out을 쓴다.
+        master.to(p, { radius: p.faceRadius, duration: timing.rearrangeDuration, ease: "power2.out" }, delay);
       });
       const phase2End = holdEnd + timing.rearrangeStaggerMax + timing.rearrangeDuration;
       const gridHoldEnd = phase2End + timing.gridHoldDuration;
