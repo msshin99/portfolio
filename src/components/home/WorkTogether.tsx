@@ -86,22 +86,21 @@ export default function WorkTogether({ text = DEFAULT_WORK_TOGETHER_TEXT }: { te
     // 입력 자체에 반응해서 움직이는 게 아니라, 화면에 들어오는 시점에 맞춰
     // 자동으로(사용자의 스크롤 동작과 무관하게) 화면 밖에서 흘러들어와 계속
     // 흐르게 한다.
+    //
+    // 처음엔 "정지된 판이 밀려 들어온 뒤에야 흐르기 시작"하는 2단계 동작이라
+    // 뚝뚝 끊기고 밋밋하게 느껴졌다 — 입장 오프셋(x)과 등속 흐름(xPercent)을
+    // 같은 순간부터 동시에 재생해서, 처음부터 이미 흐르고 있던 문구가 화면
+    // 오른쪽 바깥에서 자연스럽게 흘러 들어오는 것처럼 보이게 한다.
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) {
         tweens.forEach((t) => t.pause());
         return;
       }
+      tweens.forEach((t) => t.play());
       if (!hasEntered) {
         hasEntered = true;
-        gsap.to(track, {
-          x: 0,
-          duration: 1.4,
-          ease: "power3.out",
-          onComplete: () => tweens.forEach((t) => t.play()),
-        });
-        return;
+        gsap.to(track, { x: 0, duration: 1.8, ease: "power2.out" });
       }
-      tweens.forEach((t) => t.play());
     });
     observer.observe(section);
 
