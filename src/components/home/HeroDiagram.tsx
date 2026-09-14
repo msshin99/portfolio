@@ -637,11 +637,6 @@ function FeatureCard({ icon, heading, body }: FeatureCardItem) {
       ].join(" ")}
       style={FEATURE_CARD_STYLE}
     >
-      {/* 고급 소재(유리/메탈) 표면에 빛이 스치듯, 호버 시 카드를 대각선으로 가로지르는
-          아주 옅은 화이트 스윕 하이라이트 — 컬러 없이 "빛이 표면을 스친다"는 감각만으로
-          질감의 고급스러움을 더한다. */}
-      <span className="pointer-events-none absolute inset-0 -translate-x-[120%] skew-x-[-18deg] bg-gradient-to-r from-transparent via-white/[0.07] to-transparent transition-transform duration-[1100ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-[120%]" />
-
       {/* 참고 이미지처럼 카드 하단 전체가 부드럽게 밝아지는 큰 그라디언트 글로우 — 평소엔
           숨어 있다가 호버 시 카드 아래쪽 대부분을 진하게 채우며 번진다. 컬러 없이 순수
           화이트 톤만으로, 중심은 진하게 바깥으로 갈수록 부드럽게 빠지는 은은한 sheen으로
