@@ -67,7 +67,7 @@ function MarqueeSet({ marqueeParts, image }: { marqueeParts: [string, string]; i
             <span className="font-en whitespace-nowrap text-6xl font-medium text-black max-lg:text-5xl max-sm:text-3xl">
               {text}
             </span>
-            <span className="block h-[116px] w-72 shrink-0 overflow-hidden rounded-full max-lg:h-20 max-lg:w-60 max-sm:h-14 max-sm:w-40">
+            <span className="block h-[136px] w-72 shrink-0 overflow-hidden rounded-full max-lg:h-20 max-lg:w-60 max-sm:h-14 max-sm:w-40">
               <img src={image} alt="" className="h-full w-full object-cover" />
             </span>
           </div>
